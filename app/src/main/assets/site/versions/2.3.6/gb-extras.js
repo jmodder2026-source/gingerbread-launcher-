@@ -11,10 +11,12 @@
   const GLYPHS = {
     back: '<path d="M16 5.5v13L6 12z"/>',
     home: '<circle cx="12" cy="12" r="6.5"/>',
-    recent: '<rect x="6" y="6" width="12" height="12" rx="1.5"/>'
+    recent: '<rect x="6" y="6" width="12" height="12" rx="1.5"/>',
+    menu: '<path d="M6 8h12M6 12h12M6 16h12"/>'
   };
-  function floatBar(t) {
-    const keys = [['back', 'back', 'Back'], ['home', 'home', 'Home'], ['recent', 'recent', 'Recent apps']];
+  // withMenu: in the launcher APK the Nexus S key row is gone, so the bar carries the Menu key too.
+  function floatBar(t, withMenu = false) {
+    const keys = [['back', 'back', 'Back'], ['home', 'home', 'Home'], ['recent', 'recent', 'Recent apps'], ...(withMenu ? [['menu', 'menu-key', 'Menu']] : [])];
     return `<div class="gbx-float-pill">${keys.map(([glyph, action, label]) => `<button type="button" class="gbx-float-key gbx-float-${glyph}" data-action="${action}" aria-label="${e(t(label))}"><svg viewBox="0 0 24 24" aria-hidden="true">${GLYPHS[glyph]}</svg></button>`).join('')}</div>`;
   }
 
@@ -27,11 +29,12 @@
   const editBar = t => `<div class="gbx-editbar"><span>${e(t('Touch × to remove an item'))}</span><button type="button" data-action="gbx-edit-done">${e(t('Done'))}</button></div>`;
 
   // The submenu behind the launcher's "Home screen" Menu item, shown as a Gingerbread list dialog.
-  function homeSubmenu(data, t) {
+  // fixedBar: the APK always shows the floating bar (it holds the Menu key), so it has no switch there.
+  function homeSubmenu(data, t, fixedBar = false) {
     const p = prefs(data), state = on => t(on ? 'On' : 'Off');
     return {title: t('Home screen'), icon: 'ic_menu_preferences', items: [
       {action: 'gbx-edit', title: t('Remove items'), summary: t('Show a delete button on apps and widgets'), icon: 'ic_menu_delete'},
-      {action: 'gbx-toggle', id: 'floatBar', title: t('Floating bar'), summary: state(p.floatBar), icon: 'ic_menu_more'},
+      ...(fixedBar ? [] : [{action: 'gbx-toggle', id: 'floatBar', title: t('Floating bar'), summary: state(p.floatBar), icon: 'ic_menu_more'}]),
       {action: 'gbx-toggle', id: 'dots', title: t('Page dots'), summary: state(p.dots), icon: 'ic_menu_view'},
       {action: 'gbx-lock', title: t('Lock screen'), summary: t('Lock the phone now'), icon: 'ic_lock_lock'}
     ]};

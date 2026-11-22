@@ -212,10 +212,10 @@
   let floatRoot = null;
   function syncFloatBar() {
     if (!floatRoot) { floatRoot = document.createElement('div'); floatRoot.id = 'gbx-float'; screen.insertBefore(floatRoot, overlayRoot); }
-    const show = GBExtras.prefs(data).floatBar && !ui.locked && !ui.sleeping && ui.view !== 'lock' && !ui.power;
+    const show = (GBExtras.prefs(data).floatBar || GBRealApps.active) && !ui.locked && !ui.sleeping && ui.view !== 'lock' && !ui.power;
     floatRoot.hidden = !show;
     screen.classList.toggle('gbx-on-home', ui.view === 'home');
-    if (show && !floatRoot.firstElementChild) floatRoot.innerHTML = GBExtras.floatBar(key => i18n.t(key));
+    if (show && !floatRoot.firstElementChild) floatRoot.innerHTML = GBExtras.floatBar(key => i18n.t(key), GBRealApps.active);
   }
   const launcherIcon = id => ICSLauncherFolders.folder(data,id)
     ? `<button class="launcher-icon" data-action="folder-open" data-folder-id="${safe(id)}" aria-label="${safe(folderName(id))}" data-no-translate>${appIcon(id)}<span>${safe(folderName(id))}</span></button>`
@@ -684,8 +684,6 @@
   function openApp(app, resume = false) {
     if(ui.locked)return;
     if (GBRealApps.isReal(app)) { ui.overlay = ''; renderOverlay(); GBRealApps.launch(app); return; }
-    if (GBRealApps.active && app === 'phone' && !resume) { GBRealApps.dial(); return; }
-    if (GBRealApps.active && app === 'browser' && !resume) { GBRealApps.browse(); return; }
     if (!appNames[app]) return;
     // A capture for Messaging lasts while the Camera is open; Messaging opens on its compose screen, not over it.
     if (!resume) { ui.gbmaCapture = null; ui.gbceCapture = null; if (app === 'messaging') ui.gbmaScreen = null; }
@@ -801,7 +799,7 @@
   // Launcher AddAdapter ("Add to Home screen"), the shortcut and widget pickers and "Select wallpaper from".
   function gbDialogSpec() {
     const t = key => i18n.t(key);
-    if (ui.overlay === 'gb-dialog-gbx-home') return GBExtras.homeSubmenu(data, t);
+    if (ui.overlay === 'gb-dialog-gbx-home') return GBExtras.homeSubmenu(data, t, GBRealApps.active);
     if (ui.overlay === 'gb-dialog-add') return {title: t('Add to Home screen'), items: [
       {action: 'gb-add-shortcuts', title: t('Shortcuts'), icon: 'l2-ic_launcher_shortcut'},
       {action: 'gb-add-widgets', title: t('Widgets'), icon: 'l2-ic_launcher_appwidget'},
