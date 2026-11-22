@@ -1,0 +1,38 @@
+/* gb-extras.js: floating navigation bar, home screen page dots and the Remove items mode. 1 dp = var(--dp). */
+
+/* Floating bar: a translucent pill above everything but menus, dialogs and the shade. */
+#gbx-float{position:absolute;left:50%;bottom:calc(8 * var(--dp));transform:translateX(-50%);z-index:9;pointer-events:none;transition:bottom .2s ease}
+#gbx-float[hidden]{display:none}
+.screen.gbx-on-home #gbx-float{bottom:calc(84 * var(--dp))}
+.screen.dragging #gbx-float{opacity:0}
+.gbx-float-pill{display:flex;gap:calc(4 * var(--dp));padding:calc(4 * var(--dp)) calc(10 * var(--dp));border-radius:calc(22 * var(--dp));background:#000000a8;box-shadow:0 calc(2 * var(--dp)) calc(8 * var(--dp)) #0008,inset 0 0 0 1px #ffffff1f;pointer-events:auto;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.gbx-float-key{width:calc(44 * var(--dp));height:calc(34 * var(--dp));border:0;border-radius:calc(17 * var(--dp));padding:0;background:transparent;display:grid;place-items:center;color:#e8f0f2!important}
+.gbx-float-key svg{width:calc(20 * var(--dp));height:calc(20 * var(--dp));fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round}
+.gbx-float-key:active,.gbx-float-key:focus-visible{background:#ffffff26;outline:0}
+
+/* Page dots: centred above the button cluster, between the previous / next screen arrows. */
+.gbx-dots{position:absolute;left:0;right:0;bottom:calc(58 * var(--dp));display:flex;justify-content:center;gap:calc(2 * var(--dp));z-index:3;pointer-events:none}
+.gbx-dot{width:calc(16 * var(--dp));height:calc(16 * var(--dp));border:0;padding:0;background:transparent;position:relative;pointer-events:auto}
+.gbx-dot:after{content:"";position:absolute;left:50%;top:50%;width:calc(6 * var(--dp));height:calc(6 * var(--dp));margin:calc(-3 * var(--dp)) 0 0 calc(-3 * var(--dp));border-radius:50%;background:#ffffff70;box-shadow:0 0 calc(2 * var(--dp)) #000a;transition:background .2s,transform .2s}
+.gbx-dot.active:after{background:#fff;transform:scale(1.25)}
+.screen.dragging .gbx-dots{visibility:hidden}
+
+/* Remove items mode: a red × on every shortcut, folder and widget, and a bar with Done at the top. */
+.home-view .gbx-x{position:absolute!important;top:calc(-2 * var(--dp))!important;right:calc(2 * var(--dp))!important;left:auto!important;bottom:auto!important;width:calc(22 * var(--dp))!important;height:calc(22 * var(--dp))!important;min-width:0!important;min-height:0!important;flex:none!important;margin:0!important;border:calc(1.5 * var(--dp)) solid #fff;border-radius:50%;padding:0;background:#d32f2f;display:grid;place-items:center;z-index:6;box-shadow:0 calc(1 * var(--dp)) calc(3 * var(--dp)) #000a;animation:gbx-pop .15s ease-out}
+.home-view .gbx-x svg{width:calc(13 * var(--dp));height:calc(13 * var(--dp));fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round}
+.home-slot,.home-widget{position:relative}
+.gbx-editing .home-slot .launcher-icon,.gbx-editing .home-widget>:not(.gbx-x){animation:gbx-wiggle .3s ease-in-out infinite alternate}
+.gbx-editing .home-widget>:not(.gbx-x){pointer-events:none}
+.gbx-editbar{position:absolute;bottom:0;left:0;right:0;height:calc(56 * var(--dp));box-sizing:border-box;z-index:7;display:flex;align-items:center;justify-content:space-between;gap:calc(8 * var(--dp));padding:calc(6 * var(--dp)) calc(8 * var(--dp)) calc(6 * var(--dp)) calc(12 * var(--dp));background:#000000c0;font-size:calc(13 * var(--dp));color:#e0e0e0}
+.gbx-editbar button{border:calc(1 * var(--dp)) solid #ffffff40;border-radius:calc(3 * var(--dp));background:#ffffff1a;color:#fff!important;font-size:calc(14 * var(--dp));padding:calc(4 * var(--dp)) calc(14 * var(--dp))}
+.gbx-editing .gbl-cluster,.gbx-editing .gbl-arrow{visibility:hidden}
+@keyframes gbx-wiggle{from{transform:rotate(-1.5deg)}to{transform:rotate(1.5deg)}}
+@keyframes gbx-pop{from{transform:scale(.3)}to{transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.gbx-editing .home-slot .launcher-icon,.gbx-editing .home-widget>*,.gbx-x{animation:none}#gbx-float{transition:none}}
+
+/* Launcher APK (gb-real-apps.js adds .apk-launcher): only the phone, filling the real screen; no site header or frame. */
+.apk-launcher .site-header,.apk-launcher #header-handle,.apk-launcher .intro-panel,.apk-launcher .site-footer,.apk-launcher .earpiece,.apk-launcher .front-camera,.apk-launcher .proximity-sensor,.apk-launcher .device-chin,.apk-launcher .volume-rocker,.apk-launcher .power-key{display:none!important}
+.apk-launcher body,.apk-launcher .page-shell{margin:0;padding:0!important;min-height:0;background:#000}
+.apk-launcher .workspace{display:block!important;padding:0!important;min-height:0!important}
+.apk-launcher .device-area{display:block!important;padding:0!important}
+.apk-launcher .device{width:100vw!important;height:100vh!important;height:100dvh!important;border:0!important;border-radius:0!important;padding:0!important;margin:0!important;background:#000!important;box-shadow:none!important}

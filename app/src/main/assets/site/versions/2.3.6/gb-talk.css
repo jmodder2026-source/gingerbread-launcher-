@@ -1,0 +1,73 @@
+/* Google Talk 1.3 (gb-talk.js): Talk2.apk's layouts in dip (1 dp = 0.8625 px), hdpi bitmaps and 9-patches x 0.575. */
+.tk{display:flex;flex-direction:column;height:100%;background:#e3e3e3;color:#000;font-family:DroidSans,Arial,sans-serif;overflow:hidden;color-scheme:light}
+.tk button{font-family:inherit}
+.tk-scroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}
+
+/* roster_list_item.xml: 65 dip, the picture, 18 sp bold name and 14 sp status, the separator, the 62 dip presence column. */
+.screen .tk-buddy,.screen .tk-self{position:relative;display:flex;align-items:stretch;width:100%;height:calc(64.9972 * var(--dp));margin:0;padding:0 0 calc(.9972 * var(--dp));border:0;background:#e3e3e3;box-shadow:inset 0 calc(-1.1595 * var(--dp)) #c9c9c9;color:#000;text-align:left;cursor:pointer}
+.screen .tk-self{height:calc(64 * var(--dp));background:#a8a8a8;color:#fff}
+.screen .tk-buddy.off{background:#ccc;color:#666}
+.screen .tk-buddy:active,.screen .tk-self:active{background:linear-gradient(#ffcd3a,#ff9c00)}
+.tk-avatar{flex:none;align-self:center;width:calc(48 * var(--dp));height:calc(48 * var(--dp));margin:0 calc(2.0058 * var(--dp));border:0 solid transparent;border-width:calc(3.0609 * var(--dp));border-image:url('assets/tk-im_avatar_picture_border_normal.png') 31 fill / calc(20.6609 * var(--dp)) stretch;box-sizing:border-box;background:#fff}
+.tk-self .tk-avatar{width:calc(52.9972 * var(--dp));height:calc(52.9972 * var(--dp))}
+.tk-avatar img{display:block;width:100%;height:100%}
+.tk-text{position:relative;flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;padding-left:calc(8 * var(--dp))}
+.tk-text b{font-size:calc(18.0058 * var(--dp));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-text small{font-size:calc(13.9943 * var(--dp));color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-self .tk-text small{color:#fff}
+.tk-buddy.off .tk-text small{color:#666}
+.tk-kind{position:absolute;right:calc(2.3189 * var(--dp));bottom:calc(3.4783 * var(--dp));width:calc(16.6725 * var(--dp));height:calc(12 * var(--dp))}
+.tk-active{align-self:center;width:calc(16 * var(--dp));height:calc(16 * var(--dp));margin-right:calc(4.6377 * var(--dp))}
+.tk-sep{flex:none;width:calc(2.0058 * var(--dp));background:url('assets/tk-seperator_vertical_light.png') 0 0/100% 100%}
+.tk-presence{flex:none;display:flex;align-items:center;justify-content:center;width:calc(62.0058 * var(--dp))}
+.tk-presence img{width:calc(24 * var(--dp));height:calc(24 * var(--dp))}
+
+/* The chat: title_message_bar.xml on header_chat (64 dip buttons), chat_screen_item.xml rows, the compose bar. */
+.tk-chatview{background:#fff}
+.tk-bar{flex:none;display:flex;align-items:center;height:calc(64 * var(--dp));border:0 solid transparent;border-image:url('assets/tk-header_chat.png') 15 14 14 15 fill / calc(9.9943 * var(--dp)) calc(9.3334 * var(--dp)) calc(9.3334 * var(--dp)) calc(9.9943 * var(--dp)) stretch;color:#fff}
+.tk-who{flex:1;min-width:0;display:flex;flex-direction:column;padding:0 calc(8 * var(--dp))}
+.tk-who b{font-size:calc(18.0058 * var(--dp));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-who small{font-size:calc(13.9943 * var(--dp));color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-pres{flex:none;width:calc(24 * var(--dp));height:calc(24 * var(--dp));margin:0 calc(8 * var(--dp))}
+.tk-msep{flex:none;align-self:stretch;width:calc(2.0058 * var(--dp));background:url('assets/tk-seperator_vertical_light.png') 0 0/100% 100%;opacity:.5}
+.screen .tk-bar button{flex:none;width:calc(52 * var(--dp));height:100%;padding:0;border:0;background:none;cursor:pointer}
+.screen .tk-bar button:active{background:#ff9c0080}
+.tk-bar button img{width:calc(32 * var(--dp));height:calc(32 * var(--dp))}
+.tk-history{background:#fff}
+.tk-msg{display:flex;align-items:flex-start;background:#effbff}
+.tk-msg.me{background:#fff}
+.tk-badge{flex:none;width:calc(38.9566 * var(--dp));height:calc(38.9566 * var(--dp));margin:calc(4.9972 * var(--dp)) calc(2.0058 * var(--dp)) calc(4.9972 * var(--dp)) calc(4.9972 * var(--dp))}
+.tk-msg p{flex:1;min-width:0;margin:0;padding:calc(6.0058 * var(--dp)) calc(7.0029 * var(--dp)) calc(3.0029 * var(--dp)) calc(4.9972 * var(--dp));font-size:calc(18.0058 * var(--dp));line-height:1.3;word-wrap:break-word}
+.tk-msg b{color:#7785e0}
+.tk-msg.me b{color:#3492c5}
+.tk-emo{width:calc(20 * var(--dp));height:calc(20 * var(--dp));vertical-align:calc(-3.4783 * var(--dp))}
+.tk-note{margin:0;padding:calc(4.6377 * var(--dp)) calc(9.2754 * var(--dp));background:#ffffe0;color:#555;font-size:calc(13.9943 * var(--dp));text-align:center}
+.tk-compose{flex:none;display:flex;align-items:stretch;gap:calc(4 * var(--dp));padding:calc(4 * var(--dp)) calc(4.9972 * var(--dp)) 0;background:url('assets/tk-bottombar_landscape_565.png') 0 0/100% 100%}
+.tk-compose input{flex:1;min-width:0;min-height:calc(48 * var(--dp));border:0 solid transparent;border-image:url('assets/gb-textfield_default.png') 32 16 39 16 fill / calc(21.3334 * var(--dp)) calc(10.6667 * var(--dp)) calc(26.0058 * var(--dp)) calc(10.6667 * var(--dp)) stretch;padding:calc(6.6667 * var(--dp)) calc(10.6667 * var(--dp)) calc(11.3392 * var(--dp));background:none;color:#000;font:400 calc(18.0058 * var(--dp)) DroidSans,Arial,sans-serif;outline:0}
+.tk-compose input:focus{border-image-source:url('assets/gb-textfield_selected.png')}
+.screen .tk-compose button{flex:none;min-width:calc(69.5653 * var(--dp));padding:0 calc(10.4348 * var(--dp)) calc(5.7972 * var(--dp));border:0 solid transparent;border-image:url('assets/gb-btn_default_normal.png') 5 7 12 7 fill / calc(3.3392 * var(--dp)) calc(4.6725 * var(--dp)) calc(8 * var(--dp)) stretch;background:none;color:#000;font-size:calc(13.9943 * var(--dp));cursor:pointer}
+.screen .tk-compose button:active{border-image:url('assets/gb-btn_default_pressed.png') 10 8 17 8 fill / calc(6.6667 * var(--dp)) calc(5.3334 * var(--dp)) calc(11.3392 * var(--dp)) stretch}
+/* Search results (audit step 5): search_results.xml on white, search_results_item.xml (84 dip; 1 dp = 0.8625 px). */
+.tk-hits{background:#fff}
+.screen .tk-hit{display:flex;flex-direction:column;justify-content:center;width:100%;height:calc(84 * var(--dp));padding:calc(10.0058 * var(--dp)) calc(2.0058 * var(--dp)) calc(10.0058 * var(--dp)) calc(4.9972 * var(--dp));border:0;border-bottom:calc(1.1595 * var(--dp)) solid #d6d6d6;background:#fff;text-align:left;color:#000}
+.tk-hit-title{display:flex;align-items:center}
+.tk-hit-title img{width:calc(24 * var(--dp));height:calc(24 * var(--dp));padding-top:calc(2.0058 * var(--dp))}
+.tk-hit-title b{padding-left:calc(4.9972 * var(--dp));font:400 calc(18.0058 * var(--dp)) DroidSans,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-hit-snippet{padding-left:calc(2.0058 * var(--dp));font:400 calc(14.0058 * var(--dp)) DroidSans,sans-serif;color:#323232;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-hit-meta{display:flex;padding:calc(2.0058 * var(--dp)) 0 0 calc(7.0029 * var(--dp));font:400 calc(12 * var(--dp)) DroidSans,sans-serif;color:#7c7c7c}
+.tk-hit-meta i{flex:1;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-hit-meta time{padding-right:calc(4.9972 * var(--dp))}
+/* AddBuddyScreen (add_buddy_screen.xml, the default dark Theme): 9 dip padding, the medium "Send chat invitation to",
+   the address field 2 dip below, Send invitation over the middle half of the ButtonBar. InvitedUserList and the blocked
+   list (invited_user.xml): 64 dip rows, 9 dip in, the picture, the bold medium nickname over the small address. */
+.tk-add,.tk-people{background:#000;color:#fff;color-scheme:dark}
+.tk-add-body{flex:1;padding:calc(8.9972 * var(--dp))}
+.tk-add-body label{display:block;font-size:calc(18.0058 * var(--dp))}
+.tk-add-body input{margin-top:calc(2.0058 * var(--dp))}
+.tk-buttonbar{flex:none;display:flex;justify-content:center;padding:calc(4.9972 * var(--dp)) calc(4 * var(--dp)) calc(.9972 * var(--dp));background:url('assets/gb-bottom_bar.png') 0 0/100% 100%}
+.screen .tk-buttonbar button{width:50%;min-height:calc(48 * var(--dp));padding:calc(6.6667 * var(--dp)) calc(4.6377 * var(--dp)) calc(11.3392 * var(--dp));border:0 solid transparent;border-image:url('assets/gb-btn_default_normal.png') 5 7 12 7 fill / calc(3.3392 * var(--dp)) calc(4.6725 * var(--dp)) calc(8 * var(--dp)) stretch;background:none;color:#000;font:400 calc(18.0058 * var(--dp)) DroidSans,Arial,sans-serif;cursor:pointer}
+.screen .tk-buttonbar button:active:not(:disabled){border-image:url('assets/gb-btn_default_pressed.png') 10 8 17 8 fill / calc(6.6667 * var(--dp)) calc(5.3334 * var(--dp)) calc(11.3392 * var(--dp)) stretch}
+.screen .tk-buttonbar button:disabled{color:#888;cursor:default}
+.tk-invited{display:flex;align-items:center;height:calc(64 * var(--dp));padding:0 calc(8.9972 * var(--dp)) calc(2.0058 * var(--dp));border-bottom:calc(1.1595 * var(--dp)) solid #ffffff1f}
+.tk-invited .tk-text b{font-size:calc(18.0058 * var(--dp))}
+.tk-invited .tk-text small{color:#bebebe}

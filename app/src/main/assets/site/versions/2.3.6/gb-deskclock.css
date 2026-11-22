@@ -1,0 +1,86 @@
+/* Android 2.3.6 DeskClock. hdpi px x 0.575, 1 dp = 0.8625px; Clockopia is the DigitalClock face (assets/fonts). */
+@font-face{font-family:Clockopia;src:url('fonts/Clockopia.ttf') format('truetype')}
+/* DeskClock: Theme.Wallpaper.NoTitleBar with FLAG_DIM_BEHIND 0.4 (0.8 and the #CC000000 window tint when dimmed). */
+#viewport>.app-view.gbdc-face{position:relative;height:100%;display:flex;flex-direction:column;padding-top:calc(24.9972 * var(--dp));background:rgba(0,0,0,.4);color:#fff;font-family:DroidSans,Arial,sans-serif;overflow:hidden;text-shadow:0 0 calc(3.0145 * var(--dp)) rgba(0,0,0,.75)}
+#viewport>.app-view.gbdc-face.dim{background:rgba(0,0,0,.8)}
+.gbdc-main{flex:1;min-height:0;display:flex;flex-direction:column;margin:calc(18.0058 * var(--dp)) calc(18.0058 * var(--dp)) calc(14.0058 * var(--dp)) calc(22.0058 * var(--dp))}
+.gbdc-top{display:flex;align-items:center;margin:0 0 calc(6.0058 * var(--dp)) calc(4 * var(--dp));min-height:calc(50.0058 * var(--dp))}
+.gbdc-next{flex:1;display:flex;align-items:center;gap:calc(6.0058 * var(--dp));font-size:calc(18.0058 * var(--dp))}
+.gbdc-next[hidden]{visibility:hidden;display:flex}
+.gbdc-next img{width:calc(25.3334 * var(--dp));height:calc(25.3334 * var(--dp))}
+.screen .gbdc-round{flex:none;width:calc(50.0058 * var(--dp));height:calc(50.0058 * var(--dp));padding:0;border:0;background:url('assets/gb-dc-btn_in_call_round_normal.png') 0 0/100% 100%;cursor:pointer}
+.screen .gbdc-round:active{background-image:url('assets/gb-dc-btn_in_call_round_pressed.png')}
+.gbdc-round img{width:100%;height:100%;display:block}
+.gbdc-timedate{flex:1;display:flex;flex-direction:column;justify-content:center}
+.gbdc-time{display:flex;align-items:flex-end;margin-bottom:calc(8 * var(--dp))}
+.gbdc-time span{font:400 calc(105.9943 * var(--dp))/1 Clockopia,DroidSans,sans-serif;padding-bottom:calc(3.0029 * var(--dp))}
+.gbdc-time b{margin-left:calc(4 * var(--dp));padding-bottom:calc(11.5943 * var(--dp));font-size:calc(18.0058 * var(--dp));font-weight:700}
+.gbdc-date{margin-left:calc(4 * var(--dp));font-size:calc(18.0058 * var(--dp))}
+.screen .gbdc-weather{flex:none;display:flex;flex-direction:column;align-items:flex-start;margin:calc(12 * var(--dp)) 0 calc(40 * var(--dp)) calc(4 * var(--dp));padding:0;border:0;background:none;color:#fff;font:inherit;text-align:left;cursor:pointer}
+.gbdc-wx{display:flex;align-items:flex-end;margin-bottom:calc(-6.0058 * var(--dp))}
+.gbdc-wx img{width:calc(60 * var(--dp));height:calc(60 * var(--dp));margin-right:calc(8 * var(--dp));object-fit:contain}
+.gbdc-wx-temp{margin-right:calc(8 * var(--dp));font-size:calc(46.0058 * var(--dp));line-height:1}
+.gbdc-wx-hl{display:flex;flex-direction:column;width:calc(40 * var(--dp));font-size:calc(14.0058 * var(--dp));line-height:1.2}
+.gbdc-wx-hl b{color:#fff}
+.gbdc-wx-hl i{font-style:normal;color:#bebebe}
+.gbdc-wx-loc{max-width:calc(300 * var(--dp));font-size:calc(18.0058 * var(--dp))}
+/* ButtonStripLeft / Middle / Right: btn_strip_trans_* 9-patches with the 48 dip ic_clock_strip_* icons. */
+.gbdc-strip,.gbdc-bottom{flex:none;display:flex}
+.screen .gbdc-strip-btn{flex:1 1 0;min-width:0;min-height:calc(80 * var(--dp));display:flex;align-items:center;justify-content:center;padding:calc(16.6725 * var(--dp)) calc(16 * var(--dp)) calc(15.3392 * var(--dp));border:0 solid transparent;border-image:url('assets/gb-dc-btn_strip_trans_middle_normal.png') 64 27 55 28 fill / calc(42.6667 * var(--dp)) calc(18.0058 * var(--dp)) calc(36.6725 * var(--dp)) calc(18.6667 * var(--dp)) stretch;background:none;color:#fff;cursor:pointer}
+.screen .gbdc-strip-btn.left{border-image-source:url('assets/gb-dc-btn_strip_trans_left_normal.png')}
+.screen .gbdc-strip-btn.right{border-image-source:url('assets/gb-dc-btn_strip_trans_right_normal.png')}
+.screen .gbdc-strip-btn:active{border-image-source:url('assets/gb-dc-btn_strip_trans_middle_pressed.png')}
+.screen .gbdc-strip-btn.left:active{border-image-source:url('assets/gb-dc-btn_strip_trans_left_pressed.png')}
+.screen .gbdc-strip-btn.right:active{border-image-source:url('assets/gb-dc-btn_strip_trans_right_pressed.png')}
+.gbdc-strip-btn img{width:calc(48 * var(--dp));height:calc(48 * var(--dp))}
+.screen .gbdc-tint{position:absolute;inset:0;z-index:2;padding:0;border:0;background:rgba(0,0,0,.8);animation:gbdc-dim .4s ease-out;cursor:pointer}
+@keyframes gbdc-dim{from{opacity:0}}
+/* AlarmClock: "Add alarm" (68 dip left column), the alarm_time rows and the bottom strip with the 48 sp clock. */
+#viewport>.app-view.gbdc-list{height:100%;display:flex;flex-direction:column;background:#000;color:#fff;font-family:DroidSans,Arial,sans-serif;overflow:hidden}
+.screen .gbdc-add{flex:none;display:flex;align-items:center;width:100%;min-height:calc(68 * var(--dp));padding:0;border:0;background:none;color:#fff;text-align:left;font:400 calc(22.0058 * var(--dp)) DroidSans,Arial,sans-serif;cursor:pointer}
+.screen .gbdc-add:active{border-image:url('assets/gb-list_selector_background_pressed.png') 37 fill / calc(24.6725 * var(--dp)) stretch}
+.gbdc-add-icon{flex:none;width:calc(68 * var(--dp));height:calc(68 * var(--dp));background:url('assets/gb-dc-ic_clock_add_alarm.png') center/calc(32 * var(--dp)) no-repeat}
+.gbdc-add:active .gbdc-add-icon{background-image:url('assets/gb-dc-ic_clock_add_alarm_selected.png')}
+.gbdc-hdiv{flex:none;height:calc(1.1595 * var(--dp));background:url('assets/gb-divider_horizontal_dark.png') 0 0/100% 100%}
+.gbdc-alarms{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none}
+.gbdc-alarm{display:flex;min-height:calc(68 * var(--dp));border-bottom:calc(1.1595 * var(--dp)) solid #ffffff1f}
+.screen .gbdc-indicator{flex:none;width:calc(68 * var(--dp));display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;border:0;background:#000;cursor:pointer}
+.screen .gbdc-indicator:active{border-image:url('assets/gb-dc-list_selector_background_pressed.png') 37 fill / calc(24.6725 * var(--dp)) stretch}
+.gbdc-indicator img{width:calc(32 * var(--dp));height:calc(32 * var(--dp))}
+.gbdc-indicator .gbdc-bar{width:calc(42.0058 * var(--dp));height:calc(7.3392 * var(--dp));padding-top:calc(4 * var(--dp));box-sizing:content-box}
+.gbdc-vdiv{flex:none;width:calc(1.1595 * var(--dp));margin:calc(4 * var(--dp)) 0;background:#ffffff40}
+.screen .gbdc-alarm-body{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;padding:0 calc(16 * var(--dp));border:0;background:none;color:#fff;text-align:left;font-family:DroidSans,Arial,sans-serif;cursor:pointer}
+.screen .gbdc-alarm-body:active{border-image:url('assets/gb-list_selector_background_pressed.png') 37 fill / calc(24.6725 * var(--dp)) stretch}
+.gbdc-alarm-line{display:flex;align-items:baseline}
+.gbdc-alarm-time{padding-right:calc(6.0058 * var(--dp));font:400 calc(28 * var(--dp))/1 Clockopia,DroidSans,sans-serif}
+.gbdc-alarm-line b{font-size:calc(13.9943 * var(--dp));font-weight:700}
+.gbdc-alarm-line em{flex:1;min-width:0;padding-left:calc(8 * var(--dp));font-style:normal;font-weight:700;font-size:calc(13.9943 * var(--dp));color:#808080;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gbdc-days{font-size:calc(13.9943 * var(--dp));color:#bebebe;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.screen .gbdc-bottom .gbdc-strip-btn.left{flex:none;width:auto}
+.screen .gbdc-bottom-clock{flex:1;justify-content:flex-start;align-items:baseline;gap:calc(6.0058 * var(--dp));cursor:default}
+.gbdc-bottom-clock span{font:400 calc(48 * var(--dp))/1 Clockopia,DroidSans,sans-serif}
+.gbdc-bottom-clock b{font-size:calc(13.9943 * var(--dp));font-weight:700}
+.gbdc-set .gbset-list{flex:1}
+/* Framework TimePicker: two 70 dip NumberPickers (timepicker_up / input / down 9-patches, 30 sp digits) and AM/PM. */
+.gbtp{display:flex;justify-content:center;align-items:flex-start;gap:calc(4.9972 * var(--dp));padding:calc(4.9972 * var(--dp))}
+.gbtp-picker{display:flex;flex-direction:column;width:calc(70.0058 * var(--dp))}
+.screen .gbtp-up,.screen .gbtp-down{height:calc(40 * var(--dp));padding:0;border:0 solid transparent;border-image:url('assets/gb-dc-timepicker_up_normal.png') 16 25 10 24 fill / calc(10.6667 * var(--dp)) calc(16.6725 * var(--dp)) calc(6.6667 * var(--dp)) calc(16 * var(--dp)) stretch;background:none;cursor:pointer}
+.screen .gbtp-up:active{border-image-source:url('assets/gb-dc-timepicker_up_pressed.png')}
+.screen .gbtp-down{border-image:url('assets/gb-dc-timepicker_down_normal.png') 19 25 22 24 fill / calc(12.6725 * var(--dp)) calc(16.6725 * var(--dp)) calc(14.6667 * var(--dp)) calc(16 * var(--dp)) stretch}
+.screen .gbtp-down:active{border-image-source:url('assets/gb-dc-timepicker_down_pressed.png')}
+.gbtp-input{display:block;height:calc(39.3392 * var(--dp));line-height:calc(39.3392 * var(--dp));border:0 solid transparent;border-image:url('assets/gb-dc-timepicker_input_normal.png') 29 58 29 58 fill / calc(19.3392 * var(--dp)) calc(38.6667 * var(--dp)) calc(19.3392 * var(--dp)) calc(38.6667 * var(--dp)) stretch;color:#000;font-size:calc(30.0058 * var(--dp));text-align:center}
+.screen .gbtp-ampm{margin-top:calc(43.0029 * var(--dp));min-height:calc(48 * var(--dp));padding:calc(6.6667 * var(--dp)) calc(20 * var(--dp)) calc(11.3392 * var(--dp));border:0 solid transparent;border-image:url('assets/gb-btn_default_normal.png') 5 7 12 7 fill / calc(3.3392 * var(--dp)) calc(4.6725 * var(--dp)) calc(8 * var(--dp)) stretch;background:none;color:#000;font:400 calc(22.0058 * var(--dp)) DroidSans,Arial,sans-serif;cursor:pointer}
+.screen .gbtp-ampm:active{border-image:url('assets/gb-btn_default_pressed.png') 10 8 17 8 fill / calc(6.6667 * var(--dp)) calc(5.3334 * var(--dp)) calc(11.3392 * var(--dp)) stretch}
+/* AlarmAlert: 64 sp time with the bold AM/PM, 30 dip above and below. */
+/* AlarmAlert: the dialog 9-patch (75 px hdpi, stretch 31 / 34 / 39 / 35 px, content padding 14 / 18 / 22 / 18 px) */
+.gbdc-ring-scrim{position:absolute;inset:0;z-index:40;background:#00000099}
+.gbdc-ring-scrim.full{background-color:#000}
+.gbdc-ring{position:absolute;z-index:41;inset:0;margin:auto;width:fit-content;height:fit-content;display:flex;flex-direction:column;align-items:center;max-width:calc(100% - calc(23.1885 * var(--dp)));padding:calc(9.3334 * var(--dp)) calc(12 * var(--dp)) calc(14.6667 * var(--dp));border-image:url('assets/gb-dc-dialog.png') 31 34 39 35 fill/calc(20.8696 * var(--dp)) calc(22.6087 * var(--dp)) calc(26.087 * var(--dp)) calc(23.1885 * var(--dp)) stretch;color:#fff;font-family:DroidSans,Arial,sans-serif}
+.gbdc-ring-title{align-self:stretch;padding:calc(4.9972 * var(--dp));text-align:center;font-size:calc(22.0058 * var(--dp));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gbdc-ring-divider{align-self:stretch;height:calc(.9972 * var(--dp));margin:0 calc(10.0058 * var(--dp));background:url('assets/gb-dc-dialog_divider_horizontal_light.png') 0 0/100% 100%}
+.gbdc-alert{display:flex;justify-content:center;align-items:baseline;padding:calc(30.0058 * var(--dp)) 0;color:#fff}
+.gbdc-alert span{font:400 calc(64 * var(--dp))/1 Clockopia,DroidSans,sans-serif}
+.gbdc-alert b{font-size:calc(18.0058 * var(--dp))}
+.gbdc-ring-bar{display:flex;padding:calc(4.9972 * var(--dp)) calc(4 * var(--dp)) calc(.9972 * var(--dp));background:url('assets/gb-bottom_bar.png') 0 0/100% 100%}
+.gbdc-ring-bar i{flex:none;width:calc(2.0058 * var(--dp))}
+.gbdc-ring-bar .gbdlg-button{flex:none}

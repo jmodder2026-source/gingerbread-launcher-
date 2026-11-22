@@ -1,0 +1,3 @@
+/* Screen off (the power key or the screen timeout): black over every window, the bars hidden. Gingerbread's Settings
+   pages have their own styles (gb-settings.css, gb-settings-pages.css). */
+.screen.sleeping #viewport,.screen.sleeping #status-bar,.screen.sleeping #nav-bar{visibility:hidden}.screen.sleeping{background:#000!important}.screen.sleeping:after{content:'';position:absolute;inset:0;z-index:20;pointer-events:none;background:#000}

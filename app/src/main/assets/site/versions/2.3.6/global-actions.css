@@ -1,0 +1,8 @@
+/* Powered off and booting (GRK39F, Nexus S): the black screen and the boot animation sit above every window, including
+   the status bar. The Phone options and shutdown dialogs are GBUI dialogs (gb-ui.css). */
+#power-layer{position:absolute;inset:0;z-index:90;pointer-events:none}
+#power-layer>.ga-off,#power-layer>.ga-boot{position:absolute;inset:0;background:#000;pointer-events:auto}
+.ga-boot{overflow:hidden}
+.ga-boot-frame{position:absolute;background-repeat:no-repeat}
+.power-key{cursor:pointer;z-index:1}
+.power-key::before{content:"";position:absolute;inset:-6px -10px -6px -4px}
