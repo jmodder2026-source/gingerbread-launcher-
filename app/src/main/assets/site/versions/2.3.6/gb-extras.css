@@ -39,3 +39,7 @@
 .apk-launcher .screen{height:100%!important;flex:1 1 auto}
 /* The launcher APK has no page dots: neither the row of five nor the screen-count dots beside the dock. */
 .apk-launcher .gbx-dots,.apk-launcher .gbl-arrow{display:none!important}
+/* Launcher APK: inside an app the floating bar gets its own strip under the app, so it never covers app controls. */
+.apk-launcher .screen:not(.gbx-on-home) #viewport{bottom:calc(46 * var(--dp))!important}
+.apk-launcher .screen:not(.gbx-on-home) #gbx-float{bottom:calc(3 * var(--dp))}
+.apk-launcher .screen:not(.gbx-on-home){background-color:#000}
