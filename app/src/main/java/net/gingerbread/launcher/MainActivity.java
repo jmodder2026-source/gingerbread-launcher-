@@ -2,6 +2,7 @@ package net.gingerbread.launcher;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -22,6 +23,7 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.net.Uri;
+import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -71,6 +73,10 @@ public class MainActivity extends Activity {
     // Wi-Fi networks the phone is connected to right now (normally zero or one).
     private final java.util.Set<Network> wifiNetworks = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
     private ConnectivityManager.NetworkCallback wifiCallback;
+    // Battery level and charging, and whether a real alarm is set, for the page's status bar.
+    private BroadcastReceiver statusReceiver;
+    private volatile int batteryLevel = 100;
+    private volatile boolean batteryCharging;
     // The page's camera request, held while Android asks for the camera permission.
     private PermissionRequest pendingCamera;
 
@@ -136,6 +142,7 @@ public class MainActivity extends Activity {
             }
         };
         watchWifi();
+        watchBatteryAndAlarm();
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_PACKAGE_ADDED);
@@ -144,6 +151,38 @@ public class MainActivity extends Activity {
         filter.addDataScheme("package");
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(packageReceiver, filter, Context.RECEIVER_EXPORTED);
         else registerReceiver(packageReceiver, filter);
+    }
+
+    private void readBattery(Intent battery) {
+        if (battery == null) return;
+        int level = battery.getIntExtra(BatteryManager.EXTRA_LEVEL, -1), scale = battery.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
+        if (level >= 0 && scale > 0) batteryLevel = Math.round(level * 100f / scale);
+        int status = battery.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+        batteryCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL && battery.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0;
+    }
+
+    private boolean alarmSet() {
+        AlarmManager alarms = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        return alarms != null && alarms.getNextAlarmClock() != null;
+    }
+
+    // The battery icon follows the real battery as it drains and charges; the alarm icon shows while an alarm is set.
+    private void watchBatteryAndAlarm() {
+        statusReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction())) {
+                    readBattery(intent);
+                    if (web != null) web.evaluateJavascript("window.gbRealBattery && window.gbRealBattery(" + batteryLevel + "," + batteryCharging + ")", null);
+                } else if (web != null) {
+                    web.evaluateJavascript("window.gbRealAlarm && window.gbRealAlarm(" + alarmSet() + ")", null);
+                }
+            }
+        };
+        IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        filter.addAction(AlarmManager.ACTION_NEXT_ALARM_CLOCK_CHANGED);
+        Intent sticky = Build.VERSION.SDK_INT >= 33 ? registerReceiver(statusReceiver, filter, Context.RECEIVER_EXPORTED) : registerReceiver(statusReceiver, filter);
+        readBattery(sticky);
     }
 
     private boolean wifiConnected() {
@@ -224,6 +263,7 @@ public class MainActivity extends Activity {
         super.onResume();
         if (web != null) web.evaluateJavascript("window.gbOnResume && window.gbOnResume()", null);
         tellPageWifi();
+        if (web != null) web.evaluateJavascript("window.gbRealAlarm && window.gbRealAlarm(" + alarmSet() + ")", null);
     }
 
     // A JPEG from the Gingerbread Camera into the phone's gallery (Pictures/Gingerbread).
@@ -381,6 +421,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         if (packageReceiver != null) unregisterReceiver(packageReceiver);
+        if (statusReceiver != null) unregisterReceiver(statusReceiver);
         if (wifiCallback != null) {
             ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
             try { if (cm != null) cm.unregisterNetworkCallback(wifiCallback); } catch (RuntimeException ignored) { }
@@ -442,6 +483,16 @@ public class MainActivity extends Activity {
                 intent.addFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
                 startSafely(intent);
             });
+        }
+
+        @JavascriptInterface
+        public String battery() {
+            return "{\"level\":" + batteryLevel + ",\"charging\":" + batteryCharging + "}";
+        }
+
+        @JavascriptInterface
+        public boolean alarmSet() {
+            return MainActivity.this.alarmSet();
         }
 
         @JavascriptInterface

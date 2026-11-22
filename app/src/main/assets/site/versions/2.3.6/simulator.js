@@ -167,6 +167,8 @@
     // Real apps that were uninstalled leave the home screen and the folders.
     data.homePages = data.homePages.map(page => page.map(id => GBRealApps.isReal(id) && !GBRealApps.has(id) ? null : id));
     // First run: Files and Claude go on the middle home screen, in the free row under the search bar.
+    // The demo's 7:00 alarm starts switched off, so the alarm icon means an alarm was really set.
+    if (!data.realAlarmsOff) { data.alarms.forEach(alarm => { alarm.enabled = false; }); data.realAlarmsOff = true; AndroidState.save(STORE, data); }
     if (!data.realSeeded) {
       const page = data.homePages[2], free = [8, 9, 10, 11, 4, 5, 6, 7].filter(slot => !page[slot]);
       GBRealApps.starters().forEach((id, i) => { if (free[i] != null) page[free[i]] = id; });
@@ -212,7 +214,7 @@
   let floatRoot = null;
   // The launcher APK leaves and re-enters the page: the real camera is released while away and comes back with the Camera.
   window.gbOnPause = () => GBRealCamera.stop();
-  // Launcher APK: the status bar's Wi-Fi icon follows the phone's real Wi-Fi connection.
+  // Launcher APK: the status bar's Wi-Fi, battery and alarm icons follow the phone's real Wi-Fi, battery and alarms.
   window.addEventListener('gb-real-wifi', () => renderStatus());
   window.gbOnResume = () => { if (ui.view === 'camera') render(); };
   function syncFloatBar() {
@@ -245,7 +247,7 @@
     GBStatusBar.bar(statusRoot, {
       label: i18n.t('Open notifications'), notifications: icons, clock: gbClock(), expanded: ui.overlay === 'shade',
       date: deviceDate().toLocaleDateString(i18n.locale(), {year: 'numeric', month: 'long', day: 'numeric'}),
-      state: {bluetooth: data.settings.bluetooth, ringer: data.settings.silent ? (data.settings.silentMode === 'vibrate' ? 'vibrate' : 'silent') : '', airplane: data.settings.airplane, wifi: GBRealApps.active ? GBRealApps.wifi() : data.settings.wifi && !!data.settings.wifiNetwork, data: data.settings.mobileData === false || data.settings.dataEnabled === false ? '' : '3g', battery: 78, alarm: data.alarms.some(alarm => alarm.enabled)}
+      state: {bluetooth: data.settings.bluetooth, ringer: data.settings.silent ? (data.settings.silentMode === 'vibrate' ? 'vibrate' : 'silent') : '', airplane: data.settings.airplane, wifi: GBRealApps.active ? GBRealApps.wifi() : data.settings.wifi && !!data.settings.wifiNetwork, data: data.settings.mobileData === false || data.settings.dataEnabled === false ? '' : '3g', battery: GBRealApps.active ? GBRealApps.battery().level : 78, charging: GBRealApps.active && GBRealApps.battery().charging, alarm: GBRealApps.active && GBRealApps.alarm() || data.alarms.some(alarm => alarm.enabled)}
     });
     // Ticker: newly posted notifications scroll through the bar once (tickerText = the notification title).
     const ids = new Set(data.notifications.map(n => n.id));

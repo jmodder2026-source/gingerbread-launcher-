@@ -10,7 +10,9 @@ An Android home screen app that runs the Android 2.3.6 Gingerbread simulator fro
 - The Gingerbread Camera shows the phone's real camera (Android asks once for permission); pictures appear in the
   Gingerbread Gallery and are saved to the phone's gallery under Pictures/Gingerbread.
 - The Market leaves out Orbit Hopper and Pixel Blocks.
-- The status bar's Wi-Fi icon shows only while the phone is really connected to Wi-Fi.
+- The status bar follows the phone: the Wi-Fi icon shows only while connected to Wi-Fi, the battery icon drains
+  and shows charging with the real battery, and the alarm icon shows while an alarm is set (on the phone or in the
+  Gingerbread Clock, whose demo alarm starts switched off).
 - The simulator's widgets, wallpapers, live wallpapers, lock screen and notification shade all work.
 - No page dots and no on-screen keys: the phone's own buttons drive it (made for the Galaxy J7 Prime 2).
   Home goes to the Gingerbread home screen, Back is the Gingerbread Back key, holding Back is the Menu key

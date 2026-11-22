@@ -16,6 +16,12 @@
   let wifi = false;
   try { wifi = !!bridge?.wifiConnected?.(); } catch (error) { wifi = false; }
   window.gbRealWifi = on => { wifi = !!on; window.dispatchEvent(new Event('gb-real-wifi')); };
+  // The phone's real battery (percent, charging) and whether a real alarm is set.
+  let battery = {level: 100, charging: false}, alarm = false;
+  try { battery = {...battery, ...JSON.parse(bridge?.battery?.() || '{}')}; } catch (error) { /* keep the defaults */ }
+  try { alarm = !!bridge?.alarmSet?.(); } catch (error) { alarm = false; }
+  window.gbRealBattery = (level, charging) => { battery = {level: Number(level), charging: !!charging}; window.dispatchEvent(new Event('gb-real-wifi')); };
+  window.gbRealAlarm = on => { alarm = !!on; window.dispatchEvent(new Event('gb-real-wifi')); };
   const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 
   // Files apps on common phones, and Claude: placed on the middle home screen the first time the launcher runs.
@@ -37,7 +43,9 @@
     icon: id => `<span class="app-icon"><img src="${e(byId.get(id)?.icon || 'assets/apps.png')}" alt=""></span>`,
     launch: id => { try { bridge?.launch(String(id).slice(5)); } catch (error) { /* the app may have been removed */ } },
     starters: () => shown.slice(),
-    wifi: () => wifi
+    wifi: () => wifi,
+    battery: () => battery,
+    alarm: () => alarm
   };
   // The APK calls this when an app is installed or removed.
   window.gbRealAppsChanged = () => location.reload();
