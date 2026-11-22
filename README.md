@@ -9,7 +9,8 @@ An Android home screen app that runs the Android 2.3.6 Gingerbread simulator fro
 - Files and Claude are placed on the middle home screen the first time it starts.
 - The Gingerbread Camera shows the phone's real camera (Android asks once for permission); pictures appear in the
   Gingerbread Gallery and are saved to the phone's gallery under Pictures/Gingerbread.
-- The Market leaves out Orbit Hopper and Pixel Blocks.
+- The Market leaves out Orbit Hopper, Pixel Blocks, Lunar Golf and Pocket Planner.
+- The app drawer scrolls (and flings) under your finger.
 - The status bar follows the phone: signal bars or no SIM, airplane mode, the data type (G, E, 3G, or H for
   3G+/4G/5G) with in-and-out arrows while 3G or H data moves, the Wi-Fi icon and its bars only while connected,
   Bluetooth on or connected, vibrate or silent, the battery level and charging, and the alarm icon while an alarm is

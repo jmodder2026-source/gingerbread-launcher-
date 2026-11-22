@@ -2700,11 +2700,34 @@
     if (!frame || !photo || event.target.closest('button')) return;
     if (GBGallery.cropDrag(event, frame, ui.gbgCrop, photo, () => {})) { event.stopPropagation(); event.preventDefault(); }
   }, true);
+  // A flicked app drawer keeps gliding and slows down, like a real list.
+  let flingSamples = [], flingFrame = 0;
+  function trackFling(y) { const now = performance.now(); flingSamples.push([now, y]); flingSamples = flingSamples.filter(([t]) => now - t < 100); }
+  function stopFling() { cancelAnimationFrame(flingFrame); flingFrame = 0; flingSamples = []; }
+  function startFling(list) {
+    const samples = flingSamples; flingSamples = [];
+    if (samples.length < 2) return;
+    const [t0, y0] = samples[0], [t1, y1] = samples.at(-1);
+    let velocity = t1 > t0 ? -(y1 - y0) / (t1 - t0) : 0; // px per ms, positive scrolls down
+    if (Math.abs(velocity) < .15) return;
+    let last = performance.now();
+    const step = now => {
+      const dt = Math.min(32, now - last); last = now;
+      const before = list.scrollTop; list.scrollTop += velocity * dt;
+      velocity *= Math.pow(.995, dt);
+      if (!list.isConnected || Math.abs(velocity) < .02 || list.scrollTop === before) { flingFrame = 0; return; }
+      flingFrame = requestAnimationFrame(step);
+    };
+    flingFrame = requestAnimationFrame(step);
+  }
   screen.addEventListener('pointerdown', event => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     if (data.settings.showTouches) { const dot = document.createElement('span'); const rect = screen.getBoundingClientRect(); dot.className = 'touch-indicator'; dot.style.left = `${event.clientX - rect.left}px`; dot.style.top = `${event.clientY - rect.top}px`; screen.append(dot); setTimeout(() => dot.remove(), 400); }
     const widgetList = ui.view === 'home' && !ui.overlay ? event.target.closest('.calw-list') : null;
-    const scrollTarget = widgetList || (event.pointerType === 'mouse' && !ui.overlay && !event.target.closest('input, select, textarea, .wallpaper-choice')
+    // The app drawer scrolls under a finger as well as the mouse (its view takes touch-action:none for the swipes).
+    const drawerGrid = ui.view === 'drawer' && !ui.overlay ? event.target.closest('.gbl-allapps-grid') : null;
+    if (drawerGrid) stopFling();
+    const scrollTarget = widgetList || drawerGrid || (event.pointerType === 'mouse' && !ui.overlay && !event.target.closest('input, select, textarea, .wallpaper-choice')
       ? (ui.view === 'settings' && event.target.closest('.settings-app .app-content') ? event.target.closest('.settings-app') : event.target.closest('.play-content,.mms-scroll,.people-scroll,.browser-page,.web-tabs,.web-library,.gbdc-alarms,.gallery-scroll,.cal-scroll,.music-library-scroll,.email-scroll')) : null);
     pointerStart = { x: event.clientX, y: event.clientY, target: event.target, source: dragSource(event.target), pointerType: event.pointerType, pointerId: event.pointerId, downTime: performance.now(), scrollTarget, scrollTop: scrollTarget?.scrollTop || 0, lockDrag: ui.view === 'lock' && !!event.target.closest('.lock-handle'), shadeDragEligible: !ui.overlay && !ui.locked && !!event.target.closest('#status-bar'), shadeCloseEligible: ui.overlay === 'shade' && !!event.target.closest('.gbsh-close'), pageSwipeEligible: ui.view === 'home' && !ui.overlay && !!event.target.closest('.home-view') && !event.target.closest('.dock, .page-indicators, .home-search'), drawerSwipeEligible: ui.view === 'drawer' && !!event.target.closest('.drawer-page') };
     if (ui.view === 'home' && !ui.overlay && event.target.closest('.home-slot') && !pointerStart.source) homeLongPressTimer = setTimeout(() => { ui.overlay = 'wallpaper-source'; renderOverlay(); pointerStart = null; suppressReleaseClick(); }, 550);
@@ -2806,7 +2829,7 @@
       if (front) { front.style.transition = 'none'; front.style.transform = `translateY(${Math.max(-60, Math.min(90, dy))}px) rotate(${Math.max(-6, Math.min(6, dy / 15))}deg)`; front.style.opacity = String(Math.max(.35, 1 - Math.abs(dy) / 160)); }
       return;
     }
-    if (pointerStart.scrolling) { event.preventDefault(); pointerStart.scrollTarget.scrollTop = pointerStart.scrollTop - dy; return; }
+    if (pointerStart.scrolling) { event.preventDefault(); pointerStart.scrollTarget.scrollTop = pointerStart.scrollTop - dy; trackFling(event.clientY); return; }
     if (pointerStart.scrollTarget && Math.abs(dy) > dp(7) && Math.abs(dy) > Math.abs(dx)) {
       clearTimeout(dragTimer);
       pointerStart.scrolling = true; screen.classList.add('settings-scrolling');
@@ -2882,7 +2905,7 @@
       lockRelease(active);
       pointerStart = null; return;
     }
-    if (pointerStart.scrolling) { screen.classList.remove('settings-scrolling'); suppressClickUntil = Date.now() + 350; pointerStart = null; return; }
+    if (pointerStart.scrolling) { screen.classList.remove('settings-scrolling'); suppressClickUntil = Date.now() + 350; if (pointerStart.scrollTarget.classList.contains('gbl-allapps-grid')) startFling(pointerStart.scrollTarget); pointerStart = null; return; }
     if (pointerStart.swiping || pointerStart.pageSwipeEligible && !dragState && Math.abs(dx) > dp(52) && Math.abs(dx) > Math.abs(dy) && (!pointerStart.source || pointerStart.source.type === 'home' && performance.now() - pointerStart.downTime < 260)) {
       finishHomePage(dx); pointerStart = null; return;
     }
