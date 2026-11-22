@@ -44,5 +44,19 @@
     data.gbExtras = {...prefs(data), [key]: !prefs(data)[key]};
   }
 
+  // A finger on a tick, or on the row it belongs to, marks it pressed so the tick turns Gingerbread orange (CSS
+  // :active alone is not set reliably under touch in a WebView). The mark goes when the finger lifts or moves away.
+  let pressed = null, pressX = 0, pressY = 0;
+  const release = () => { pressed?.classList.remove('gbx-pressed'); pressed = null; };
+  document.addEventListener('pointerdown', event => {
+    release();
+    const tick = event.target.closest?.('img[src*="gb-btn_check_"],img[src*="gb-btn_radio_"],.gbsp-check,.gbcal-check,.nwp-check,.nwp-radio,.gbnet-checkline,.gm-quoted-bar,.tg-switch,.gbem-setup-default');
+    const row = tick ? tick.closest('[data-action],button,label') || tick : event.target.closest?.('[data-action],button,label');
+    if (!row || !row.querySelector?.('img[src*="gb-btn_check_"],img[src*="gb-btn_radio_"],.gbsp-check,.gbcal-check,.nwp-check,.nwp-radio,.gbnet-checkline input,.gm-quoted-bar input,.tg-switch input,.gbem-setup-default span') && !tick) return;
+    pressed = row; pressX = event.clientX; pressY = event.clientY; row.classList.add('gbx-pressed');
+  }, true);
+  document.addEventListener('pointermove', event => { if (pressed && Math.hypot(event.clientX - pressX, event.clientY - pressY) > 10) release(); }, true);
+  ['pointerup', 'pointercancel', 'blur'].forEach(type => window.addEventListener(type, () => setTimeout(release, 60), true));
+
   window.GBExtras = {DEFAULTS, prefs, floatBar, dots, removeButton, editBar, homeSubmenu, toggle};
 })();
