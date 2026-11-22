@@ -46,3 +46,6 @@
 /* A larger home button at the foot of the app drawer. */
 .apk-launcher .gbl-allapps-grid{bottom:calc(76 * var(--dp))}
 .apk-launcher .gbl-allapps-home{width:calc(128 * var(--dp));height:calc(76 * var(--dp));margin-left:calc(-64 * var(--dp));background-size:calc(72 * var(--dp))}
+/* The trash can a dragged item is dropped on: keep it square (a shared .drop-target rule stretched it to 79 x 45). */
+.gbl .drop-target-bar.gbl-delete .drop-target{flex:none!important;width:calc(40 * var(--dp))!important;height:calc(40 * var(--dp))!important;min-width:0!important;padding:0!important;margin:0!important}
+.gbl .drop-target-bar.gbl-delete .drop-target img{object-fit:contain}

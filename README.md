@@ -21,6 +21,7 @@ An Android home screen app that runs the Android 2.3.6 Gingerbread simulator fro
   (a Menu key, on phones that have one, works too), two quick Back presses open the Gingerbread recent apps, and
   the Recents button stays the phone's own (Android keeps it for itself).
 - Menu → Home screen → Remove items puts a delete button on home screen items.
+- Turning the phone's screen off locks the Gingerbread phone: its lock screen shows when the screen comes back on.
 
 ## Get the APK
 

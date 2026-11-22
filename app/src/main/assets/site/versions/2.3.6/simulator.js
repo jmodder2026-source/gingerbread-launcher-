@@ -214,6 +214,8 @@
   let floatRoot = null;
   // The launcher APK leaves and re-enters the page: the real camera is released while away and comes back with the Camera.
   window.gbOnPause = () => GBRealCamera.stop();
+  // Launcher APK: turning the phone's screen off locks the Gingerbread phone, so its lock screen greets you next time.
+  window.gbLockNow = () => { if (ui.power || ui.locked || ui.view === 'lock' || data.settings.screenLock === 'none') return; ui.overlay = ''; lockScreen(); };
   // Launcher APK: the status bar's Wi-Fi, signal, data, battery and alarm icons follow the real phone.
   window.addEventListener('gb-real-wifi', () => renderStatus());
   window.gbOnResume = () => { if (ui.view === 'camera') render(); };

@@ -203,6 +203,9 @@ public class MainActivity extends Activity {
                 if (Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction())) {
                     readBattery(intent);
                     if (web != null) web.evaluateJavascript("window.gbRealBattery && window.gbRealBattery(" + batteryLevel + "," + batteryCharging + ")", null);
+                } else if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) {
+                    // The screen went off: lock the Gingerbread phone so its lock screen shows when it comes back on.
+                    if (web != null) web.evaluateJavascript("window.gbLockNow && window.gbLockNow()", null);
                 } else if (!AlarmManager.ACTION_NEXT_ALARM_CLOCK_CHANGED.equals(intent.getAction())) {
                     tellPagePhone(); // airplane mode, Wi-Fi strength, ringer or Bluetooth changed
                 } else if (web != null) {
@@ -213,6 +216,7 @@ public class MainActivity extends Activity {
         IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         filter.addAction(AlarmManager.ACTION_NEXT_ALARM_CLOCK_CHANGED);
         filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        filter.addAction(Intent.ACTION_SCREEN_OFF);
         filter.addAction(WifiManager.RSSI_CHANGED_ACTION);
         filter.addAction(AudioManager.RINGER_MODE_CHANGED_ACTION);
         filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
