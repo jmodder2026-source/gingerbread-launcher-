@@ -21,6 +21,11 @@
   try { battery = {...battery, ...JSON.parse(bridge?.battery?.() || '{}')}; } catch (error) { /* keep the defaults */ }
   try { alarm = !!bridge?.alarmSet?.(); } catch (error) { alarm = false; }
   window.gbRealBattery = (level, charging) => { battery = {level: Number(level), charging: !!charging}; window.dispatchEvent(new Event('gb-real-wifi')); };
+  // The phone's real status: signal bars (0-4), mobile data type ('', 'g', 'e', '3g' or 'h') and whether data is
+  // moving, SIM and airplane mode, Wi-Fi bars (0-4), ringer ('', 'vibrate' or 'silent') and Bluetooth.
+  let phone = {signal: 4, data: '', dataActive: false, noSim: false, airplane: false, wifiLevel: 4, ringer: '', bluetooth: false, bluetoothConnected: false};
+  try { phone = {...phone, ...JSON.parse(bridge?.phone?.() || '{}')}; } catch (error) { /* keep the defaults */ }
+  window.gbRealPhone = state => { phone = {...phone, ...(typeof state === 'string' ? JSON.parse(state) : state)}; window.dispatchEvent(new Event('gb-real-wifi')); };
   window.gbRealAlarm = on => { alarm = !!on; window.dispatchEvent(new Event('gb-real-wifi')); };
   const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 
@@ -45,7 +50,8 @@
     starters: () => shown.slice(),
     wifi: () => wifi,
     battery: () => battery,
-    alarm: () => alarm
+    alarm: () => alarm,
+    phone: () => phone
   };
   // The APK calls this when an app is installed or removed.
   window.gbRealAppsChanged = () => location.reload();

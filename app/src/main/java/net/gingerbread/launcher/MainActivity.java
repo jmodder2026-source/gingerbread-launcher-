@@ -3,6 +3,11 @@ package net.gingerbread.launcher;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlarmManager;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothProfile;
+import android.media.AudioManager;
+import android.net.TrafficStats;
+import android.net.wifi.WifiManager;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -28,6 +33,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.provider.Settings;
+import android.telephony.PhoneStateListener;
+import android.telephony.SignalStrength;
+import android.telephony.TelephonyManager;
 import android.util.Base64;
 import android.view.KeyEvent;
 import android.view.View;
@@ -73,6 +82,25 @@ public class MainActivity extends Activity {
     // Wi-Fi networks the phone is connected to right now (normally zero or one).
     private final java.util.Set<Network> wifiNetworks = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
     private ConnectivityManager.NetworkCallback wifiCallback;
+    // Mobile data networks in use right now, the signal bars (0-4) and the phone listener that reports them.
+    private final java.util.Set<Network> cellNetworks = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+    private ConnectivityManager.NetworkCallback cellCallback;
+    private PhoneStateListener signalListener;
+    private volatile int signalLevel = 4;
+    private final android.os.Handler keys = new android.os.Handler(android.os.Looper.getMainLooper());
+    // Mobile data moving (bytes in or out during the last second), checked while the launcher is on screen.
+    private volatile boolean dataActive;
+    private long lastMobileBytes = -1;
+    private final Runnable trafficCheck = new Runnable() {
+        @Override
+        public void run() {
+            long bytes = TrafficStats.getMobileRxBytes() + TrafficStats.getMobileTxBytes();
+            boolean active = !cellNetworks.isEmpty() && lastMobileBytes >= 0 && bytes > lastMobileBytes;
+            lastMobileBytes = bytes;
+            if (active != dataActive) { dataActive = active; tellPagePhone(); }
+            keys.postDelayed(this, 1000);
+        }
+    };
     // Battery level and charging, and whether a real alarm is set, for the page's status bar.
     private BroadcastReceiver statusReceiver;
     private volatile int batteryLevel = 100;
@@ -143,6 +171,7 @@ public class MainActivity extends Activity {
         };
         watchWifi();
         watchBatteryAndAlarm();
+        watchPhone();
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_PACKAGE_ADDED);
@@ -174,6 +203,8 @@ public class MainActivity extends Activity {
                 if (Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction())) {
                     readBattery(intent);
                     if (web != null) web.evaluateJavascript("window.gbRealBattery && window.gbRealBattery(" + batteryLevel + "," + batteryCharging + ")", null);
+                } else if (!AlarmManager.ACTION_NEXT_ALARM_CLOCK_CHANGED.equals(intent.getAction())) {
+                    tellPagePhone(); // airplane mode, Wi-Fi strength, ringer or Bluetooth changed
                 } else if (web != null) {
                     web.evaluateJavascript("window.gbRealAlarm && window.gbRealAlarm(" + alarmSet() + ")", null);
                 }
@@ -181,8 +212,134 @@ public class MainActivity extends Activity {
         };
         IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         filter.addAction(AlarmManager.ACTION_NEXT_ALARM_CLOCK_CHANGED);
+        filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        filter.addAction(WifiManager.RSSI_CHANGED_ACTION);
+        filter.addAction(AudioManager.RINGER_MODE_CHANGED_ACTION);
+        filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+        filter.addAction(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED);
         Intent sticky = Build.VERSION.SDK_INT >= 33 ? registerReceiver(statusReceiver, filter, Context.RECEIVER_EXPORTED) : registerReceiver(statusReceiver, filter);
         readBattery(sticky);
+    }
+
+    // The Gingerbread data icon for the network mobile data is using: G, E, 3G or H (4G/LTE and 5G show as H,
+    // the fastest icon Gingerbread had). Android 10 and older tell any app; Android 11+ needs the phone permission.
+    @SuppressWarnings("deprecation")
+    private String dataType() {
+        if (cellNetworks.isEmpty()) return "";
+        TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        int type = TelephonyManager.NETWORK_TYPE_UNKNOWN;
+        try {
+            if (tm != null) type = Build.VERSION.SDK_INT >= 30 ? tm.getDataNetworkType() : tm.getNetworkType();
+        } catch (SecurityException e) {
+            type = TelephonyManager.NETWORK_TYPE_UNKNOWN;
+        }
+        switch (type) {
+            case TelephonyManager.NETWORK_TYPE_GPRS: case TelephonyManager.NETWORK_TYPE_CDMA: case TelephonyManager.NETWORK_TYPE_1xRTT: case TelephonyManager.NETWORK_TYPE_IDEN: case TelephonyManager.NETWORK_TYPE_GSM:
+                return "g";
+            case TelephonyManager.NETWORK_TYPE_EDGE:
+                return "e";
+            case TelephonyManager.NETWORK_TYPE_UMTS: case TelephonyManager.NETWORK_TYPE_EVDO_0: case TelephonyManager.NETWORK_TYPE_EVDO_A: case TelephonyManager.NETWORK_TYPE_EVDO_B: case TelephonyManager.NETWORK_TYPE_EHRPD: case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
+                return "3g";
+            default:
+                return "h";
+        }
+    }
+
+    private boolean noSim() {
+        TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        return tm == null || tm.getSimState() == TelephonyManager.SIM_STATE_ABSENT;
+    }
+
+    private boolean airplaneMode() {
+        return Settings.Global.getInt(getContentResolver(), Settings.Global.AIRPLANE_MODE_ON, 0) != 0;
+    }
+
+    @SuppressWarnings("deprecation")
+    private int wifiLevel() {
+        try {
+            WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            if (wm == null || wm.getConnectionInfo() == null) return 4;
+            return Math.max(0, Math.min(4, WifiManager.calculateSignalLevel(wm.getConnectionInfo().getRssi(), 5)));
+        } catch (RuntimeException e) {
+            return 4;
+        }
+    }
+
+    private String ringer() {
+        AudioManager audio = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        if (audio == null) return "";
+        int mode = audio.getRingerMode();
+        return mode == AudioManager.RINGER_MODE_VIBRATE ? "vibrate" : mode == AudioManager.RINGER_MODE_SILENT ? "silent" : "";
+    }
+
+    // {on, connected}: Bluetooth switched on, and a headset or speaker connected.
+    @SuppressWarnings("MissingPermission")
+    private boolean[] bluetooth() {
+        try {
+            BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+            if (adapter == null || !adapter.isEnabled()) return new boolean[]{false, false};
+            boolean connected = adapter.getProfileConnectionState(BluetoothProfile.A2DP) == BluetoothProfile.STATE_CONNECTED
+                    || adapter.getProfileConnectionState(BluetoothProfile.HEADSET) == BluetoothProfile.STATE_CONNECTED;
+            return new boolean[]{true, connected};
+        } catch (SecurityException e) {
+            return new boolean[]{false, false};
+        }
+    }
+
+    private String phoneJson() {
+        boolean[] bt = bluetooth();
+        return "{\"signal\":" + signalLevel + ",\"data\":\"" + dataType() + "\",\"dataActive\":" + dataActive + ",\"noSim\":" + noSim()
+                + ",\"airplane\":" + airplaneMode() + ",\"wifiLevel\":" + wifiLevel() + ",\"ringer\":\"" + ringer() + "\",\"bluetooth\":" + bt[0]
+                + ",\"bluetoothConnected\":" + bt[1] + "}";
+    }
+
+    private void tellPagePhone() {
+        runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.gbRealPhone && window.gbRealPhone(" + phoneJson() + ")", null); });
+    }
+
+    // Signal bars from the phone's signal strength, mobile data use, and airplane mode changes.
+    @SuppressWarnings("deprecation")
+    private void watchPhone() {
+        TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        if (tm != null) {
+            signalListener = new PhoneStateListener() {
+                @Override
+                public void onSignalStrengthsChanged(SignalStrength strength) {
+                    signalLevel = Math.max(0, Math.min(4, strength.getLevel()));
+                    tellPagePhone();
+                }
+
+                @Override
+                public void onDataConnectionStateChanged(int state, int networkType) {
+                    tellPagePhone();
+                }
+            };
+            try {
+                tm.listen(signalListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS | PhoneStateListener.LISTEN_DATA_CONNECTION_STATE);
+            } catch (SecurityException e) {
+                try { tm.listen(signalListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS); } catch (SecurityException ignored) { signalListener = null; }
+            }
+        }
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return;
+        cellCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(Network network) {
+                cellNetworks.add(network);
+                tellPagePhone();
+            }
+
+            @Override
+            public void onLost(Network network) {
+                cellNetworks.remove(network);
+                tellPagePhone();
+            }
+        };
+        try {
+            cm.registerNetworkCallback(new NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR).addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build(), cellCallback);
+        } catch (RuntimeException e) {
+            cellCallback = null;
+        }
     }
 
     private boolean wifiConnected() {
@@ -254,6 +411,7 @@ public class MainActivity extends Activity {
     // Leaving the launcher releases the camera; coming back lets the Camera app take it again.
     @Override
     protected void onPause() {
+        keys.removeCallbacks(trafficCheck);
         if (web != null) web.evaluateJavascript("window.gbOnPause && window.gbOnPause()", null);
         super.onPause();
     }
@@ -263,6 +421,10 @@ public class MainActivity extends Activity {
         super.onResume();
         if (web != null) web.evaluateJavascript("window.gbOnResume && window.gbOnResume()", null);
         tellPageWifi();
+        tellPagePhone();
+        lastMobileBytes = -1;
+        keys.removeCallbacks(trafficCheck);
+        keys.post(trafficCheck);
         if (web != null) web.evaluateJavascript("window.gbRealAlarm && window.gbRealAlarm(" + alarmSet() + ")", null);
     }
 
@@ -338,7 +500,6 @@ public class MainActivity extends Activity {
     private boolean backHeld;
     // Two quick Back presses open the Gingerbread recent apps, so a single Back waits this long for a second one.
     private static final long DOUBLE_BACK_MS = 300;
-    private final android.os.Handler keys = new android.os.Handler(android.os.Looper.getMainLooper());
     private boolean backWaiting;
     private final Runnable singleBack = () -> { backWaiting = false; pressKey(".touch-back"); };
 
@@ -422,6 +583,14 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         if (packageReceiver != null) unregisterReceiver(packageReceiver);
         if (statusReceiver != null) unregisterReceiver(statusReceiver);
+        if (signalListener != null) {
+            TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+            if (tm != null) tm.listen(signalListener, PhoneStateListener.LISTEN_NONE);
+        }
+        if (cellCallback != null) {
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            try { if (cm != null) cm.unregisterNetworkCallback(cellCallback); } catch (RuntimeException ignored) { }
+        }
         if (wifiCallback != null) {
             ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
             try { if (cm != null) cm.unregisterNetworkCallback(wifiCallback); } catch (RuntimeException ignored) { }
@@ -488,6 +657,11 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public String battery() {
             return "{\"level\":" + batteryLevel + ",\"charging\":" + batteryCharging + "}";
+        }
+
+        @JavascriptInterface
+        public String phone() {
+            return phoneJson();
         }
 
         @JavascriptInterface
