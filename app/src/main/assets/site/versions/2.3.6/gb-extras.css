@@ -91,5 +91,5 @@ label:active .gbem-setup-default input:checked+span,.gbem-setup-default:active i
    and slider row, with the viewfinder above it; its menus pop up from it. */
 .apk-launcher .gbcam-frame{place-items:start center}
 .apk-launcher .gbcam-iconbar{bottom:0}
-.apk-launcher .gbcam-popup{bottom:calc(calc(76 * var(--dp)) + calc(40 * var(--dp)) + calc(16.2319 * var(--dp)))}
-.apk-launcher .gbcam-triangle{bottom:calc(calc(76 * var(--dp)) + calc(40 * var(--dp)) - calc(4.6377 * var(--dp)))}
+.apk-launcher .gbcam-popup{bottom:calc(106.5 * var(--dp))}
+.apk-launcher .gbcam-triangle{bottom:calc(94.5 * var(--dp))}
