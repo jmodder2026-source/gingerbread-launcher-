@@ -49,3 +49,21 @@
 /* The trash can a dragged item is dropped on: keep it square (a shared .drop-target rule stretched it to 79 x 45). */
 .gbl .drop-target-bar.gbl-delete .drop-target{flex:none!important;width:calc(40 * var(--dp))!important;height:calc(40 * var(--dp))!important;min-width:0!important;padding:0!important;margin:0!important}
 .gbl .drop-target-bar.gbl-delete .drop-target img{object-fit:contain}
+/* Gingerbread check boxes and radio buttons: the 57 x 72 pictures hold a 46 x 46 box. Drawn into 32 dp squares they
+   were squashed; here the box itself is shown as a perfect square, 30 dp (img) or the full 32 dp (backgrounds). */
+img[src*="gb-btn_check_"]:not([src*="buttonless"]):not([src*="label"]),img[src*="gb-btn_radio_"]{width:calc(37.1739 * var(--dp))!important;height:calc(46.9565 * var(--dp))!important;margin:calc(-7.4783 * var(--dp)) calc(-2.587 * var(--dp))!important;max-width:none!important;max-height:none!important;flex:none!important;object-fit:fill!important}
+.gbsp-check,.gbcal-check,.nwp-check,.nwp-radio,.gbem-setup-default span,.tg-switch input,.gm-quoted-bar input,.gbnet-checkline input{background-size:123.913% 156.522%!important;background-position:center!important;background-repeat:no-repeat!important}
+/* No blue tap highlight or focus ring when buttons are touched (as asked for the launcher APK). */
+button {
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-focus-ring-color: transparent;
+}
+
+button:focus,
+button:active {
+    outline: none;
+    box-shadow: none;
+}
+/* The same for the other tappable parts: links, inputs and rows that act as buttons. */
+a,input,select,textarea,label,[data-action],[role="button"],[role="option"],[role="tab"]{-webkit-tap-highlight-color:transparent}
