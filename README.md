@@ -11,8 +11,10 @@ An Android home screen app that runs the Android 2.3.6 Gingerbread simulator fro
   Gingerbread Gallery and are saved to the phone's gallery under Pictures/Gingerbread.
 - The Market leaves out Orbit Hopper and Pixel Blocks.
 - The simulator's widgets, wallpapers, live wallpapers, lock screen and notification shade all work.
-- No page dots. Extras: a floating Back / Home / Recents / Menu bar, and Menu → Home screen → Remove items to delete items.
-- The phone's Back and Home buttons control the simulator.
+- No page dots and no on-screen keys: the phone's own buttons drive it (made for the Galaxy J7 Prime 2).
+  Home goes to the Gingerbread home screen, Back is the Gingerbread Back key, holding Back is the Menu key
+  (a Menu key, on phones that have one, works too), and Recents stays the phone's own.
+- Menu → Home screen → Remove items puts a delete button on home screen items.
 
 ## Get the APK
 

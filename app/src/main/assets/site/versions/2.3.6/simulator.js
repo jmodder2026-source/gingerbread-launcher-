@@ -215,10 +215,10 @@
   window.gbOnResume = () => { if (ui.view === 'camera') render(); };
   function syncFloatBar() {
     if (!floatRoot) { floatRoot = document.createElement('div'); floatRoot.id = 'gbx-float'; screen.insertBefore(floatRoot, overlayRoot); }
-    const show = (GBExtras.prefs(data).floatBar || GBRealApps.active) && !ui.locked && !ui.sleeping && ui.view !== 'lock' && !ui.power;
+    const show = GBExtras.prefs(data).floatBar && !GBRealApps.active && !ui.locked && !ui.sleeping && ui.view !== 'lock' && !ui.power;
     floatRoot.hidden = !show;
     screen.classList.toggle('gbx-on-home', ui.view === 'home');
-    if (show && !floatRoot.firstElementChild) floatRoot.innerHTML = GBExtras.floatBar(key => i18n.t(key), GBRealApps.active);
+    if (show && !floatRoot.firstElementChild) floatRoot.innerHTML = GBExtras.floatBar(key => i18n.t(key));
   }
   const launcherIcon = id => ICSLauncherFolders.folder(data,id)
     ? `<button class="launcher-icon" data-action="folder-open" data-folder-id="${safe(id)}" aria-label="${safe(folderName(id))}" data-no-translate>${appIcon(id)}<span>${safe(folderName(id))}</span></button>`

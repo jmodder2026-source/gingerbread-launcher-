@@ -23,6 +23,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
@@ -244,11 +245,64 @@ public class MainActivity extends Activity {
         if (web != null) web.evaluateJavascript("(function(){var k=document.querySelector('.touch-home');if(k&&!k.disabled)k.click();})()", null);
     }
 
-    // The phone's Back button presses the simulator's Back key; a launcher never closes itself.
+    /* The phone's own keys drive the simulator (a Galaxy J7 Prime 2 has Recents, Home and Back, and no Menu key):
+       a tap on Back is the Gingerbread Back key, holding Back is the Gingerbread Menu key, and a Menu key, where a
+       phone has one, is Menu too. Recents stays the phone's own. A launcher never closes itself on Back. */
+    private boolean backHeld;
+
+    private void pressKey(String selector) {
+        if (web != null) web.evaluateJavascript("(function(){var k=document.querySelector('" + selector + "');if(k&&!k.disabled)k.click();})()", null);
+    }
+
+    // Back and Menu come here before the WebView, so a page that is focused cannot swallow them.
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        int code = event.getKeyCode();
+        if (code == KeyEvent.KEYCODE_BACK || code == KeyEvent.KEYCODE_MENU) {
+            return event.dispatch(this, getWindow().getDecorView().getKeyDispatcherState(), this);
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (event.getRepeatCount() == 0) { backHeld = false; event.startTracking(); }
+            return true;
+        }
+        if (keyCode == KeyEvent.KEYCODE_MENU) return true;
+        return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onKeyLongPress(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            backHeld = true;
+            pressKey(".touch-menu");
+            if (web != null) web.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+            return true;
+        }
+        return super.onKeyLongPress(keyCode, event);
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (!backHeld && !event.isCanceled()) pressKey(".touch-back");
+            backHeld = false;
+            return true;
+        }
+        if (keyCode == KeyEvent.KEYCODE_MENU) {
+            pressKey(".touch-menu");
+            return true;
+        }
+        return super.onKeyUp(keyCode, event);
+    }
+
     @SuppressWarnings("deprecation")
     @Override
     public void onBackPressed() {
-        if (web != null) web.evaluateJavascript("(function(){var k=document.querySelector('.touch-back');if(k)k.click();})()", null);
+        pressKey(".touch-back");
     }
 
     @Override
