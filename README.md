@@ -13,7 +13,8 @@ An Android home screen app that runs the Android 2.3.6 Gingerbread simulator fro
 - The simulator's widgets, wallpapers, live wallpapers, lock screen and notification shade all work.
 - No page dots and no on-screen keys: the phone's own buttons drive it (made for the Galaxy J7 Prime 2).
   Home goes to the Gingerbread home screen, Back is the Gingerbread Back key, holding Back is the Menu key
-  (a Menu key, on phones that have one, works too), and Recents stays the phone's own.
+  (a Menu key, on phones that have one, works too), two quick Back presses open the Gingerbread recent apps, and
+  the Recents button stays the phone's own (Android keeps it for itself).
 - Menu → Home screen → Remove items puts a delete button on home screen items.
 
 ## Get the APK

@@ -249,6 +249,26 @@ public class MainActivity extends Activity {
        a tap on Back is the Gingerbread Back key, holding Back is the Gingerbread Menu key, and a Menu key, where a
        phone has one, is Menu too. Recents stays the phone's own. A launcher never closes itself on Back. */
     private boolean backHeld;
+    // Two quick Back presses open the Gingerbread recent apps, so a single Back waits this long for a second one.
+    private static final long DOUBLE_BACK_MS = 300;
+    private final android.os.Handler keys = new android.os.Handler(android.os.Looper.getMainLooper());
+    private boolean backWaiting;
+    private final Runnable singleBack = () -> { backWaiting = false; pressKey(".touch-back"); };
+
+    private void openRecents() {
+        if (web != null) web.evaluateJavascript("(function(){var s=document.querySelector('#screen');if(!s)return;var b=document.createElement('button');b.hidden=true;b.dataset.action='recent';s.appendChild(b);b.click();b.remove();})()", null);
+    }
+
+    private void backTapped() {
+        if (backWaiting) {
+            keys.removeCallbacks(singleBack);
+            backWaiting = false;
+            openRecents();
+            return;
+        }
+        backWaiting = true;
+        keys.postDelayed(singleBack, DOUBLE_BACK_MS);
+    }
 
     private void pressKey(String selector) {
         if (web != null) web.evaluateJavascript("(function(){var k=document.querySelector('" + selector + "');if(k&&!k.disabled)k.click();})()", null);
@@ -288,7 +308,7 @@ public class MainActivity extends Activity {
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if (!backHeld && !event.isCanceled()) pressKey(".touch-back");
+            if (!backHeld && !event.isCanceled()) backTapped();
             backHeld = false;
             return true;
         }
@@ -302,7 +322,7 @@ public class MainActivity extends Activity {
     @SuppressWarnings("deprecation")
     @Override
     public void onBackPressed() {
-        pressKey(".touch-back");
+        backTapped();
     }
 
     @Override
