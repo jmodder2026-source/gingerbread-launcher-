@@ -3,6 +3,10 @@
 
     <!-- The simulator buzzes on the lock screen slider, long presses and the power menu. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- The Gingerbread Camera shows the real camera; its pictures are also saved to the phone's gallery. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 
     <!-- Android 11+: lets the launcher see every app that has a home screen icon. -->
     <queries>

@@ -43,3 +43,5 @@
 .apk-launcher .screen:not(.gbx-on-home) #viewport{bottom:calc(46 * var(--dp))!important}
 .apk-launcher .screen:not(.gbx-on-home) #gbx-float{bottom:calc(3 * var(--dp))}
 .apk-launcher .screen:not(.gbx-on-home){background-color:#000}
+/* gb-real-camera.js: the live camera fills the viewfinder over the drawn scene. */
+.gbcam-scene .gbx-live{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;transform-origin:center}

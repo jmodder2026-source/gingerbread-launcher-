@@ -156,7 +156,9 @@
   ];
   const CATEGORY = {Games: 'Arcade & Action', Photography: 'Multimedia', Communication: 'Communication', 'Music & audio': 'Multimedia', Productivity: 'Productivity', Tools: 'Tools'};
   const catalog = () => (window.ICSPlayStore?.catalog || []).map((item, i) => ({...item, kind: item.category === 'Games' ? 'games' : 'apps', category: CATEGORY[item.category] || 'Tools', price: 'FREE', downloads: ['1,000,000 - 5,000,000', '100,000 - 500,000', '50,000 - 100,000', '10,000 - 50,000'][i % 4], votes: 1200 + i * 417, version: `1.${i}.${(i * 3) % 7}`, updated: ['Aug 2, 2011', 'Jul 21, 2011', 'Jun 14, 2011', 'May 30, 2011'][i % 4]}));
-  const all = () => [...catalog(), ...EXTRA.map(item => ({downloads: '5,000 - 10,000', votes: 81, version: '1.0', updated: 'Jul 9, 2011', ...item}))];
+  // The launcher APK's Market leaves out Orbit Hopper and Pixel Blocks (the website keeps them).
+  const HIDDEN_IN_LAUNCHER = new Set(['orbit', 'blocks']);
+  const all = () => [...catalog(), ...EXTRA.map(item => ({downloads: '5,000 - 10,000', votes: 81, version: '1.0', updated: 'Jul 9, 2011', ...item}))].filter(item => !(window.GBRealApps?.active && HIDDEN_IN_LAUNCHER.has(item.id)));
   const find = id => all().find(item => item.id === id);
   // The content rating each item carries (the storefront's own; the image's apps are rated Everyone) and the filter of
   // the settings activity: the ticked ratings; "Show all apps" lifts the filter.

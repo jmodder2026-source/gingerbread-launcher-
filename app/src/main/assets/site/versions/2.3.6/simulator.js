@@ -210,6 +210,9 @@
   const folderName=id=>{const folder=ICSLauncherFolders.folder(data,id);return folder?.name||i18n.t(folder?.live?liveNames[folder.live]:'Folder');};
   // gb-extras.js: the floating Back / Home / Recents bar, hidden on the lock screen, while asleep and when turned off.
   let floatRoot = null;
+  // The launcher APK leaves and re-enters the page: the real camera is released while away and comes back with the Camera.
+  window.gbOnPause = () => GBRealCamera.stop();
+  window.gbOnResume = () => { if (ui.view === 'camera') render(); };
   function syncFloatBar() {
     if (!floatRoot) { floatRoot = document.createElement('div'); floatRoot.id = 'gbx-float'; screen.insertBefore(floatRoot, overlayRoot); }
     const show = (GBExtras.prefs(data).floatBar || GBRealApps.active) && !ui.locked && !ui.sleeping && ui.view !== 'lock' && !ui.power;
@@ -434,6 +437,7 @@
     if (ui.view === 'messaging') window.GBMmsAttach?.mounted(gbMmsContext());
     snapResting(viewport);
     syncFloatBar();
+    { const cam = GBCamera.settings(data.cameraSettings || {}); GBRealCamera.sync(ui.view === 'camera' && !gbCapture()?.taken && !ui.sleeping && !ui.locked && !ui.power, cam.facing, cam.zoom); }
     renderOverlay();
     i18n.translateDOM(screen);
     const scene = {view: ui.view, sub: ui.sub}, transit = ui.sleeping ? '' : ICSTransitions.kind(lastScene, scene, pendingNav);
@@ -1975,7 +1979,7 @@
           ui.gbcamRec = Date.now(); render(); ui.gbcamRecTimer = setInterval(() => { const label = viewport.querySelector('.gbcam-rec span'); if (label) label.textContent = gbcamClock(); else clearInterval(ui.gbcamRecTimer); }, 500); break;
         }
         // ShutterButton: autofocus, then the capture; the new picture slides into the review thumbnail.
-        gbcamFocus(() => { const photo = {...ICSMedia.scene(data), ...(GBCamera.settings(data.cameraSettings || {}).gps === 'on' ? {location: {fx: GBMaps.ME.fx, fy: GBMaps.ME.fy}} : {}), id: Date.now(), name: `IMG_${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 8)}_${new Date().toISOString().replace(/[-:T]/g, '').slice(8, 14)}`, album: 'camera', created: Date.now()}; const cap = gbCapture(); if (cap) { cap.taken = photo; render(); return; } data.photos.unshift(photo); save(); render(); viewport.querySelector('.gbcam-preview')?.animate([{opacity: 1}, {opacity: .15}, {opacity: 1}], {duration: 260}); viewport.querySelector('.gbcam-thumb img')?.animate([{transform: 'scale(1.6)', opacity: .3}, {transform: 'none', opacity: 1}], {duration: 380}); });
+        gbcamFocus(() => { const photo = {...ICSMedia.scene(data), ...(GBCamera.settings(data.cameraSettings || {}).gps === 'on' ? {location: {fx: GBMaps.ME.fx, fy: GBMaps.ME.fy}} : {}), id: Date.now(), name: `IMG_${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 8)}_${new Date().toISOString().replace(/[-:T]/g, '').slice(8, 14)}`, album: 'camera', created: Date.now(), ...(GBRealCamera.live() ? {real: GBRealCamera.take()} : {})}; const cap = gbCapture(); if (cap) { cap.taken = photo; render(); return; } data.photos.unshift(photo); save(); render(); viewport.querySelector('.gbcam-preview')?.animate([{opacity: 1}, {opacity: .15}, {opacity: 1}], {duration: 260}); viewport.querySelector('.gbcam-thumb img')?.animate([{transform: 'scale(1.6)', opacity: .3}, {transform: 'none', opacity: 1}], {duration: 380}); });
         break;
       case 'camera-review': {gbcamStopRecording();const photo=ICSMedia.photos(data,'camera')[0];openApp('gallery');if(photo){ui.galleryAlbum='camera';ui.selectedPhoto=photo.id;ui.sub='photo';render();}break;}
       case 'calendar-prev': calendarMove(-1); break;

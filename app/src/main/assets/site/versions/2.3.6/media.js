@@ -22,6 +22,8 @@
       const cw=Math.max(1,Math.round(sw*c.w)),ch=Math.max(1,Math.round(sh*c.h)),[width,height]=size(photo);
       return 'data:image/svg+xml,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><g transform="translate(${width/2} ${height/2}) rotate(${rotation}) translate(${-cw/2} ${-ch/2})"><svg width="${cw}" height="${ch}" viewBox="${(sw*c.x).toFixed(2)} ${(sh*c.y).toFixed(2)} ${(sw*c.w).toFixed(2)} ${(sh*c.h).toFixed(2)}" preserveAspectRatio="none"><image href="${image(photo.source)}" width="${sw}" height="${sh}"/></svg></g></svg>`);
     }
+    // gb-real-camera.js: a picture taken with the phone's real camera is kept as a JPEG.
+    if(typeof photo.real==='string'&&photo.real.startsWith('data:image/'))return photo.real;
     const colors=(photo.colors||palettes[0]).map((c,i)=>/^#[\da-f]{6}$/i.test(c)?c:palettes[0][i%3]);
     const [sky,sun,land]=[...colors,...palettes[0]];
     const rotation=((Number(photo.rotation)||0)%360+360)%360,zoom=Math.min(4,Math.max(1,Number(photo.zoom)||1));
