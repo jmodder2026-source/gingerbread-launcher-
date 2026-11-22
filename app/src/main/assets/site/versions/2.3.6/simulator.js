@@ -586,7 +586,8 @@
   }
   // AllApps2D: a black 4-column GridView of application_boxed items (alphabetical) above the home button.
   function renderDrawer() {
-    const sortedApps = GBRealApps.active ? GBRealApps.list().map(app => [app.id, app.label]).sort((a, b) => a[1].localeCompare(b[1], i18n.locale())) : [...apps].sort((a, b) => i18n.t(a[1]).localeCompare(i18n.t(b[1]), i18n.locale()));
+    // Launcher APK: the Gingerbread apps plus the real Files and Claude, in one alphabetical list.
+    const sortedApps = [...apps.map(app => [app[0], i18n.t(app[1])]), ...GBRealApps.list().map(app => [app.id, app.label])].sort((a, b) => a[1].localeCompare(b[1], i18n.locale()));
     return `<div class="drawer-view gbl-allapps-view"><div class="drawer-page drawer-apps gbl-allapps-grid">${sortedApps.map(app => launcherIcon(app[0])).join('')}</div><button class="gbl-allapps-home" data-action="home" aria-label="${safe(i18n.t('Home'))}"></button></div>`;
   }
   function widgetFits(page, x, y, type, ignoredId = '') {

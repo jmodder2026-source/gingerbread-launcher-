@@ -4,7 +4,8 @@ An Android home screen app that runs the Android 2.3.6 Gingerbread simulator fro
 [Android Time Machine](https://github.com/szabolevi98/android-time-machine) full screen, with the phone's real apps in it.
 
 - It opens straight to the home screen: no boot animation and no Nexus S key row.
-- The only real apps it shows are Files and Claude; every other app on the phone stays hidden.
+- The app drawer has every Gingerbread app (simulated: Phone, Messaging, Camera, Maps, Market and the rest) plus the
+  real Files and Claude; every other real app on the phone stays hidden.
 - Files and Claude are placed on the middle home screen the first time it starts.
 - The simulator's widgets, wallpapers, live wallpapers, lock screen and notification shade all work.
 - No page dots. Extras: a floating Back / Home / Recents / Menu bar, and Menu → Home screen → Remove items to delete items.

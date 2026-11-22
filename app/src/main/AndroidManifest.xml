@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- The simulator buzzes on the lock screen slider, long presses and the power menu. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <!-- Android 11+: lets the launcher see every app that has a home screen icon. -->
     <queries>
         <intent>
