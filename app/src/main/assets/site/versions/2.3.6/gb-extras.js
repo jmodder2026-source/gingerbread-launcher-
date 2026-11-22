@@ -29,13 +29,13 @@
   const editBar = t => `<div class="gbx-editbar"><span>${e(t('Touch × to remove an item'))}</span><button type="button" data-action="gbx-edit-done">${e(t('Done'))}</button></div>`;
 
   // The submenu behind the launcher's "Home screen" Menu item, shown as a Gingerbread list dialog.
-  // fixedBar: the APK always shows the floating bar (it holds the Menu key), so it has no switch there.
+  // fixedBar: in the APK the floating bar is always shown (it holds the Menu key) and there are no page dots, so neither has a switch.
   function homeSubmenu(data, t, fixedBar = false) {
     const p = prefs(data), state = on => t(on ? 'On' : 'Off');
     return {title: t('Home screen'), icon: 'ic_menu_preferences', items: [
       {action: 'gbx-edit', title: t('Remove items'), summary: t('Show a delete button on apps and widgets'), icon: 'ic_menu_delete'},
       ...(fixedBar ? [] : [{action: 'gbx-toggle', id: 'floatBar', title: t('Floating bar'), summary: state(p.floatBar), icon: 'ic_menu_more'}]),
-      {action: 'gbx-toggle', id: 'dots', title: t('Page dots'), summary: state(p.dots), icon: 'ic_menu_view'},
+      ...(fixedBar ? [] : [{action: 'gbx-toggle', id: 'dots', title: t('Page dots'), summary: state(p.dots), icon: 'ic_menu_view'}]),
       {action: 'gbx-lock', title: t('Lock screen'), summary: t('Lock the phone now'), icon: 'ic_lock_lock'}
     ]};
   }

@@ -7,7 +7,7 @@ An Android home screen app that runs the Android 2.3.6 Gingerbread simulator fro
 - The only real apps it shows are Files and Claude; every other app on the phone stays hidden.
 - Files and Claude are placed on the middle home screen the first time it starts.
 - The simulator's widgets, wallpapers, live wallpapers, lock screen and notification shade all work.
-- Extras: a floating Back / Home / Recents / Menu bar, page dots, and Menu → Home screen → Remove items to delete items.
+- No page dots. Extras: a floating Back / Home / Recents / Menu bar, and Menu → Home screen → Remove items to delete items.
 - The phone's Back and Home buttons control the simulator.
 
 ## Get the APK
