@@ -26,7 +26,8 @@ An Android home screen app that runs the Android 2.3.6 Gingerbread simulator fro
 
 Open the [latest release](../../releases/latest) on your phone, download `GingerbreadLauncher.apk`, install it, then press
 Home and pick **Gingerbread Launcher**. GitHub builds a new release on every push to `main`
-(see `.github/workflows/build-apk.yml`).
+(see `.github/workflows/build-apk.yml`). Every build is signed with the same key, `signing/launcher.keystore`, so a
+new APK installs over the old one. Builds before build 13 each had a different key: uninstall one of those first.
 
 ## Layout
 

@@ -10,15 +10,25 @@ android {
         applicationId 'net.gingerbread.launcher'
         minSdk 24
         targetSdk 34
-        versionCode 11
-        versionName '2.0'
+        versionCode 12
+        versionName '2.1'
+    }
+
+    // One fixed key for every build, so a new APK installs over the old one. Like Android's own debug key, it is
+    // public: fine for a launcher you install yourself, not for publishing to a store.
+    signingConfigs {
+        fixed {
+            storeFile rootProject.file('signing/launcher.keystore')
+            storePassword 'android'
+            keyAlias 'gingerbread'
+            keyPassword 'android'
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            // Signed with the debug key so the APK installs without a separate keystore.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.fixed
         }
     }
 
