@@ -3,6 +3,8 @@
 
     <!-- The simulator buzzes on the lock screen slider, long presses and the power menu. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- The status bar's Wi-Fi icon shows only while the phone is connected to Wi-Fi. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- The Gingerbread Camera shows the real camera; its pictures are also saved to the phone's gallery. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />

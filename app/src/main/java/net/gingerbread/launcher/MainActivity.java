@@ -17,6 +17,10 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkRequest;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -64,6 +68,9 @@ public class MainActivity extends Activity {
 
     private WebView web;
     private BroadcastReceiver packageReceiver;
+    // Wi-Fi networks the phone is connected to right now (normally zero or one).
+    private final java.util.Set<Network> wifiNetworks = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+    private ConnectivityManager.NetworkCallback wifiCallback;
     // The page's camera request, held while Android asks for the camera permission.
     private PermissionRequest pendingCamera;
 
@@ -128,6 +135,8 @@ public class MainActivity extends Activity {
                 web.evaluateJavascript("window.gbRealAppsChanged && window.gbRealAppsChanged()", null);
             }
         };
+        watchWifi();
+
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_PACKAGE_ADDED);
         filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
@@ -135,6 +144,43 @@ public class MainActivity extends Activity {
         filter.addDataScheme("package");
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(packageReceiver, filter, Context.RECEIVER_EXPORTED);
         else registerReceiver(packageReceiver, filter);
+    }
+
+    private boolean wifiConnected() {
+        return !wifiNetworks.isEmpty();
+    }
+
+    private void tellPageWifi() {
+        runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.gbRealWifi && window.gbRealWifi(" + wifiConnected() + ")", null); });
+    }
+
+    // Follows the phone's Wi-Fi: the page's status bar shows the Wi-Fi icon only while it is connected.
+    private void watchWifi() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return;
+        wifiCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(Network network) {
+                wifiNetworks.add(network);
+                tellPageWifi();
+            }
+
+            @Override
+            public void onLost(Network network) {
+                wifiNetworks.remove(network);
+                tellPageWifi();
+            }
+        };
+        try {
+            cm.registerNetworkCallback(new NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build(), wifiCallback);
+        } catch (RuntimeException e) {
+            wifiCallback = null;
+        }
+        // The state right now, before the first callback arrives.
+        for (Network network : cm.getAllNetworks()) {
+            NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+            if (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) wifiNetworks.add(network);
+        }
     }
 
     // Only the camera is ever granted to the page, and only after Android's own permission prompt.
@@ -177,6 +223,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         if (web != null) web.evaluateJavascript("window.gbOnResume && window.gbOnResume()", null);
+        tellPageWifi();
     }
 
     // A JPEG from the Gingerbread Camera into the phone's gallery (Pictures/Gingerbread).
@@ -334,6 +381,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         if (packageReceiver != null) unregisterReceiver(packageReceiver);
+        if (wifiCallback != null) {
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            try { if (cm != null) cm.unregisterNetworkCallback(wifiCallback); } catch (RuntimeException ignored) { }
+        }
         if (web != null) web.destroy();
         super.onDestroy();
     }
@@ -391,6 +442,11 @@ public class MainActivity extends Activity {
                 intent.addFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
                 startSafely(intent);
             });
+        }
+
+        @JavascriptInterface
+        public boolean wifiConnected() {
+            return MainActivity.this.wifiConnected();
         }
 
         @JavascriptInterface

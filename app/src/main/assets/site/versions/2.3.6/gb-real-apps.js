@@ -12,6 +12,10 @@
     try { sessionStorage.setItem('android-sim-booted-2.3.6', '1'); } catch (error) { /* storage blocked */ }
   }
   const byId = new Map(list.map(app => [app.id, app]));
+  // The phone's real Wi-Fi: the launcher reports it now and whenever it connects or drops.
+  let wifi = false;
+  try { wifi = !!bridge?.wifiConnected?.(); } catch (error) { wifi = false; }
+  window.gbRealWifi = on => { wifi = !!on; window.dispatchEvent(new Event('gb-real-wifi')); };
   const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 
   // Files apps on common phones, and Claude: placed on the middle home screen the first time the launcher runs.
@@ -32,7 +36,8 @@
     name: id => byId.get(id)?.label || '',
     icon: id => `<span class="app-icon"><img src="${e(byId.get(id)?.icon || 'assets/apps.png')}" alt=""></span>`,
     launch: id => { try { bridge?.launch(String(id).slice(5)); } catch (error) { /* the app may have been removed */ } },
-    starters: () => shown.slice()
+    starters: () => shown.slice(),
+    wifi: () => wifi
   };
   // The APK calls this when an app is installed or removed.
   window.gbRealAppsChanged = () => location.reload();
