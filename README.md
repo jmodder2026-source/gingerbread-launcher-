@@ -13,7 +13,7 @@ An Android home screen app that runs the Android 2.3.6 Gingerbread simulator fro
 - The app drawer scrolls (and flings) under your finger.
 - Check boxes and radio buttons show as perfect squares and turn Gingerbread orange while pressed; touching a button
   shows no blue highlight.
-- The Camera's icon strip sits at the top of the viewfinder, with its menus dropping down from it.
+- The Camera's icon strip sits right above the shutter and slider row, with its menus popping up from it.
 - The status bar follows the phone: signal bars or no SIM, airplane mode, the data type (G, E, 3G, or H for
   3G+/4G/5G) with in-and-out arrows while 3G or H data moves, the Wi-Fi icon and its bars only while connected,
   Bluetooth on or connected, vibrate or silent, the battery level and charging, and the alarm icon while an alarm is

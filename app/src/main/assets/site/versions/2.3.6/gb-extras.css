@@ -87,10 +87,9 @@ label:active .gbem-setup-default input:checked+span,.gbem-setup-default:active i
 .gbsp-check:checked.gbx-pressed,.gbcal-check:checked.gbx-pressed,.gbnet-checkline input:checked.gbx-pressed,.gm-quoted-bar input:checked.gbx-pressed,.tg-switch input:checked.gbx-pressed,.nwp-check.on.gbx-pressed,.gbx-pressed .gbsp-check:checked,.gbx-pressed .gbcal-check:checked,.gbx-pressed .gbnet-checkline input:checked,.gbx-pressed .gm-quoted-bar input:checked,.gbx-pressed .tg-switch input:checked,.gbx-pressed .nwp-check.on,.gbx-pressed .gbem-setup-default input:checked+span,.gbem-setup-default.gbx-pressed input:checked+span{background-image:url('assets/gb-btn_check_on_pressed.png')!important}
 .nwp-radio:not(.on).gbx-pressed,.gbx-pressed .nwp-radio:not(.on){background-image:url('assets/gb-btn_radio_off_pressed.png')!important}
 .nwp-radio.on.gbx-pressed,.gbx-pressed .nwp-radio.on{background-image:url('assets/gb-btn_radio_on_pressed.png')!important}
-/* Launcher APK: the Camera's icon strip (zoom, flash, white balance, GPS, settings) sits at the top of the
-   viewfinder instead of near the bottom, and its menus drop down from it. */
+/* Launcher APK: the Camera's icon strip (zoom, flash, white balance, GPS, settings) sits right on top of the shutter
+   and slider row, with the viewfinder above it; its menus pop up from it. */
 .apk-launcher .gbcam-frame{place-items:start center}
-.apk-launcher .gbcam-iconbar{bottom:auto;top:calc(3.3392 * var(--dp))}
-.apk-launcher .gbcam-popup{bottom:auto;top:calc(calc(2.0058 * var(--dp)) + calc(3.3392 * var(--dp)) + calc(40 * var(--dp)) + calc(16.2319 * var(--dp)))}
-.apk-launcher .gbcam-popup-list{max-height:calc(100vh - calc(220 * var(--dp)))}
-.apk-launcher .gbcam-triangle{bottom:auto;top:calc(calc(2.0058 * var(--dp)) + calc(3.3392 * var(--dp)) + calc(40 * var(--dp)) - calc(4.6377 * var(--dp)) + calc(16.2319 * var(--dp)) - calc(28 * var(--dp)) + calc(4.6377 * var(--dp)));transform:rotate(180deg)}
+.apk-launcher .gbcam-iconbar{bottom:0}
+.apk-launcher .gbcam-popup{bottom:calc(calc(76 * var(--dp)) + calc(40 * var(--dp)) + calc(16.2319 * var(--dp)))}
+.apk-launcher .gbcam-triangle{bottom:calc(calc(76 * var(--dp)) + calc(40 * var(--dp)) - calc(4.6377 * var(--dp)))}
