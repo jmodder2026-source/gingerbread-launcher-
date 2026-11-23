@@ -652,7 +652,8 @@
     if (widget.type === 'search') return GBLauncher.search(t);
     if (widget.type === 'protips') return GBLauncher.protips({...(data.protips || {index: 0, set: 0}), icon: ui.tipsIcon}, i18n.language);
     if (widget.type === 'analog') return GBWidgets.analog(deviceDate());
-    if (widget.type === 'power') return GBWidgets.power({...GBSettings.DEFAULTS, ...data.settings}, t);
+    // In the launcher APK the Power control widget shows the phone's real Wi-Fi, Bluetooth, GPS, sync and brightness.
+    if (widget.type === 'power') { window.GBRealSettings?.sync(data.settings); return GBWidgets.power({...GBSettings.DEFAULTS, ...data.settings}, t); }
     if (widget.type === 'bookmarks') return GBWidgets.bookmarks(data.bookmarks || [], ui.bookmarkWidget?.[widget.id] || 0, gbBrowserTitle, renderWebsite);
     if (widget.type === 'music') return GBLauncher.music(ui.music, tracks[ui.music.track], musicActive(), t);
     if (widget.type === 'news-weather') return GBWidgets.newsWeather(i18n.language);
@@ -1730,6 +1731,24 @@
       case 'play-rate': { const top = viewport.querySelector('.play-content').scrollTop; data.playRatings ||= {}; data.playRatings[ui.play.selected] = Number(id); save(); render(); viewport.querySelector('.play-content').scrollTop = top; break; }
       case 'page': setHomePage(Number(id)); break;
       case 'power-toggle':
+        // Launcher APK: the buttons switch the phone's own Wi-Fi, Bluetooth, GPS, Auto-sync and brightness.
+        if (window.GBRealSettings?.active) {
+          const real = window.GBRealSettings;
+          real.sync(data.settings);
+          if (id === 'brightness') {
+            const auto = data.settings.autoBrightness ?? GBSettings.DEFAULTS.autoBrightness;
+            if (auto) { data.settings.autoBrightness = false; data.settings.brightness = 20; }
+            else if ((data.settings.brightness ?? 60) < 30) data.settings.brightness = 55;
+            else if (data.settings.brightness < 80) data.settings.brightness = 100;
+            else data.settings.autoBrightness = true;
+            real.apply('autoBrightness', data.settings);
+            if (!data.settings.autoBrightness) real.apply('brightness', data.settings);
+          } else real.toggle(id, data.settings);
+          save(); render();
+          // Wi-Fi and Bluetooth take a moment to switch: show the phone's state once it has.
+          setTimeout(() => { real.sync(data.settings); if (ui.view === 'home') render(); }, 1500);
+          break;
+        }
         if (id === 'brightness') { const auto = data.settings.autoBrightness ?? GBSettings.DEFAULTS.autoBrightness; if (auto) { data.settings.autoBrightness = false; data.settings.brightness = 20; } else if ((data.settings.brightness ?? 60) < 30) data.settings.brightness = 55; else if (data.settings.brightness < 80) data.settings.brightness = 100; else data.settings.autoBrightness = true; }
         else data.settings[id] = !data.settings[id];
         if(id==='wifi'&&data.settings.wifi)data.settings.portableHotspot=false;

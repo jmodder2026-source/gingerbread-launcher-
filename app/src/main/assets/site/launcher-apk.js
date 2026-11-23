@@ -131,6 +131,133 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hasStandIn); else hasStandIn();
 
+
+  /* The site's own keyboard in every version instead of the phone's: 2.1, 6.0.1 and 7.1.2 bring a full keyboard of their
+     own; 4.4.4 and 5.1.1 draw theirs with KKIme / LPIme; 4.0.4 and 4.3 borrow the 4.4.4 Holo keyboard; 2.3.6 gets
+     Gingerbread's keyboard keys (PasswordEntryKeyboardView art). Every text field is marked inputmode="none" so
+     Android's own keyboard stays down. */
+  function siteKeyboard() {
+    const version = (location.pathname.match(/versions\/([\d.]+)\//) || [])[1] || '';
+    const OWN = ['2.1', '6.0.1', '7.1.2'];
+    const eligible = el => !!el && el.closest?.('#screen') && !el.closest('#apk-panel') && !el.disabled && !el.readOnly &&
+      (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && /^(text|search|email|url|password|tel|number)$/.test(el.type || 'text')));
+    const mark = root => { for (const el of root.querySelectorAll?.('input, textarea') || []) if (eligible(el) && !el.hasAttribute('inputmode')) el.setAttribute('inputmode', 'none'); };
+    mark(document);
+    new MutationObserver(list => { for (const m of list) for (const n of m.addedNodes) if (n.nodeType === 1) { if (eligible(n) && !n.hasAttribute('inputmode')) n.setAttribute('inputmode', 'none'); mark(n); } })
+      .observe(document.documentElement, {subtree: true, childList: true});
+    if (OWN.includes(version)) return;
+    const style = document.createElement('style');
+    style.textContent = '#apk-kb{position:absolute;left:0;right:0;bottom:0;z-index:60;touch-action:none}' +
+      '#apk-kb .apk-kb-gb{background:linear-gradient(#4a4a4a,#1c1c1c 12%,#000);padding:calc(3 * var(--dp)) 0 calc(2 * var(--dp))}' +
+      '#apk-kb .apk-kb-gb button{height:calc(46 * var(--dp))}';
+    document.head.append(style);
+
+    // 4.0.4 and 4.3 borrow the KitKat keyboard (its script, stylesheet and key art from ../4.4.4/).
+    const BORROW = ['4.0.4', '4.3'].includes(version);
+    if (BORROW) {
+      const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '../4.4.4/kk-ime.css'; document.head.append(css);
+      const js = document.createElement('script'); js.src = '../4.4.4/kk-ime.js'; document.head.append(js);
+    }
+    const lang = () => (window.i18n?.language || document.documentElement.lang || 'en').slice(0, 2);
+    const state = {field: null, shift: false, symbols: false, more: false};
+    let root = null, saved = null;
+
+    function gingerbread(number) {
+      const b = (k, label, cls = '') => `<button type="button" class="${cls}" data-apk-key="${k}" aria-label="${k}">${label}</button>`;
+      const icon = (k, file, cls = '') => `<button type="button" class="${cls}" data-apk-key="${k}" aria-label="${k}"><img src="assets/gb-${file}.png" alt=""></button>`;
+      if (number) return `<div class="gbkb gbkb-numeric apk-kb-gb">${'123456789'.split('').map(k => icon(k, `sym_keyboard_num${k}`)).join('')}${icon('next', 'sym_keyboard_ok')}${icon('0', 'sym_keyboard_num0_no_plus')}${icon('delete', 'sym_keyboard_delete')}</div>`;
+      const rows = state.symbols ? ['1234567890', '@#$%&*-=()', '!"\':;/?', ''] : ['1234567890', 'qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
+      const letters = row => row.split('').map(k => { const c = state.shift && !state.symbols ? k.toUpperCase() : k; return b(c, c.replace(/[&<>"]/g, x => `&#${x.charCodeAt(0)};`)); }).join('');
+      return `<div class="gbkb gbkb-qwerty apk-kb-gb">${rows.map((row, i) => i < 3 ? `<div class="${i === 2 && !state.symbols ? 'gbkb-inset' : ''}">${letters(row)}</div>`
+        : `<div>${icon('shift', state.shift ? 'sym_keyboard_shift_locked' : 'sym_keyboard_shift', 'gbkb-wide')}${letters(row)}${row ? '' : '<span class="gbkb-fill"></span>'}${icon('delete', 'sym_keyboard_delete', 'gbkb-wide')}</div>`).join('')}<div>${b('symbols', state.symbols ? 'ABC' : '?123', 'gbkb-double')}${b(',', ',')}${b('-', '-')}${icon('space', 'sym_keyboard_space', 'gbkb-double')}${b('=', '=')}${b('.', '.')}${icon('next', 'sym_keyboard_ok', 'gbkb-double')}</div></div>`;
+    }
+    function html() {
+      const el = state.field, number = el && (el.type === 'number' || el.type === 'tel');
+      if (version === '2.3.6') return gingerbread(number);
+      const ime = version === '5.1.1' ? window.LPIme : window.KKIme;
+      if (!ime) return '';
+      let out = ime.render({mode: number ? 'number' : 'alpha', shift: state.shift, symbols: state.symbols, more: state.more, action: el?.form || el?.tagName === 'TEXTAREA' ? 'done' : 'done', lang: lang()});
+      out = out.replace(/data-lock-key=/g, 'data-apk-key=');
+      if (BORROW) out = out.replace(/src="assets\/kime-/g, 'src="../4.4.4/assets/kime-');
+      return out;
+    }
+    function draw() {
+      if (!root) return;
+      root.innerHTML = html();
+      const viewport = document.querySelector('#viewport');
+      if (viewport) viewport.style.bottom = `${root.offsetHeight}px`;
+    }
+    function open(el) {
+      if (state.field !== el) { state.shift = false; state.symbols = false; state.more = false; }
+      state.field = el;
+      const screen = document.querySelector('#screen'); if (!screen) return;
+      // A keyguard draws its own keyboard: leave that one alone.
+      if (screen.querySelector('.credential-keyboard, .kime:not(#apk-kb .kime)')) return;
+      if (!root) {
+        root = document.createElement('div'); root.id = 'apk-kb'; root.className = `apk-kb v${version.replace(/\./g, '')}`;
+        root.addEventListener('pointerdown', onKey); root.addEventListener('mousedown', e => e.preventDefault());
+        root.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
+        screen.append(root);
+        const viewport = document.querySelector('#viewport'); saved = viewport ? viewport.style.bottom : null;
+      }
+      draw();
+      setTimeout(() => el.scrollIntoView?.({block: 'nearest'}), 50);
+    }
+    function close() {
+      root?.remove(); root = null; state.field = null;
+      const viewport = document.querySelector('#viewport'); if (viewport && saved !== null) viewport.style.bottom = saved; saved = null;
+    }
+    function fire(el) { el.dispatchEvent(new Event('input', {bubbles: true})); }
+    function insert(text) {
+      const el = state.field; if (!el) return;
+      try {
+        const a = el.selectionStart, b = el.selectionEnd;
+        if (a == null) throw new Error('no selection');
+        el.setRangeText(text, a, b, 'end');
+      } catch (error) { el.value += text; }
+      fire(el);
+    }
+    function erase() {
+      const el = state.field; if (!el) return;
+      try {
+        let a = el.selectionStart, b = el.selectionEnd;
+        if (a == null) throw new Error('no selection');
+        if (a === b) { if (!a) return; a -= 1; }
+        el.setRangeText('', a, b, 'end');
+      } catch (error) { el.value = el.value.slice(0, -1); }
+      fire(el);
+    }
+    function onKey(event) {
+      const key = event.target.closest('[data-apk-key]'); if (!key) return;
+      event.preventDefault(); event.stopPropagation();
+      const k = key.dataset.apkKey, el = state.field;
+      if (k === 'shift') state.shift = state.shift ? (state.shift === true ? 'lock' : false) : true;
+      else if (k === 'symbols') { state.symbols = !state.symbols; state.more = false; }
+      else if (k === 'more') state.more = !state.more;
+      else if (k === 'delete') erase();
+      else if (k === 'space') insert(' ');
+      else if (k === 'next' || k === 'enter' || k === 'done') {
+        if (el?.tagName === 'TEXTAREA') insert('\n');
+        else if (el) {
+          const down = new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true});
+          const go = el.dispatchEvent(down);
+          el.dispatchEvent(new KeyboardEvent('keyup', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true}));
+          if (go && el.form) { if (el.form.requestSubmit) el.form.requestSubmit(); else el.form.dispatchEvent(new Event('submit', {bubbles: true, cancelable: true})); }
+          el.dispatchEvent(new Event('change', {bubbles: true}));
+          if (document.activeElement === el) el.blur();
+          close();
+          return;
+        }
+      } else { insert(k); if (state.shift === true) state.shift = false; }
+      draw();
+    }
+    document.addEventListener('focusin', event => { if (eligible(event.target)) open(event.target); }, true);
+    document.addEventListener('focusout', () => setTimeout(() => { if (!eligible(document.activeElement)) close(); }, 0), true);
+    // Back closes the keyboard first, as on a phone.
+    window.apkKeyboardBack = () => { if (!root) return false; const el = state.field; close(); el?.blur?.(); return true; };
+  }
+  if (bridge) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', siteKeyboard); else siteKeyboard(); }
+
   window.RealLauncher = {
     active: !!bridge,
     VERSIONS,

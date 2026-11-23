@@ -441,6 +441,7 @@ public class MainActivity extends Activity {
             }
             o.put("brightness", Math.round(systemInt(Settings.System.SCREEN_BRIGHTNESS, 128) * 100f / 255));
             o.put("autoBrightness", systemInt(Settings.System.SCREEN_BRIGHTNESS_MODE, 0) == Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC);
+            o.put("autoSync", android.content.ContentResolver.getMasterSyncAutomatically());
             int timeout = systemInt(Settings.System.SCREEN_OFF_TIMEOUT, 30000), index = TIMEOUTS.length - 1;
             for (int i = 0; i < TIMEOUTS.length; i++) if (timeout <= TIMEOUTS[i]) { index = i; break; }
             o.put("screenTimeout", index);
@@ -568,6 +569,10 @@ public class MainActivity extends Activity {
             case "haptic": return writeSystem(Settings.System.HAPTIC_FEEDBACK_ENABLED, on ? 1 : 0);
             case "soundEffects": return writeSystem(Settings.System.SOUND_EFFECTS_ENABLED, on ? 1 : 0);
             case "dtmfTone": return writeSystem(Settings.System.DTMF_TONE_WHEN_DIALING, on ? 1 : 0);
+            // The Power control widget's Sync button: the phone's "Auto sync data" switch.
+            case "autoSync":
+                try { android.content.ContentResolver.setMasterSyncAutomatically(on); return "ok"; }
+                catch (SecurityException e) { return openSettings(Settings.ACTION_SYNC_SETTINGS); }
             default:
                 return "no";
         }
@@ -1131,7 +1136,7 @@ public class MainActivity extends Activity {
     // 2.1 and 2.3.6 through their on-screen key's button.
     private void pressKey(String selector) {
         String name = selector.replace(".touch-", "");
-        if (web != null) web.evaluateJavascript("(function(){if(window.launcherKey&&window.launcherKey('" + name + "'))return;var k=document.querySelector('" + selector + "');if(k&&!k.disabled)k.click();})()", null);
+        if (web != null) web.evaluateJavascript("(function(){if('" + name + "'==='back'&&window.apkKeyboardBack&&window.apkKeyboardBack())return;if(window.launcherKey&&window.launcherKey('" + name + "'))return;var k=document.querySelector('" + selector + "');if(k&&!k.disabled)k.click();})()", null);
     }
 
     // Back and Menu come here before the WebView, so a page that is focused cannot swallow them.

@@ -69,6 +69,8 @@
 
   // ---- Screen off: the lock screen waits when the phone's screen comes back on --------------------------------------
   window.gbLockNow = () => {
+    // During a call the screen goes dark at the ear: the call screen stays (as on 2.3.6).
+    if (calls.size) return;
     try {
       if (ctx) { ctx.lock(); ctx.wake(); } else L.lockScreen?.();
     } catch (error) { /* keep going */ }
@@ -121,7 +123,11 @@
      or the Phone module's InCallUI (6.0.1, 7.1.2). A ringing call gets Answer and Decline under it. */
   const calls = new Map();
   const RANK = {ringing: 0, 'select-account': 1, dialing: 1, connecting: 1, active: 2, holding: 3};
-  const act = (id, action, value = '') => { try { bridge.callAction(String(id), action, String(value)); } catch (error) { /* gone */ } };
+  const act = (id, action, value = '') => {
+    // The call shown while Android is still setting it up: ending it just closes the screen.
+    if (id === 'pending') { const k = calls.get('pending'); if (k && !k.ended && (action === 'hangup' || action === 'reject')) finish(k); return; }
+    try { bridge.callAction(String(id), action, String(value)); } catch (error) { /* gone */ }
+  };
   const shown = id => { try { bridge.callShown?.(id); } catch (error) { /* older APK */ } };
   let shownCall = null, returnTo = null;
   const top = () => [...calls.values()].filter(k => !k.ended).sort((a, b) => (RANK[a.state] ?? 2) - (RANK[b.state] ?? 2))[0] || null;
@@ -190,7 +196,7 @@
     if (NS) {
       if (!ctx) return;
       if (k) {
-        if (!shownCall) returnTo = ctx.ui.view === 'phone' || ctx.ui.view === 'lock' ? 'home' : ctx.ui.view;
+        if (!shownCall) returnTo = ctx.ui.view === 'phone' ? 'home' : ctx.ui.view;
         ctx.ui.call = k; shownCall = k;
         if (ctx.ui.view !== 'phone') ctx.open('phone'); else ctx.render();
       }
@@ -199,7 +205,7 @@
     }
     const s = sim(); if (!s) return;
     if (k) {
-      if (!shownCall) { returnTo = s.ui.view === 'phone' || s.ui.view === 'lock' ? null : {view: s.ui.view, sub: s.ui.sub}; s.capture(); }
+      if (!shownCall) { returnTo = s.ui.view === 'phone' ? null : s.ui.view === 'lock' ? 'lock' : {view: s.ui.view, sub: s.ui.sub}; s.capture(); }
       s.ui.activeCall = k; shownCall = k;
       s.ui.callNumber = k.number; s.ui.view = 'phone'; s.ui.sub = 'calling'; s.ui.overlay = ''; s.ui.sleeping = false;
       s.render();
@@ -216,7 +222,7 @@
         if (ctx.ui.call !== k) return;
         ctx.ui.call = null; shownCall = null;
         if (top()) { showCall(); return; }
-        if (ctx.ui.view === 'phone') { if (!returnTo || returnTo === 'home') ctx.home(); else ctx.open(returnTo); }
+        if (ctx.ui.view === 'phone') { if (returnTo === 'lock') { ctx.home(); ctx.lock(); ctx.wake(); } else if (!returnTo || returnTo === 'home') ctx.home(); else ctx.open(returnTo); }
         returnTo = null;
       }, 1500);
       return;
@@ -231,14 +237,33 @@
       if (s.ui.activeCall !== k) return;
       s.ui.activeCall = null; shownCall = null;
       if (top()) { showCall(); return; }
-      if (s.ui.view === 'phone') { s.ui.sub = ''; s.ui.dial = ''; if (returnTo) { s.ui.view = returnTo.view; s.ui.sub = returnTo.sub; } else s.ui.view = 'home'; }
+      const relock = returnTo === 'lock';
+      if (s.ui.view === 'phone') { s.ui.sub = ''; s.ui.dial = ''; if (returnTo && !relock) { s.ui.view = returnTo.view; s.ui.sub = returnTo.sub; } else s.ui.view = 'home'; }
       returnTo = null;
       s.render();
+      // A call that came in over the lock screen goes back to it.
+      if (relock) L.lockScreen?.();
     }, 1200);
   }
+  // A call placed from the version's Phone app shows its call screen at once ("Dialing"), as 2.3.6 does, while
+  // Android sets the call up; the first report of that call takes this place.
+  const place = L.call;
+  L.call = number => {
+    const how = place(number);
+    if (how === 'incall' && !calls.size) {
+      const k = {real: true, id: 'pending', number: String(number), started: Date.now(), connected: Number.MAX_SAFE_INTEGER, mute: false, speaker: false, hold: false, keypad: false, digits: '', dialpad: false, dtmf: '', ended: 0, incoming: false, state: 'dialing'};
+      calls.set('pending', k);
+      showCall();
+      // No call from Android after 8 s (refused, no signal): the screen goes away.
+      setTimeout(() => { if (calls.get('pending') === k) finish(k); }, 8000);
+    }
+    return how;
+  };
   window.gbRealCall = report => {
     report = typeof report === 'string' ? JSON.parse(report) : report;
     if (!report?.id) return;
+    const pending = calls.get('pending');
+    if (pending && !calls.has(report.id) && !report.incoming) { calls.delete('pending'); pending.id = report.id; calls.set(report.id, pending); }
     let k = calls.get(report.id);
     const gone = report.state === 'disconnected' || report.state === 'disconnecting';
     if (!k) {

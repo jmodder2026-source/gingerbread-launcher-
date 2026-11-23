@@ -9,7 +9,8 @@
 
   // Settings whose value comes from the phone, as the simulator stores them.
   const MIRRORED = ['airplane', 'wifi', 'bluetooth', 'gps', 'networkLocation', 'nfc', 'silent', 'ringVolume', 'mediaVolume',
-    'alarmVolume', 'notificationVolume', 'brightness', 'autoBrightness', 'screenTimeout', 'rotate', 'haptic', 'soundEffects', 'dtmfTone'];
+    'alarmVolume', 'notificationVolume', 'brightness', 'autoBrightness', 'screenTimeout', 'rotate', 'haptic', 'soundEffects', 'dtmfTone',
+    'autoSync'];
   // Switches the phone handles; any other switch stays a simulator setting.
   const REAL = new Set([...MIRRORED, 'dataEnabled', 'dataRoaming', 'assistedGps', 'usbDebug', 'stayAwake', 'mockLocations',
     'unknownSources', 'bluetoothVisible', 'portableHotspot']);
