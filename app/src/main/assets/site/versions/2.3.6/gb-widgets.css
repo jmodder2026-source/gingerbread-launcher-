@@ -195,3 +195,8 @@
 /* hotpot_listing.xml: PlaceListViewPrimary 17 sp ?textColorPrimary, PlaceListViewSecondary 14 sp light_text_grey #999999. */
 .gbw-hp-list b{font-weight:400;font-size:calc(16.9972 * var(--dp))}
 .gbw-hp-list small{color:#999;font-size:calc(14.0058 * var(--dp))}
+/* Dragging a widget: the copy under the finger fills the widget's whole span (the YouTube and News & Weather frames
+   are sized in %, which a grid ghost resolves to 0), and nothing of the widget stays behind at its old place, its
+   flipping stories and videos included (their animation would otherwise show them through visibility:hidden). */
+.drag-ghost.widget-span-ghost>.gbw-yt,.drag-ghost.widget-span-ghost>.gbw-nw,.drag-ghost.widget-span-ghost>.gbw-mk{position:absolute;inset:0;width:auto;height:auto}
+.drag-source-widget,.drag-source-widget *{visibility:hidden!important;animation-play-state:paused!important}

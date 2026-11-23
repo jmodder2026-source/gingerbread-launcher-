@@ -108,6 +108,7 @@
 
   // ---- Launcher settings (Menu on the home screen) -------------------------------------------------------------------
   const T = {
+    short: {en: 'Launcher', hu: 'Indító', de: 'Launcher', fr: 'Lanceur', es: 'Launcher'},
     title: {en: 'Launcher settings', hu: 'Indító beállításai', de: 'Launcher-Einstellungen', fr: 'Paramètres du lanceur', es: 'Ajustes del launcher'},
     apps: {en: 'Apps in the drawer', hu: 'Alkalmazások a fiókban', de: 'Apps in der App-Übersicht', fr: 'Applications du tiroir', es: 'Aplicaciones del cajón'},
     version: {en: 'Android version', hu: 'Android-verzió', de: 'Android-Version', fr: 'Version d’Android', es: 'Versión de Android'},
@@ -118,8 +119,12 @@
   function launcherSettings() {
     const d = L.defaults(), mark = on => (on ? ' ✓' : '');
     const version = L.version();
-    c.dialog({title: tr(T.title), icon: 'fw-ic_dialog_menu_generic.png', items: [
-      `${tr(T.apps)} (${L.shown().length}/${L.all().length})`, `${tr(T.version)}: ${version}`, tr(T.home) + mark(d.home), tr(T.phone) + mark(d.phone)],
+    // Each row with its menu icon, as Eclair's own settings lists show them.
+    c.dialog({title: tr(T.title), icon: 'fw-ic_dialog_menu_generic.png', rows: 'iconlist', items: [
+      {label: tr(T.apps), icon: 'fw-ic_menu_manage.png'},
+      {label: `${tr(T.version)}: ${version}`, icon: 'fw-ic_menu_info_details.png'},
+      {label: tr(T.home) + mark(d.home), icon: 'am-menu_home.png'},
+      {label: tr(T.phone) + mark(d.phone), icon: 'fw-ic_menu_call.png'}],
     onItem(index) {
       if (index === 0) appsDialog();
       else if (index === 1) versionDialog();
@@ -127,9 +132,11 @@
     }});
   }
   function appsDialog() {
-    const apps = L.all(), checked = apps.map(app => L.isShown(app.id));
-    c.dialog({title: tr(T.apps), icon: null, items: apps.map(app => app.label), choice: 'multi', checked,
-      buttons: [{label: tr(T.ok), action: () => { L.setShown(apps.filter((_, i) => checked[i]).map(app => app.id)); location.reload(); }}]});
+    // The dialog keeps the ticked rows as a list of row numbers (d.checked) and changes it as rows are tapped.
+    const apps = L.all(), checked = apps.map((app, i) => L.isShown(app.id) ? i : -1).filter(i => i >= 0);
+    // Each app with its real icon (served by the APK, see EC.apps.list above).
+    c.dialog({title: tr(T.apps), icon: null, rows: 'iconlist', items: apps.map(app => ({label: app.label, icon: `../../../real-icon/${app.file}`})), choice: 'multi', checked,
+      buttons: [{label: tr(T.ok), action: (cc, d) => { const on = new Set(d?.checked || checked); L.setShown(apps.filter((_, i) => on.has(i)).map(app => app.id)); location.reload(); }}]});
   }
   function versionDialog() {
     const current = Math.max(0, L.VERSIONS.findIndex(([v]) => v === L.version()));
@@ -141,7 +148,7 @@
     const menu = homeModule.menu;
     homeModule.menu = cc => {
       const show = cc.menu;
-      cc.menu = items => show([...items, {label: tr(T.title), icon: 'fw-ic_menu_preferences.png', action: () => launcherSettings()}]);
+      cc.menu = items => show([...items, {label: tr(T.short), icon: 'fw-ic_menu_manage.png', action: () => launcherSettings()}]);
       try { return menu(cc); } finally { cc.menu = show; }
     };
   }
