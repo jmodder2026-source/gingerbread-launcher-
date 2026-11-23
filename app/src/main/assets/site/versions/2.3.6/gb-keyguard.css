@@ -92,3 +92,7 @@
 .gbkb-qwerty .gbkb-fill{flex:70}
 .gbkb-qwerty button{font-size:calc(22.0058 * var(--dp))}
 .gbkb-qwerty .gbkb-double:not(:has(img)){font-size:calc(13.9943 * var(--dp))}
+
+/* IncomingCallWidget (in-call screen): the red Decline tab, bar and target from frameworks/base (gingerbread). */
+.gbkg-right.gbkg-active[data-confirm="red"] .gbkg-tab{background-image:url('assets/gb-jog_tab_right_confirm_red.png')}
+.gbkg-right.gbkg-active[data-confirm="red"] .gbkg-bar{border-image-source:url('assets/gb-jog_tab_bar_right_end_confirm_red.png')}

@@ -215,10 +215,81 @@
   // The launcher APK leaves and re-enters the page: the real camera is released while away and comes back with the Camera.
   window.gbOnPause = () => GBRealCamera.stop();
   // Launcher APK: turning the phone's screen off locks the Gingerbread phone, so its lock screen greets you next time.
-  window.gbLockNow = () => { if (ui.power || ui.locked || ui.view === 'lock' || data.settings.screenLock === 'none') return; ui.overlay = ''; lockScreen(); };
+  window.gbLockNow = () => { if (ui.activeCall || ui.power || ui.locked || ui.view === 'lock' || data.settings.screenLock === 'none') return; ui.overlay = ''; lockScreen(); };
   // Launcher APK: the status bar's Wi-Fi, signal, data, battery and alarm icons follow the real phone.
   window.addEventListener('gb-real-wifi', () => renderStatus());
   // A new Wi-Fi scan or connection: redraw the Wi-Fi settings while they are open (not under a dialog being typed in).
+  /* Launcher APK as the default phone app: every real call (gb-real-calls.js) runs on the Gingerbread call screen.
+     The phone reports each call by id; the screen shows the one that matters most (ringing, then dialing, then the
+     call in progress, then one on hold), and each call that ends goes into the Gingerbread call log. */
+  const realCalls = new Map();
+  let gbCallTabs = null, gbCallFromLock = false, gbCallReturn = null;
+  const CALL_RANK = {ringing: 0, 'select-account': 1, dialing: 1, active: 2, holding: 3};
+  function showRealCall() {
+    const live = [...realCalls.values()].filter(call => !call.endedAt).sort((a, b) => CALL_RANK[a.state] - CALL_RANK[b.state]);
+    const next = live[0];
+    if (next && ui.activeCall !== next && !(ui.activeCall?.real && ui.activeCall.endedAt)) {
+      // Remember where the phone was, to go back there when the calls are over (the lock screen locks again).
+      if (!ui.activeCall) { gbCallFromLock = ui.view === 'lock'; gbCallReturn = ui.view === 'lock' || ui.view === 'phone' ? null : {view: ui.view, sub: ui.sub}; }
+      ui.activeCall = next; ui.gbAddCall = false;
+      if (next.state === 'ringing' || next.state === 'dialing' || next.state === 'select-account') { ui.gbCallBackground = false; captureRecentView(); ui.recent = ['phone', ...ui.recent.filter(id => id !== 'phone')].slice(0, 8); ui.callNumber = next.number; ui.view = 'phone'; ui.sub = 'calling'; if (ui.overlay !== 'gb-dialog-callwith') ui.overlay = ''; }
+    }
+    render(); renderStatus();
+  }
+  function endRealCall(call) {
+    if (call.endedAt) return;
+    call.endedAt = Date.now(); call.keypad = false;
+    const type = call.incoming ? (call.answered ? 'incoming' : 'missed') : 'outgoing';
+    data.callHistory = [...(data.callHistory || []), {...ICSPhoneCall.finish(call, call.endedAt), connected: !!call.answered, type}].slice(-50); save();
+    if (ui.activeCall !== call) { realCalls.delete(call.id); showRealCall(); return; }
+    render();
+    setTimeout(() => { if (ui.activeCall === call && ui.view === 'phone') render(); }, GBPhone.HANGING_UP);
+    setTimeout(() => {
+      realCalls.delete(call.id);
+      if (ui.activeCall !== call) return;
+      ui.activeCall = null; ui.gbCallBackground = false; ui.gbAddCall = false;
+      if ([...realCalls.values()].some(other => !other.endedAt)) { showRealCall(); return; }
+      if (ui.view === 'phone') { ui.sub = ''; ui.dial = ''; }
+      if (gbCallFromLock) { gbCallFromLock = false; gbCallReturn = null; lockScreen(); return; }
+      if (gbCallReturn && ui.view === 'phone') { ui.view = gbCallReturn.view; ui.sub = gbCallReturn.sub; }
+      gbCallReturn = null;
+      render(); renderStatus();
+    }, GBPhone.HANGING_UP + GBPhone.ENDED);
+  }
+  function applyRealCall(report) {
+    if (!report?.id) return;
+    let call = realCalls.get(report.id);
+    if (!call) {
+      if (report.state === 'disconnected' || report.state === 'disconnecting') return;
+      call = {real: true, id: report.id, number: report.number || '', started: Date.now(), connected: Number.MAX_SAFE_INTEGER, mute: false, speaker: false, hold: false, keypad: false, digits: '', incoming: !!report.incoming};
+      realCalls.set(report.id, call);
+    }
+    if (report.number) call.number = report.number;
+    if (report.state === 'disconnected' || report.state === 'disconnecting') { endRealCall(call); return; }
+    call.state = report.state; call.hold = report.state === 'holding';
+    call.mute = !!report.mute; call.speaker = !!report.speaker; call.bluetooth = !!report.bluetooth; call.bluetoothAvailable = !!report.bluetoothAvailable;
+    if (report.state === 'active' || report.state === 'holding') call.answered = true;
+    if (report.connectTime > 0) call.connected = report.connectTime;
+    else if (call.answered && call.connected === Number.MAX_SAFE_INTEGER) call.connected = Date.now();
+    // Dual SIM without a default: Android asks which SIM to call with; Gingerbread shows the choice as a list.
+    if (report.state === 'select-account' && report.accounts?.length && ui.overlay !== 'gb-dialog-callwith') { ui.gbCallAccounts = report.accounts; ui.gbCallAccountFor = report.id; ui.overlay = 'gb-dialog-callwith'; }
+    showRealCall();
+  }
+  // IncomingCallWidget: slide the green tab to answer, the red tab to decline.
+  function attachIncomingCall() {
+    gbCallTabs?.destroy(); gbCallTabs = null;
+    const root = ui.view === 'phone' && ui.activeCall?.real && ui.activeCall.state === 'ringing' ? viewport.querySelector('.gbic') : null;
+    if (!root) return;
+    gbCallTabs = GBKeyguard.slidingTab(root, {haptic: () => data.settings.haptic !== false, reduced: !!reducedMotion?.matches, onTrigger: side => {
+      suppressClickUntil = Date.now() + 350;
+      const call = ui.activeCall; if (!call?.real) return;
+      GBRealCalls.action(call.id, side === 'left' ? 'answer' : 'reject');
+    }});
+  }
+  if (GBRealCalls.active) { GBRealCalls.onChange(applyRealCall); setTimeout(() => applyRealCall(GBRealCalls.now()), 0); }
+  // A number tapped in another app ("tel:" link): the Gingerbread dial pad with it filled in.
+  window.gbOpenDialer = number => { if (ui.power) return; ui.overlay = ''; ui.gbCallBackground = !!ui.activeCall; captureRecentView(); ui.view = 'phone'; ui.sub = ''; ui.phoneTab = 'dialpad'; ui.dial = String(number || '').replace(/[^0-9+*#,;]/g, ''); render(); };
+
   window.addEventListener('gb-real-wifi-list', () => { if (ui.view === 'settings' && !ui.overlay) render(); });
   window.gbOnResume = () => { if (ui.view === 'camera' || ui.view === 'settings') render(); };
   function syncFloatBar() {
@@ -445,6 +516,7 @@
     else if (ui.view === 'drawer') viewport.innerHTML = renderDrawer();
     else viewport.innerHTML = renderApp();
     if (GBApps.has(ui.view)) GBApps.get(ui.view).mounted?.(gappContext());
+    if (GBRealCalls.active) attachIncomingCall();
     if (ui.view === 'messaging') window.GBMmsAttach?.mounted(gbMmsContext());
     snapResting(viewport);
     syncFloatBar();
@@ -816,6 +888,7 @@
   function gbDialogSpec() {
     const t = key => i18n.t(key);
     if (ui.overlay === 'gb-dialog-gbx-home') return GBExtras.homeSubmenu(data, t, GBRealApps.active);
+    if (ui.overlay === 'gb-dialog-callwith') return {title: t('Call with'), icon: 'ic_menu_call', items: (ui.gbCallAccounts || []).map((label, index) => ({action: 'gbx-call-account', id: String(index), title: label}))};
     if (ui.overlay === 'gb-dialog-add') return {title: t('Add to Home screen'), items: [
       {action: 'gb-add-shortcuts', title: t('Shortcuts'), icon: 'l2-ic_launcher_shortcut'},
       {action: 'gb-add-widgets', title: t('Widgets'), icon: 'l2-ic_launcher_appwidget'},
@@ -1184,7 +1257,7 @@
     ui.play = {...ui.play,...next}; ui.overlay = ''; render();
   }
   function renderPhone() {
-    if(ui.activeCall&&!ui.gbCallBackground)return GBPhone.inCall(ui.activeCall,{lang:i18n.language,t:key=>i18n.t(key),person:contactByPhone(ui.activeCall.number),bluetoothAvailable:!!(data.settings.bluetooth&&data.settings.pairedDevice)});
+    if(ui.activeCall&&!ui.gbCallBackground)return GBPhone.inCall(ui.activeCall,{lang:i18n.language,t:key=>i18n.t(key),person:contactByPhone(ui.activeCall.number),bluetoothAvailable:ui.activeCall.real?!!ui.activeCall.bluetoothAvailable:!!(data.settings.bluetooth&&data.settings.pairedDevice)});
     if(ui.sub==='call-detail'){const call=(data.callHistory||[]).find(call=>call.time===ui.phoneCallId);if(call)return GBPhone.callDetail(call,contactByPhone(call.number),{lang:i18n.language,locale:i18n.locale()});}
     return GBPhone.render(gbPhoneContext());
   }
@@ -1194,9 +1267,11 @@
     // Launcher APK: a real call through the phone's own line (Android shows its in-call screen); the number goes into
     // the Gingerbread call log as an outgoing call.
     if (GBRealApps.active) {
-      data.callHistory = [...(data.callHistory || []), {number, time: Date.now(), duration: 0, connected: true}].slice(-50);
-      ui.dial = ''; save(); render();
-      GBRealApps.call(number);
+      ui.dial = ''; ui.gbAddCall = false;
+      // 'incall': the launcher is the default phone app and the call comes back on the Gingerbread call screen
+      // (gb-real-calls.js). Otherwise the phone's own call screen shows it, so the call is logged here.
+      if (GBRealApps.call(number) !== 'incall') { data.callHistory = [...(data.callHistory || []), {number, time: Date.now(), duration: 0, connected: true}].slice(-50); save(); }
+      render();
       return;
     }
     // Add call: the simulator keeps one line, so the call in progress ends and the new one is dialed.
@@ -1662,6 +1737,7 @@
       // VoiceSearchPreferences: Personalized recognition asks before it changes.
       case 'gbvs-personal': ui.overlay = 'gb-dialog-set'; ui.gbSetDialog = data.settings.vsPersonal ? 'vs-off' : 'vs-on'; renderOverlay(); break;
       case 'gbvs-personal-on': case 'gbvs-personal-off': data.settings.vsPersonal = action === 'gbvs-personal-on'; ui.overlay = ''; save(); renderOverlay(); render(); break;
+      case 'gbx-call-account': ui.overlay = ''; GBRealCalls.action(ui.gbCallAccountFor, 'account', id); render(); break;
       case 'gbx-home-menu': ui.overlay = 'gb-dialog-gbx-home'; renderOverlay(); break;
       case 'gbx-edit': ui.overlay = ''; ui.gbxEdit = true; render(); break;
       case 'gbx-edit-done': ui.gbxEdit = false; render(); break;
@@ -1883,12 +1959,12 @@
       case 'dial': if (ui.dial.length < 30) ui.dial += id; if (ui.dial.endsWith('*#*#8477#*#*')) { ui.dial = ''; data.protips = {index: 0, set: 1 - (data.protips?.set || 0)}; save(); home(false); setTimeout(() => blinkTips(3), 300); break; } render(); break;
       case 'dial-delete': ui.dial = ui.dial.slice(0, -1); render(); break;
       case 'call': if(!ui.dial){toast('Enter a phone number');break;}startPhoneCall(ui.dial);break;
-      case 'hangup': { const call=ui.activeCall; if(!call||call.endedAt)break; call.endedAt=Date.now(); call.keypad=false; render(); setTimeout(()=>{if(ui.activeCall===call&&ui.view==='phone')render();},GBPhone.HANGING_UP); setTimeout(()=>{if(ui.activeCall!==call)return; data.callHistory=[...(data.callHistory||[]),ICSPhoneCall.finish(call,call.endedAt)].slice(-50); ui.activeCall=null; ui.gbCallBackground=false; ui.gbAddCall=false; save(); if(ui.view==='phone'){ui.sub='';ui.dial='';render();} else renderStatus();},GBPhone.HANGING_UP+GBPhone.ENDED); break; }
+      case 'hangup': { const call=ui.activeCall; if(!call||call.endedAt)break; if(call.real){GBRealCalls.action(call.id,'hangup');break;} call.endedAt=Date.now(); call.keypad=false; render(); setTimeout(()=>{if(ui.activeCall===call&&ui.view==='phone')render();},GBPhone.HANGING_UP); setTimeout(()=>{if(ui.activeCall!==call)return; data.callHistory=[...(data.callHistory||[]),ICSPhoneCall.finish(call,call.endedAt)].slice(-50); ui.activeCall=null; ui.gbCallBackground=false; ui.gbAddCall=false; save(); if(ui.view==='phone'){ui.sub='';ui.dial='';render();} else renderStatus();},GBPhone.HANGING_UP+GBPhone.ENDED); break; }
       case 'gbp-add-call': if(!ui.activeCall)break; ui.gbCallBackground=true; ui.gbAddCall=true; ui.phoneTab='dialpad'; ui.view='phone'; ui.sub=''; ui.dial=''; render(); break;
       case 'gbp-dtmf': if(!ui.activeCall)break; ui.gbCallBackground=false; ui.gbAddCall=false; ui.activeCall.keypad=GBPhone.callState(ui.activeCall)==='active'; ui.view='phone'; render(); break;
       case 'gbp-return-call': if(!ui.activeCall)break; ui.overlay=''; ui.gbCallBackground=false; ui.gbAddCall=false; captureRecentView(); ui.view='phone'; ui.sub='calling'; ui.recent=['phone',...ui.recent.filter(id=>id!=='phone')].slice(0,8); render(); break;
-      case 'incall-toggle': if(ui.activeCall&&!ui.activeCall.endedAt){ui.activeCall[id]=!ui.activeCall[id];if(id==='hold')ui.activeCall.keypad=false;}render();renderStatus();break;
-      case 'incall-digit': if(ui.activeCall)ui.activeCall.digits=(ui.activeCall.digits+id).slice(-24);render();break;
+      case 'incall-toggle': if(ui.activeCall?.real&&!ui.activeCall.endedAt&&id!=='keypad'){const call=ui.activeCall;GBRealCalls.action(call.id,id==='hold'?(call.hold?'unhold':'hold'):id,id==='hold'?'':String(!call[id]));break;} if(ui.activeCall&&!ui.activeCall.endedAt){ui.activeCall[id]=!ui.activeCall[id];if(id==='hold')ui.activeCall.keypad=false;}render();renderStatus();break;
+      case 'incall-digit': if(ui.activeCall?.real)GBRealCalls.action(ui.activeCall.id,'dtmf',id); if(ui.activeCall)ui.activeCall.digits=(ui.activeCall.digits+id).slice(-24);render();break;
       case 'phone-log-detail': ui.phoneCallId=Number(id);ui.sub='call-detail';render();break;
       case 'phone-log-message': { const recipient=ICSMessaging.recipient(id,data.contacts); if(recipient)openMessageThread(recipient.key);else toast('Enter a valid phone number');break; }
       case 'people-search': ui.peopleTab='all'; ui.peopleSearching=true; render(); viewport.querySelector('.people-search input')?.focus(); break;

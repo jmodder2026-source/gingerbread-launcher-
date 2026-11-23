@@ -40,6 +40,7 @@ import android.provider.Settings;
 import android.telephony.PhoneStateListener;
 import android.telephony.SignalStrength;
 import android.telephony.TelephonyManager;
+import android.telecom.TelecomManager;
 import android.util.Base64;
 import android.view.KeyEvent;
 import android.view.View;
@@ -74,6 +75,11 @@ import java.util.List;
  * The page reads the phone's real apps through window.AndroidLauncher and opens them with it.
  */
 public class MainActivity extends Activity {
+    /** Set on the intent CallService uses to bring the call screen up. */
+    static final String EXTRA_CALL = "gb_call";
+    private static final int DIALER_REQUEST = 13;
+    private android.os.PowerManager.WakeLock proximityLock;
+    private boolean askedDialer;
     private static final String HOST = "appassets.androidplatform.net";
     private static final String START = "https://" + HOST + "/assets/site/versions/2.3.6/index.html";
     private static final int ICON_PX = 96;
@@ -146,6 +152,12 @@ public class MainActivity extends Activity {
             }
 
             @Override
+            public void onPageFinished(WebView view, String url) {
+                CallService.reportAll();
+                handleDialIntent(getIntent());
+            }
+
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri url = request.getUrl();
                 if (HOST.equals(url.getHost())) return false;
@@ -178,6 +190,8 @@ public class MainActivity extends Activity {
         };
         watchWifi();
         watchBatteryAndAlarm();
+        CallService.sink = this::onCallReport;
+        offerDefaultDialer();
         watchPhone();
 
         IntentFilter filter = new IntentFilter();
@@ -738,12 +752,80 @@ public class MainActivity extends Activity {
         requestPermissions(new String[]{Manifest.permission.CAMERA}, CAMERA_REQUEST);
     }
 
+    // ---- Gingerbread Launcher as the phone app -------------------------------------------------------------------
+
+    boolean isDefaultDialer() {
+        TelecomManager telecom = (TelecomManager) getSystemService(Context.TELECOM_SERVICE);
+        return telecom != null && getPackageName().equals(telecom.getDefaultDialerPackage());
+    }
+
+    // Asks once (per run of the launcher) to become the default phone app, so calls use the Gingerbread call screen.
+    private void offerDefaultDialer() {
+        if (askedDialer || isDefaultDialer()) return;
+        askedDialer = true;
+        try {
+            Intent ask;
+            if (Build.VERSION.SDK_INT >= 29) {
+                android.app.role.RoleManager roles = getSystemService(android.app.role.RoleManager.class);
+                if (roles == null || !roles.isRoleAvailable(android.app.role.RoleManager.ROLE_DIALER)) return;
+                ask = roles.createRequestRoleIntent(android.app.role.RoleManager.ROLE_DIALER);
+            } else {
+                ask = new Intent(TelecomManager.ACTION_CHANGE_DEFAULT_DIALER).putExtra(TelecomManager.EXTRA_CHANGE_DEFAULT_DIALER_PACKAGE_NAME, getPackageName());
+            }
+            startActivityForResult(ask, DIALER_REQUEST);
+        } catch (Exception ignored) { }
+    }
+
+    // A call's state from CallService: to the page, plus the lock-screen and proximity handling around calls.
+    private void onCallReport(String json, boolean anyLive) {
+        if (web != null) web.evaluateJavascript("window.gbRealCall && window.gbRealCall(" + json + ")", null);
+        if (Build.VERSION.SDK_INT >= 27) { setShowWhenLocked(anyLive); setTurnScreenOn(anyLive); }
+        else if (anyLive) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
+        else getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
+        updateProximity();
+    }
+
+    @SuppressWarnings("WakelockTimeout")
+    private void updateProximity() {
+        boolean wanted = CallService.onEarpiece();
+        try {
+            if (proximityLock == null) {
+                android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+                if (pm == null || !pm.isWakeLockLevelSupported(android.os.PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK)) return;
+                proximityLock = pm.newWakeLock(android.os.PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK, "gingerbread:incall");
+            }
+            if (wanted && !proximityLock.isHeld()) proximityLock.acquire();
+            else if (!wanted && proximityLock.isHeld()) proximityLock.release();
+        } catch (Exception ignored) { }
+    }
+
+    // A "tel:" link or the dial pad opened by another app: the Gingerbread dial pad with the number filled in.
+    private boolean handleDialIntent(Intent intent) {
+        if (intent == null || web == null) return false;
+        String action = intent.getAction();
+        if (!Intent.ACTION_DIAL.equals(action) && !Intent.ACTION_VIEW.equals(action)) return false;
+        Uri data = intent.getData();
+        String number = data != null && "tel".equals(data.getScheme()) ? data.getSchemeSpecificPart() : "";
+        org.json.JSONObject arg = new org.json.JSONObject();
+        try { arg.put("number", number == null ? "" : number); } catch (Exception ignored) { }
+        web.evaluateJavascript("window.gbOpenDialer && window.gbOpenDialer(" + arg + ".number)", null);
+        intent.setAction(Intent.ACTION_MAIN);
+        return true;
+    }
+
     // Calls the number straight away once the call permission is allowed; otherwise opens the phone's dialer with it.
+    // As the default phone app the call goes through Android's Telecom and comes back on the Gingerbread call screen.
     private void placeCall(String number) {
         String digits = number == null ? "" : number.replaceAll("[^0-9+*#,;]", "");
         if (digits.isEmpty()) return;
         Uri tel = Uri.fromParts("tel", digits, null);
         if (checkSelfPermission(Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+            if (isDefaultDialer()) {
+                try {
+                    ((TelecomManager) getSystemService(Context.TELECOM_SERVICE)).placeCall(tel, new Bundle());
+                    return;
+                } catch (Exception ignored) { }
+            }
             startSafely(new Intent(Intent.ACTION_CALL, tel));
             return;
         }
@@ -765,7 +847,8 @@ public class MainActivity extends Activity {
             if (number == null) return;
             Uri tel = Uri.fromParts("tel", number, null);
             boolean allowed = results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED;
-            startSafely(new Intent(allowed ? Intent.ACTION_CALL : Intent.ACTION_DIAL, tel));
+            if (allowed) { placeCall(number); return; }
+            if (!isDefaultDialer()) startSafely(new Intent(Intent.ACTION_DIAL, tel));
             return;
         }
         if (requestCode != CAMERA_REQUEST || pendingCamera == null) return;
@@ -861,6 +944,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        setIntent(intent);
+        if (intent.getBooleanExtra(EXTRA_CALL, false)) { CallService.reportAll(); return; }
+        if (handleDialIntent(intent)) return;
         if (web != null) web.evaluateJavascript("(function(){var k=document.querySelector('.touch-home');if(k&&!k.disabled)k.click();})()", null);
     }
 
@@ -951,6 +1037,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (CallService.sink != null) CallService.sink = null;
+        if (proximityLock != null && proximityLock.isHeld()) proximityLock.release();
         if (packageReceiver != null) unregisterReceiver(packageReceiver);
         if (statusReceiver != null) unregisterReceiver(statusReceiver);
         if (signalListener != null) {
@@ -1107,9 +1195,23 @@ public class MainActivity extends Activity {
             return result[0];
         }
 
+        // 'incall' when the call will show on the Gingerbread call screen (the launcher is the default phone app).
         @JavascriptInterface
-        public void call(String number) {
+        public String call(String number) {
+            boolean ours = isDefaultDialer();
             runOnUiThread(() -> placeCall(number));
+            return ours ? "incall" : "system";
+        }
+
+        @JavascriptInterface
+        public String callAction(String id, String action, String value) {
+            return onUi(() -> CallService.act(id, action, value));
+        }
+
+        @JavascriptInterface
+        public String callNow() {
+            runOnUiThread(CallService::reportAll);
+            return "";
         }
 
         @JavascriptInterface

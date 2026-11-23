@@ -9,8 +9,12 @@ An Android home screen app that runs the Android 2.3.6 Gingerbread simulator fro
 - Files and Claude are placed on the middle home screen the first time it starts.
 - The Gingerbread Camera shows the phone's real camera (Android asks once for permission); pictures appear in the
   Gingerbread Gallery and are saved to the phone's gallery under Pictures/Gingerbread.
-- The Gingerbread Phone app makes real calls: dial a number (or call from the call log, Contacts or Messaging) and
-  the phone calls it after Android asks once for permission; the number joins the Gingerbread call log.
+- Calls use the Gingerbread call screen. On first start the launcher asks to be the default phone app; once it is,
+  every call (made or received) shows the Gingerbread in-call screen: Dialing, the call timer, Hold, Add call, End,
+  the in-call dial pad, Bluetooth, Mute and Speaker, and for incoming calls the sliding green Answer and red Decline
+  tabs. Dual-SIM phones get a "Call with" list. Calls go into the Gingerbread call log as made, received or missed;
+  Android still rings and keeps its own call log. The screen turns off at the ear. Numbers tapped in other apps open
+  the Gingerbread dial pad.
 - The Gingerbread Settings app shows and changes the phone's real settings: Wi-Fi and Bluetooth switches (directly on
   Android 9 and older), silent mode and vibrate, the four volumes, and (after "Modify system settings" is allowed)
   brightness, screen timeout, auto-rotate, haptic feedback, touch sounds and dial pad tones. Airplane mode, mobile

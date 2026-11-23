@@ -49,7 +49,8 @@
     launch: id => { try { bridge?.launch(String(id).slice(5)); } catch (error) { /* the app may have been removed */ } },
     starters: () => shown.slice(),
     // A real phone call (Android asks once for permission to make calls).
-    call: number => { try { bridge?.call?.(String(number)); } catch (error) { /* no phone line */ } },
+    // Returns 'incall' when the launcher is the default phone app (the call then shows on the Gingerbread call screen).
+    call: number => { try { return String(bridge?.call?.(String(number)) ?? ''); } catch (error) { return ''; } },
     wifi: () => wifi,
     battery: () => battery,
     alarm: () => alarm,
