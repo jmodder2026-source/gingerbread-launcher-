@@ -11,6 +11,11 @@ An Android home screen app that runs the Android 2.3.6 Gingerbread simulator fro
   Gingerbread Gallery and are saved to the phone's gallery under Pictures/Gingerbread.
 - The Gingerbread Phone app makes real calls: dial a number (or call from the call log, Contacts or Messaging) and
   the phone calls it after Android asks once for permission; the number joins the Gingerbread call log.
+- The Gingerbread Settings app shows and changes the phone's real settings: Wi-Fi and Bluetooth switches (directly on
+  Android 9 and older), silent mode and vibrate, the four volumes, and (after "Modify system settings" is allowed)
+  brightness, screen timeout, auto-rotate, haptic feedback, touch sounds and dial pad tones. Airplane mode, mobile
+  data, location, NFC, the hotspot and developer options open the phone's own settings page, since Android keeps
+  those for itself.
 - The Market leaves out Orbit Hopper, Pixel Blocks, Lunar Golf and Pocket Planner.
 - The app drawer scrolls (and flings) under your finger.
 - Check boxes and radio buttons show as perfect squares and turn Gingerbread orange while pressed; touching a button

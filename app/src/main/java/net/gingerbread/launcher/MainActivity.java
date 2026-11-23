@@ -5,7 +5,10 @@ import android.app.Activity;
 import android.app.AlarmManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothProfile;
+import android.app.NotificationManager;
+import android.location.LocationManager;
 import android.media.AudioManager;
+import android.nfc.NfcAdapter;
 import android.net.TrafficStats;
 import android.net.wifi.WifiManager;
 import android.content.ActivityNotFoundException;
@@ -346,6 +349,187 @@ public class MainActivity extends Activity {
             cm.registerNetworkCallback(new NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR).addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build(), cellCallback);
         } catch (RuntimeException e) {
             cellCallback = null;
+        }
+    }
+
+    // ---- The Gingerbread Settings app: the phone's real settings ----------------------------------------------------
+
+    private int volumePercent(AudioManager audio, int stream) {
+        int max = audio.getStreamMaxVolume(stream);
+        return max > 0 ? Math.round(audio.getStreamVolume(stream) * 100f / max) : 0;
+    }
+
+    private int systemInt(String name, int fallback) {
+        try { return Settings.System.getInt(getContentResolver(), name); } catch (Exception e) { return fallback; }
+    }
+
+    // Gingerbread's screen timeout choices: 15 s, 30 s, 1, 2, 10 and 30 min, then "Never".
+    private static final int[] TIMEOUTS = {15000, 30000, 60000, 120000, 600000, 1800000, Integer.MAX_VALUE};
+
+    @SuppressWarnings({"deprecation", "MissingPermission"})
+    private String settingsJson() {
+        org.json.JSONObject o = new org.json.JSONObject();
+        try {
+            o.put("airplane", airplaneMode());
+            WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            if (wm != null) o.put("wifi", wm.isWifiEnabled());
+            o.put("bluetooth", bluetooth()[0]);
+            LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            if (lm != null) {
+                o.put("gps", lm.isProviderEnabled(LocationManager.GPS_PROVIDER));
+                o.put("networkLocation", lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER));
+            }
+            try { NfcAdapter nfc = NfcAdapter.getDefaultAdapter(this); if (nfc != null) o.put("nfc", nfc.isEnabled()); } catch (Exception ignored) { }
+            AudioManager audio = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            if (audio != null) {
+                int mode = audio.getRingerMode();
+                o.put("silent", mode != AudioManager.RINGER_MODE_NORMAL);
+                o.put("vibrate", mode == AudioManager.RINGER_MODE_VIBRATE);
+                o.put("ringVolume", volumePercent(audio, AudioManager.STREAM_RING));
+                o.put("mediaVolume", volumePercent(audio, AudioManager.STREAM_MUSIC));
+                o.put("alarmVolume", volumePercent(audio, AudioManager.STREAM_ALARM));
+                o.put("notificationVolume", volumePercent(audio, AudioManager.STREAM_NOTIFICATION));
+            }
+            o.put("brightness", Math.round(systemInt(Settings.System.SCREEN_BRIGHTNESS, 128) * 100f / 255));
+            o.put("autoBrightness", systemInt(Settings.System.SCREEN_BRIGHTNESS_MODE, 0) == Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC);
+            int timeout = systemInt(Settings.System.SCREEN_OFF_TIMEOUT, 30000), index = TIMEOUTS.length - 1;
+            for (int i = 0; i < TIMEOUTS.length; i++) if (timeout <= TIMEOUTS[i]) { index = i; break; }
+            o.put("screenTimeout", index);
+            o.put("rotate", systemInt(Settings.System.ACCELEROMETER_ROTATION, 0) == 1);
+            o.put("haptic", systemInt(Settings.System.HAPTIC_FEEDBACK_ENABLED, 1) == 1);
+            o.put("soundEffects", systemInt(Settings.System.SOUND_EFFECTS_ENABLED, 1) == 1);
+            o.put("dtmfTone", systemInt(Settings.System.DTMF_TONE_WHEN_DIALING, 1) == 1);
+        } catch (Exception ignored) {
+            // Report what could be read.
+        }
+        return o.toString();
+    }
+
+    private String openSettings(String action) {
+        Intent intent = new Intent(action);
+        if (Settings.ACTION_MANAGE_WRITE_SETTINGS.equals(action) || "android.settings.MANAGE_UNKNOWN_APP_SOURCES".equals(action)) {
+            intent.setData(Uri.parse("package:" + getPackageName()));
+        }
+        try {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            return "opened";
+        } catch (Exception e) {
+            try { startActivity(new Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); return "opened"; } catch (Exception ignored) { return "no"; }
+        }
+    }
+
+    // Writes a system setting once "Modify system settings" is allowed; otherwise opens that permission page.
+    private String writeSystem(String name, int value) {
+        if (!Settings.System.canWrite(this)) return openSettings(Settings.ACTION_MANAGE_WRITE_SETTINGS);
+        try {
+            Settings.System.putInt(getContentResolver(), name, value);
+            return "ok";
+        } catch (Exception e) {
+            return "no";
+        }
+    }
+
+    private String setVolume(int stream, String percent) {
+        AudioManager audio = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        if (audio == null) return "no";
+        try {
+            int max = audio.getStreamMaxVolume(stream);
+            audio.setStreamVolume(stream, Math.round(Float.parseFloat(percent) * max / 100f), 0);
+            return "ok";
+        } catch (Exception e) {
+            return "no";
+        }
+    }
+
+    // Normal, vibrate or silent. Silent needs Do Not Disturb access on Android 7+: without it the phone vibrates and
+    // the access page opens.
+    private String setRinger(String mode) {
+        AudioManager audio = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        if (audio == null) return "no";
+        int wanted = "silent".equals(mode) ? AudioManager.RINGER_MODE_SILENT : "vibrate".equals(mode) ? AudioManager.RINGER_MODE_VIBRATE : AudioManager.RINGER_MODE_NORMAL;
+        try {
+            audio.setRingerMode(wanted);
+            return "ok";
+        } catch (SecurityException e) {
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (wanted == AudioManager.RINGER_MODE_SILENT) {
+                try { audio.setRingerMode(AudioManager.RINGER_MODE_VIBRATE); } catch (SecurityException ignored) { }
+            }
+            if (nm != null && !nm.isNotificationPolicyAccessGranted()) return openSettings(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS);
+            return "no";
+        }
+    }
+
+    @SuppressWarnings({"deprecation", "MissingPermission"})
+    private String setSetting(String key, String value) {
+        boolean on = "true".equals(value);
+        switch (key) {
+            case "wifi":
+                if (Build.VERSION.SDK_INT < 29) {
+                    WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                    try { if (wm != null && wm.setWifiEnabled(on)) return "ok"; } catch (SecurityException ignored) { }
+                }
+                return openSettings(Build.VERSION.SDK_INT >= 29 ? Settings.Panel.ACTION_WIFI : Settings.ACTION_WIFI_SETTINGS);
+            case "bluetooth":
+                try {
+                    BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+                    if (adapter != null && Build.VERSION.SDK_INT < 33 && (on ? adapter.enable() : adapter.disable())) return "ok";
+                } catch (SecurityException ignored) { }
+                return openSettings(Settings.ACTION_BLUETOOTH_SETTINGS);
+            case "bluetoothVisible":
+                if (!on) return "ok";
+                return startDiscoverable();
+            case "airplane":
+                return openSettings(Settings.ACTION_AIRPLANE_MODE_SETTINGS);
+            case "dataEnabled": case "dataRoaming":
+                return openSettings(Settings.ACTION_DATA_ROAMING_SETTINGS);
+            case "gps": case "networkLocation": case "assistedGps":
+                return openSettings(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+            case "nfc":
+                return openSettings(Settings.ACTION_NFC_SETTINGS);
+            case "portableHotspot":
+                return openSettings(Settings.ACTION_WIRELESS_SETTINGS);
+            case "usbDebug": case "stayAwake": case "mockLocations":
+                return openSettings(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS);
+            case "unknownSources":
+                return openSettings(Build.VERSION.SDK_INT >= 26 ? "android.settings.MANAGE_UNKNOWN_APP_SOURCES" : Settings.ACTION_SECURITY_SETTINGS);
+            case "ringer":
+                return setRinger(value);
+            case "ringVolume": return setVolume(AudioManager.STREAM_RING, value);
+            case "mediaVolume": return setVolume(AudioManager.STREAM_MUSIC, value);
+            case "alarmVolume": return setVolume(AudioManager.STREAM_ALARM, value);
+            case "notificationVolume": return setVolume(AudioManager.STREAM_NOTIFICATION, value);
+            case "brightness": {
+                int level = Math.max(1, Math.min(255, Math.round(Float.parseFloat(value) * 255f / 100f)));
+                // Until "Modify system settings" is allowed, at least the launcher's own screen takes the brightness.
+                boolean system = Settings.System.canWrite(this);
+                android.view.WindowManager.LayoutParams lp = getWindow().getAttributes();
+                lp.screenBrightness = system ? -1f : level / 255f;
+                getWindow().setAttributes(lp);
+                return writeSystem(Settings.System.SCREEN_BRIGHTNESS, level);
+            }
+            case "autoBrightness":
+                return writeSystem(Settings.System.SCREEN_BRIGHTNESS_MODE, on ? Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC : Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
+            case "screenTimeout": {
+                int index = Math.max(0, Math.min(TIMEOUTS.length - 1, (int) Float.parseFloat(value)));
+                return writeSystem(Settings.System.SCREEN_OFF_TIMEOUT, TIMEOUTS[index]);
+            }
+            case "rotate": return writeSystem(Settings.System.ACCELEROMETER_ROTATION, on ? 1 : 0);
+            case "haptic": return writeSystem(Settings.System.HAPTIC_FEEDBACK_ENABLED, on ? 1 : 0);
+            case "soundEffects": return writeSystem(Settings.System.SOUND_EFFECTS_ENABLED, on ? 1 : 0);
+            case "dtmfTone": return writeSystem(Settings.System.DTMF_TONE_WHEN_DIALING, on ? 1 : 0);
+            default:
+                return "no";
+        }
+    }
+
+    private String startDiscoverable() {
+        try {
+            startActivity(new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            return "opened";
+        } catch (Exception e) {
+            return openSettings(Settings.ACTION_BLUETOOTH_SETTINGS);
         }
     }
 
@@ -712,6 +896,21 @@ public class MainActivity extends Activity {
             } catch (IllegalArgumentException e) {
                 return false;
             }
+        }
+
+        @JavascriptInterface
+        public String settings() {
+            return settingsJson();
+        }
+
+        // Runs on the UI thread and waits for the answer, since some settings open Android's own pages.
+        @JavascriptInterface
+        public String setSetting(String key, String value) {
+            final String[] result = {"no"};
+            final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+            runOnUiThread(() -> { try { result[0] = MainActivity.this.setSetting(key, value); } catch (Exception e) { result[0] = "no"; } done.countDown(); });
+            try { done.await(3, java.util.concurrent.TimeUnit.SECONDS); } catch (InterruptedException ignored) { }
+            return result[0];
         }
 
         @JavascriptInterface

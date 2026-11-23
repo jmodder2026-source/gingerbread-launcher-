@@ -218,7 +218,7 @@
   window.gbLockNow = () => { if (ui.power || ui.locked || ui.view === 'lock' || data.settings.screenLock === 'none') return; ui.overlay = ''; lockScreen(); };
   // Launcher APK: the status bar's Wi-Fi, signal, data, battery and alarm icons follow the real phone.
   window.addEventListener('gb-real-wifi', () => renderStatus());
-  window.gbOnResume = () => { if (ui.view === 'camera') render(); };
+  window.gbOnResume = () => { if (ui.view === 'camera' || ui.view === 'settings') render(); };
   function syncFloatBar() {
     if (!floatRoot) { floatRoot = document.createElement('div'); floatRoot.id = 'gbx-float'; screen.insertBefore(floatRoot, overlayRoot); }
     const show = GBExtras.prefs(data).floatBar && !GBRealApps.active && !ui.locked && !ui.sleeping && ui.view !== 'lock' && !ui.power;
@@ -432,9 +432,11 @@
     const outgoing = viewport.firstElementChild;
     screen.className = `screen${activeTransition ? ' transitioning' : ''} wallpaper-${data.wallpaper}${data.settings.largeText ? ' large-text' : ''}${ui.sleeping?' sleeping':''}${ui.locked?' credential-locked':''}${(ui.view==='camera'||ui.view==='settings'&&ui.sub==='easter'||ui.view==='car-home'&&!ui.gbPrefs&&data.appPrefs?.['car-settings']?.['settings.hide_statusbar'])&&!ui.locked?' gb-fullscreen':''}`;
     screen.style.background = data.wallpaper === 99 && data.customWallpaperPhoto ? `#080d14 url('${ICSMedia.image(data.customWallpaperPhoto)}') center / cover no-repeat` : data.wallpaper === 99 && data.customWallpaper ? `linear-gradient(160deg, ${data.customWallpaper[0]}, ${data.customWallpaper[1]} 53%, ${data.customWallpaper[2]})` : `#000 url('assets/gb-wallpaper_${wallpaperFiles[data.wallpaper] || 'street_lights'}.jpg') ${ui.page * 25}% center / auto 100% no-repeat`;
-    screen.style.filter = `brightness(${.5 + data.settings.brightness / 135})`;
+    screen.style.filter = GBRealSettings.active ? '' : `brightness(${.5 + data.settings.brightness / 135})`; // the APK dims the real screen
     renderStatus(); renderNav(); syncLiveWallpaper();
     if (ui.view !== 'home') ui.gbxEdit = false;
+    // Launcher APK: the Settings app shows the phone's real settings.
+    if (ui.view === 'settings' && GBRealSettings.active) GBRealSettings.sync(data.settings);
     if (ui.view === 'lock') { viewport.innerHTML = renderLock(); attachGBLock(); }
     else if (ui.view === 'home') { viewport.innerHTML = renderHome(); restoreWidgetScroll(); }
     else if (ui.view === 'drawer') viewport.innerHTML = renderDrawer();
@@ -1676,7 +1678,7 @@
       case 'gb-menu-more': ui.overlay = 'gb-menu-more'; renderOverlay(); break;
       case 'settings-open': ui.overlay = ''; ui.view = 'settings'; ui.sub = id; ui.gbSettingsStack = id ? [''] : []; render(); break;
       case 'gbset-go': if (id === 'brightness') { ui.overlay = 'gb-dialog-brightness'; ui.brightnessDraft = data.settings.brightness; renderOverlay(); break; } (ui.gbSettingsStack ||= []).push(ui.sub); ui.sub = id; render(); break;
-      case 'gbset-check': if (id === 'usbDebug' && !data.settings.usbDebug) { ui.overlay = 'gb-dialog-set'; ui.gbSetDialog = 'adb'; renderOverlay(); break; } { const current = data.settings[id] ?? GBSettings.DEFAULTS[id] ?? (id === 'patternVisible'); data.settings[id] = !current;
+      case 'gbset-check': if (GBRealSettings.toggle(id, data.settings)) { save(); render(); setTimeout(() => { if (ui.view === 'settings') render(); }, 1500); break; } if (id === 'usbDebug' && !data.settings.usbDebug) { ui.overlay = 'gb-dialog-set'; ui.gbSetDialog = 'adb'; renderOverlay(); break; } { const current = data.settings[id] ?? GBSettings.DEFAULTS[id] ?? (id === 'patternVisible'); data.settings[id] = !current;
         // DateTimeSettings 2.3: one Automatic box covers the network time and zone; turning it off keeps the current zone.
         if (id === 'autoTime') { data.settings.timeOffset = 0; data.settings.autoZone = !!data.settings.autoTime; if (!data.settings.autoTime) data.settings.timeZone = ICSSystemSettings.zone({settings: {...data.settings, autoZone: true}}); }
         if (id === 'airplane' && data.settings.airplane) { data.settings.wifi = false; data.settings.bluetooth = false; data.settings.portableHotspot = false; GBNetwork.airplane(gbNetContext()); }
@@ -1684,7 +1686,7 @@
         if (id === 'silent') data.settings.silentMode = data.settings.silent ? (GBSettings.value(data.settings, 'vibrateMode') === 1 || GBSettings.value(data.settings, 'vibrateMode') === 3 ? 'mute' : 'vibrate') : 'off';
         save(); render(); break; }
       case 'gbset-list': ui.overlay = 'gb-dialog-list'; ui.gbListKey = id; renderOverlay(); break;
-      case 'gbset-list-pick': { const [key, index] = id.split(':'); data.settings[key] = Number(index); ui.overlay = ''; save(); render(); break; }
+      case 'gbset-list-pick': { const [key, index] = id.split(':'); data.settings[key] = Number(index); GBRealSettings.apply(key, data.settings); ui.overlay = ''; save(); render(); break; }
       case 'gbset-toast': toast(id); break;
       // Select text arms the page (Browser / Google Mail): the next touch there selects (gb-browser.js).
       case 'gb-select-text': ui.overlay = ''; ui.gbMenuItems = null; renderOverlay(); ui.gbSelecting = ui.view; break;
@@ -1703,11 +1705,11 @@
       case 'gbset-bt-scan': ui.btScanning = true; render(); setTimeout(() => { ui.btScanning = false; ui.btFound = [{name: 'Headset', kind: 'headset_hfp'}, {name: 'Car kit', kind: 'headphones_a2dp'}, {name: "Sam's laptop", kind: 'laptop'}]; if (ui.view === 'settings') render(); }, 1500); break;
       case 'gbset-bt-device': if (data.settings.pairedDevice === id) { toast('Connected'); break; } data.settings.pairedDevice = id; save(); render(); break;
       case 'gbset-bt-name-ok': { const name = overlayRoot.querySelector('[data-bt-name]')?.value.trim(); if (name) data.settings.bluetoothName = name.slice(0, 40); ui.overlay = ''; save(); render(); break; }
-      case 'gbset-volume-ok': overlayRoot.querySelectorAll('[data-vol]').forEach(input => { data.settings[input.dataset.vol] = Number(input.value); }); { const same = overlayRoot.querySelector('[data-vol-same]'); if (same) data.settings.notificationSameAsRing = same.checked; } ui.overlay = ''; save(); render(); break;
+      case 'gbset-volume-ok': overlayRoot.querySelectorAll('[data-vol]').forEach(input => { data.settings[input.dataset.vol] = Number(input.value); GBRealSettings.apply(input.dataset.vol, data.settings); }); { const same = overlayRoot.querySelector('[data-vol-same]'); if (same) data.settings.notificationSameAsRing = same.checked; } ui.overlay = ''; save(); render(); break;
       case 'gbset-sound-pick': { const at = id.indexOf(':'), kind = id.slice(0, at), name = id.slice(at + 1); data.settings[kind] = name; save(); renderOverlay(); render(); break; }
       case 'gbset-locale': i18n.setLanguage(id); location.reload(); break;
       case 'gbset-adb-ok': data.settings.usbDebug = true; ui.overlay = ''; save(); render(); break;
-      case 'gbset-brightness-ok': { const input = overlayRoot.querySelector('.gbbright input[type=range]'); if (input) data.settings.brightness = Number(input.value); const auto = overlayRoot.querySelector('.gbbright input[type=checkbox]'); if (auto) data.settings.autoBrightness = auto.checked; ui.overlay = ''; save(); render(); break; }
+      case 'gbset-brightness-ok': { const input = overlayRoot.querySelector('.gbbright input[type=range]'); if (input) data.settings.brightness = Number(input.value); const auto = overlayRoot.querySelector('.gbbright input[type=checkbox]'); if (auto) data.settings.autoBrightness = auto.checked; GBRealSettings.apply('autoBrightness', data.settings); GBRealSettings.apply('brightness', data.settings); ui.overlay = ''; save(); render(); break; }
       case 'gb-add-app': { ui.overlay = ''; const slot = data.homePages[ui.page].findIndex((item, index) => !item && widgetFits(ui.page, index % 4, Math.floor(index / 4), {type: 'x', width: 1, height: 1})); if (slot < 0) { renderOverlay(); toast('No more room on this Home screen.'); break; } data.homePages[ui.page][slot] = id; save(); render(); break; }
       case 'add-widget-gb': { ui.overlay = ''; const added = addWidget(id); if (!added) { renderOverlay(); toast('No more room on this Home screen.'); break; } if (ui.gbgPickPending) { ui.gbgPickPending = false; save(); const setup = ui.photoWidgetSetup; openApp('gallery'); ui.photoWidgetSetup = setup; ui.gbgPick = true; ui.sub = ''; render(); break; } if (ui.overlay) renderOverlay(); render(); break; }
       case 'widget-bookmark-step': { const host = button.closest('.home-widget'); if (!host) break; (ui.bookmarkWidget ||= {})[host.dataset.widgetId] = (ui.bookmarkWidget[host.dataset.widgetId] || 0) + Number(id); render(); break; }
@@ -2277,7 +2279,7 @@
     if (event.target.dataset.field === 'brightness') {
       data.settings.brightness = Number(event.target.value); save();
       const display = event.target.closest('.detail-pad')?.querySelector('p'); if (display) display.textContent = `${data.settings.brightness}%`;
-      screen.style.filter = `brightness(${.5 + data.settings.brightness / 135})`;
+      screen.style.filter = GBRealSettings.active ? '' : `brightness(${.5 + data.settings.brightness / 135})`; // the APK dims the real screen
     }
     if(event.target.dataset.field==='music-position'){ui.music.position=Number(event.target.value);saveMusic();const elapsed=viewport.querySelector('.music-elapsed');if(elapsed)elapsed.textContent=ICSMusic.time(ui.music.position);}
   });

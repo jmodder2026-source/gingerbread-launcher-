@@ -8,6 +8,12 @@
     <!-- Wi-Fi bars and the Bluetooth icons (Android 12+ shows Bluetooth only once nearby-devices access is allowed). -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <!-- The Gingerbread Settings app changes the real settings: Wi-Fi and Bluetooth switches (Android 9 and older let
+         apps do this), the ringer and Do Not Disturb, and system settings such as brightness once allowed. -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <!-- The Gingerbread Camera shows the real camera; its pictures are also saved to the phone's gallery. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- The Gingerbread Phone app places real calls. -->
