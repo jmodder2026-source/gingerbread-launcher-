@@ -450,6 +450,8 @@
   window.addEventListener('pointerup', endSearchSwipe, true); window.addEventListener('pointercancel', endSearchSwipe, true);
   // The APK's screen-off: the lock screen is there when the phone's screen comes back on.
   if (window.RealLauncher?.active) window.RealLauncher.lockScreen = () => { lockScreen(); if (ui.sleeping) { ui.sleeping = false; render(); } };
+  // Real calls on this version's own in-call screen (launcher-mode.js drives ui.activeCall through these).
+  if (window.RealLauncher?.active) window.RealLauncher.sim = {get ui() { return ui; }, get data() { return data; }, render, save, capture: () => captureRecentView(), contact: number => contactByPhone(number)};
   function lockScreen(){captureRecentView();lockControls.lock();ui.kgUp=true;ui.kgBouncing=false;ui.kgPending=null;ui.kgRelock=false;ui.locked=ICSLockscreen.secure(data);ui.sleeping=data.settings.screenLock==='none';ui.view=ui.sleeping?'home':'lock';ui.overlay='';render();}
   /* MultiWaveView (keyguard_screen_tab_unlock): targets sit on the ring (radius 135dp), the handle follows the
      finger inside it and snaps to a target within the 60dp hit radius. Release elsewhere returns the handle in

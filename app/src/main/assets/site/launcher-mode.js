@@ -3,7 +3,8 @@
    - the phone's real apps and Launcher settings sit in the app drawer (launcher-apk.js); a tap opens them
    - the phone's keys: Back, two quick Backs (Recents), holding Back (Launcher settings), Home (window.launcherKey)
    - the screen turning off locks the simulator (window.gbLockNow)
-   - real phone calls on a call screen of the launcher's own (window.gbRealCall), while it is the default phone app */
+   - real phone calls on the version's own in-call screen (window.gbRealCall), while it is the default phone app
+   - :has() rules work on an older Android WebView too (a small stand-in, below) */
 (() => {
   'use strict';
   const L = window.RealLauncher, bridge = window.AndroidLauncher;
@@ -90,6 +91,7 @@
       <h3>Default apps</h3>
       ${row('default', 'home', 'Home app', d.home ? 'Gingerbread Launcher' : 'Not this launcher: tap to choose it', check(d.home))}
       ${row('default', 'phone', 'Phone app', d.phone ? 'Gingerbread Launcher: calls show on its call screen' : 'Not this launcher: calls use the phone’s own screen. Tap to choose it', check(d.phone))}
+      <h3>About</h3>${row('none', '', 'Android System WebView', (navigator.userAgent.match(/Chrome\/([\d.]+)/) || [])[1] || 'unknown', '')}
       <h3>Apps in the drawer</h3>${L.all().map(app => `<button type="button" class="apk-row apk-app" data-apk="app" data-id="${esc(app.id)}"><img src="${esc(L.iconUrl(app))}" alt=""><span class="apk-text"><b>${esc(app.label)}</b></span>${check(L.isShown(app.id))}</button>`).join('')}
     </div>`;
   }
@@ -113,50 +115,148 @@
   // Back from Android's default-app screens: the panel shows the new choice.
   window.gbOnResume = () => { if (panel) { const top = panel.querySelector('.apk-body')?.scrollTop || 0; panel.innerHTML = panelHtml(); panel.querySelector('.apk-body').scrollTop = top; } };
 
-  // ---- Real calls ---------------------------------------------------------------------------------------------------
+  // ---- Real calls on the version's own in-call screen -------------------------------------------------------------
+  /* The APK reports each call (window.gbRealCall); the call the phone cares about most (ringing, then dialing, then the
+     call in progress, then one on hold) is shown on the version's own in-call screen: ICSPhoneCall (4.0.4 to 5.1.1)
+     or the Phone module's InCallUI (6.0.1, 7.1.2). A ringing call gets Answer and Decline under it. */
   const calls = new Map();
-  let callRoot = null, ticker = 0;
-  const callShown = () => !!callRoot;
-  const NAMES = {dialing: 'Calling…', connecting: 'Calling…', ringing: 'Incoming call', active: '', holding: 'On hold', disconnecting: 'Ending call…', disconnected: 'Call ended', select_account: 'Choose a SIM'};
-  function current() {
-    const list = [...calls.values()];
-    return list.find(c => c.state === 'ringing') || list.find(c => c.state === 'active') || list.find(c => c.state !== 'disconnected') || list[0] || null;
+  const RANK = {ringing: 0, 'select-account': 1, dialing: 1, connecting: 1, active: 2, holding: 3};
+  const act = (id, action, value = '') => { try { bridge.callAction(String(id), action, String(value)); } catch (error) { /* gone */ } };
+  const shown = id => { try { bridge.callShown?.(id); } catch (error) { /* older APK */ } };
+  let shownCall = null, returnTo = null;
+  const top = () => [...calls.values()].filter(k => !k.ended).sort((a, b) => (RANK[a.state] ?? 2) - (RANK[b.state] ?? 2))[0] || null;
+  const ringBar = (decline, answer, end, call) => `<div class="apk-ring"><span class="apk-ring-label">Incoming call</span><div class="apk-ring-btns"><button type="button" class="apk-ring-decline" data-action="apk-decline" aria-label="Decline"><img src="${end}" alt=""></button><button type="button" class="apk-ring-answer" data-action="apk-answer" aria-label="Answer"><img src="${call}" alt=""></button></div><div class="apk-ring-texts"><span>${decline}</span><span>${answer}</span></div></div>`;
+  const sim = () => L.sim;
+  const prefix = window.MM ? 'mmph' : 'ngph';
+  // The in-call screen's outer element: InCallUI in 6.0.1 (mmph-incall) and 7.1.2 (ngph-call).
+  const callRoot = window.MM ? 'mmph-incall' : 'ngph-call';
+
+  // The screens: ICSPhoneCall.render (4.0.4 to 5.1.1) and the Phone module's render (6.0.1, 7.1.2), with the ring bar.
+  if (window.ICSPhoneCall?.render) {
+    const own = window.ICSPhoneCall.render;
+    window.ICSPhoneCall.render = (call, ...rest) => {
+      let html = own(call, ...rest);
+      if (call?.real && call.state === 'ringing') html = html.replace('class="app-view ', 'class="app-view apk-ringing ').replace(/<\/div>$/, ringBar('Decline', 'Answer', 'assets/phone-ic_end_call.png', 'assets/phone-ic_end_call.png') + '</div>');
+      return html;
+    };
   }
-  const act = (id, action, value = '') => { try { bridge.callAction(id, action, String(value)); } catch (error) { /* gone */ } };
-  function duration(call) {
-    if (!call.connectTime || call.state !== 'active') return '';
-    const s = Math.max(0, Math.floor((Date.now() - call.connectTime) / 1000));
-    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  const phoneMod = NS?.module?.('phone');
+  if (phoneMod?.render) {
+    const own = phoneMod.render;
+    phoneMod.render = c => {
+      let html = own(c);
+      const k = c.ui.call;
+      if (k?.real && k.state === 'ringing' && html.includes(`class="${callRoot}`)) html = html.replace(`class="${callRoot}`, `class="${callRoot} apk-ringing`).replace(/<\/div>\s*$/, ringBar('Decline', 'Answer', window.MM ? 'assets/gd-fab_ic_end_call.png' : 'assets/gd-quantum_ic_call_end_white_24.png', 'assets/gd-fab_ic_call.png') + '</div>');
+      return html;
+    };
   }
-  function drawCall() {
-    const call = current();
-    if (!call) { callRoot?.remove(); callRoot = null; clearInterval(ticker); ticker = 0; return; }
-    if (!callRoot) { callRoot = document.createElement('div'); callRoot.id = 'apk-call'; document.body.append(callRoot); callRoot.addEventListener('click', onCallClick); }
-    if (!ticker) ticker = setInterval(() => { const t = callRoot?.querySelector('.apk-call-state'), c = current(); if (t && c) t.textContent = c.state === 'active' ? duration(c) : NAMES[c.state] ?? ''; }, 1000);
-    const ringing = call.state === 'ringing';
-    const btn = (action, label, on, cls = '') => `<button type="button" class="apk-call-btn ${cls}${on ? ' on' : ''}" data-call="${action}"><span>${label}</span></button>`;
-    callRoot.className = `apk-call v${version.replace(/\./g, '')}`;
-    callRoot.innerHTML = `<div class="apk-call-top"><div class="apk-call-state">${esc(call.state === 'active' ? duration(call) : NAMES[call.state] ?? '')}</div>
-      <div class="apk-call-name">${esc(call.number || 'Unknown')}</div><div class="apk-call-avatar"></div></div>
-      ${ringing ? `<div class="apk-call-answer">${btn('reject', 'Decline', false, 'red')}${btn('answer', 'Answer', false, 'green')}</div>`
-        : call.state === 'disconnected' ? '' : `<div class="apk-call-tools">${btn('mute', 'Mute', call.mute)}${btn('speaker', 'Speaker', call.speaker)}${btn('hold', call.state === 'holding' ? 'Resume' : 'Hold', call.state === 'holding')}</div><div class="apk-call-end">${btn('hangup', 'End call', false, 'red')}</div>`}`;
-    try { bridge.callShown?.(call.id); } catch (error) { /* older APK */ }
+  // The screen's buttons act on the real call.
+  if (phoneMod?.action) {
+    const own = phoneMod.action;
+    phoneMod.action = (name, el, event, c) => {
+      const k = c.ui.call;
+      if (k?.real) {
+        if (name === 'apk-answer') { act(k.id, 'answer'); return true; }
+        if (name === 'apk-decline') { act(k.id, 'reject'); return true; }
+        if (name === `${prefix}-hangup`) { act(k.id, k.state === 'ringing' ? 'reject' : 'hangup'); return true; }
+        if (name === `${prefix}-ctoggle`) {
+          const id = el.dataset.id;
+          if (id === 'mute') act(k.id, 'mute', !k.mute);
+          else if (id === 'speaker') act(k.id, 'speaker', !k.speaker);
+          else if (id === 'hold') act(k.id, k.hold ? 'unhold' : 'hold');
+          else return own(name, el, event, c);
+          return true;
+        }
+        if (name === `${prefix}-dtmf`) act(k.id, 'dtmf', el.dataset.k || '');
+      }
+      return own(name, el, event, c);
+    };
   }
-  function onCallClick(event) {
-    const el = event.target.closest('[data-call]'); const call = current(); if (!el || !call) return;
-    const what = el.dataset.call;
-    if (what === 'mute') act(call.id, 'mute', !call.mute);
-    else if (what === 'speaker') act(call.id, 'speaker', !call.speaker);
-    else if (what === 'hold') act(call.id, call.state === 'holding' ? 'unhold' : 'hold');
-    else act(call.id, what);
+  document.addEventListener('click', event => {
+    const s = sim(); const k = s?.ui.activeCall;
+    if (!k?.real) return;
+    const el = event.target.closest?.('[data-action]'); if (!el) return;
+    const name = el.dataset.action, id = el.dataset.id;
+    const stop = () => { event.preventDefault(); event.stopImmediatePropagation(); };
+    if (name === 'apk-answer') { stop(); act(k.id, 'answer'); }
+    else if (name === 'apk-decline') { stop(); act(k.id, 'reject'); }
+    else if (name === 'hangup') { stop(); act(k.id, k.state === 'ringing' ? 'reject' : 'hangup'); }
+    else if (name === 'incall-toggle' && id !== 'keypad') { stop(); act(k.id, id === 'hold' ? (k.hold ? 'unhold' : 'hold') : id, id === 'hold' ? '' : !k[id]); }
+    else if (name === 'incall-digit') act(k.id, 'dtmf', id);
+  }, true);
+
+  function showCall() {
+    const k = top();
+    if (NS) {
+      if (!ctx) return;
+      if (k) {
+        if (!shownCall) returnTo = ctx.ui.view === 'phone' || ctx.ui.view === 'lock' ? 'home' : ctx.ui.view;
+        ctx.ui.call = k; shownCall = k;
+        if (ctx.ui.view !== 'phone') ctx.open('phone'); else ctx.render();
+      }
+      if (ctx.el.viewport.querySelector(`.${callRoot}`) && k) shown(k.id);
+      return;
+    }
+    const s = sim(); if (!s) return;
+    if (k) {
+      if (!shownCall) { returnTo = s.ui.view === 'phone' || s.ui.view === 'lock' ? null : {view: s.ui.view, sub: s.ui.sub}; s.capture(); }
+      s.ui.activeCall = k; shownCall = k;
+      s.ui.callNumber = k.number; s.ui.view = 'phone'; s.ui.sub = 'calling'; s.ui.overlay = ''; s.ui.sleeping = false;
+      s.render();
+      if (document.querySelector('#viewport .incall-app, #viewport .lpc-app')) shown(k.id);
+    }
+  }
+  function finish(k) {
+    k.ended = Date.now();
+    if (NS) {
+      if (!ctx) return;
+      if (ctx.ui.call === k) ctx.render();
+      setTimeout(() => {
+        calls.delete(k.id);
+        if (ctx.ui.call !== k) return;
+        ctx.ui.call = null; shownCall = null;
+        if (top()) { showCall(); return; }
+        if (ctx.ui.view === 'phone') { if (!returnTo || returnTo === 'home') ctx.home(); else ctx.open(returnTo); }
+        returnTo = null;
+      }, 1500);
+      return;
+    }
+    const s = sim(); if (!s) return;
+    if (s.ui.activeCall === k) {
+      const type = k.incoming ? (k.answered ? 'incoming' : 'missed') : 'outgoing';
+      try { s.data.callHistory = [...(s.data.callHistory || []), {...window.ICSPhoneCall.finish(k, k.ended), connected: !!k.answered, type}].slice(-50); s.save(); } catch (error) { /* no log */ }
+    }
+    setTimeout(() => {
+      calls.delete(k.id);
+      if (s.ui.activeCall !== k) return;
+      s.ui.activeCall = null; shownCall = null;
+      if (top()) { showCall(); return; }
+      if (s.ui.view === 'phone') { s.ui.sub = ''; s.ui.dial = ''; if (returnTo) { s.ui.view = returnTo.view; s.ui.sub = returnTo.sub; } else s.ui.view = 'home'; }
+      returnTo = null;
+      s.render();
+    }, 1200);
   }
   window.gbRealCall = report => {
-    const call = typeof report === 'string' ? JSON.parse(report) : report;
-    if (!call?.id) return;
-    calls.set(call.id, {...(calls.get(call.id) || {}), ...call});
-    if (call.state === 'disconnected') setTimeout(() => { if (calls.get(call.id)?.state === 'disconnected') { calls.delete(call.id); drawCall(); } }, 1500);
-    drawCall();
+    report = typeof report === 'string' ? JSON.parse(report) : report;
+    if (!report?.id) return;
+    let k = calls.get(report.id);
+    const gone = report.state === 'disconnected' || report.state === 'disconnecting';
+    if (!k) {
+      if (gone) return;
+      // The fields both screens read: ICSPhoneCall (keypad, digits) and InCallUI (dialpad, dtmf, ended).
+      k = {real: true, id: report.id, number: report.number || '', started: Date.now(), connected: Number.MAX_SAFE_INTEGER, mute: false, speaker: false, hold: false, keypad: false, digits: '', dialpad: false, dtmf: '', ended: 0, incoming: !!report.incoming};
+      calls.set(report.id, k);
+    }
+    if (report.number) k.number = report.number;
+    if (gone) { if (!k.ended) finish(k); return; }
+    k.state = report.state; k.hold = report.state === 'holding'; k.mute = !!report.mute; k.speaker = !!report.speaker;
+    if (report.state === 'active' || report.state === 'holding') k.answered = true;
+    if (report.connectTime > 0) k.connected = report.connectTime;
+    else if (k.answered && k.connected === Number.MAX_SAFE_INTEGER) k.connected = Date.now();
+    if (report.state === 'select-account' && report.accounts?.length) { act(k.id, 'account', '0'); }
+    showCall();
   };
+  const callShown = () => !!shownCall && !shownCall.ended && (ctx ? ctx.ui.view === 'phone' : sim()?.ui.view === 'phone');
   // Calls already up when the page (re)loads.
-  try { bridge.callNow?.(); } catch (error) { /* none */ }
+  window.addEventListener('DOMContentLoaded', () => setTimeout(() => { try { bridge.callNow?.(); } catch (error) { /* none */ } }, 300));
 })();

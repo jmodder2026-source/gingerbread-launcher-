@@ -56,6 +56,81 @@
     return ids.filter(id => all.some(app => app.id === id));
   }
 
+
+  /* An older Android WebView (before Chrome 105) drops every CSS rule with :has(), and the simulators use it for app
+     backgrounds, full-screen views and bars. Here each such rule is rewritten with a class that is kept on the
+     elements :has() would match (A:has(B) -> A.apk-has-N, tested with querySelector), so the pages look the same. */
+  function hasStandIn() {
+    let supported = false;
+    try { supported = CSS.supports('selector(:has(*))'); } catch (error) { supported = false; }
+    if (supported || !bridge) return;
+    const tests = [];
+    // querySelectorAll('A:has(B), …') from the pages' scripts: A's matches that contain a B.
+    const qsa = Element.prototype.querySelectorAll;
+    Element.prototype.querySelectorAll = function (selector) {
+      if (!String(selector).includes(':has(')) return qsa.call(this, selector);
+      const found = new Set();
+      for (const part of split(String(selector))) {
+        const m = part.match(/^(.*?):has\((.*)\)$/);
+        if (!m) { try { qsa.call(this, part).forEach(n => found.add(n)); } catch (error) { /* skip */ } continue; }
+        for (const n of qsa.call(this, m[1] || '*')) { try { if (n.querySelector(m[2].trim().startsWith('>') ? `:scope${m[2]}` : m[2])) found.add(n); } catch (error) { /* skip */ } }
+      }
+      return [...found];
+    };
+    // The top-level rules of a stylesheet's text (@media blocks keep their rules inside), with their selectors.
+    function rewrite(text) {
+      let out = '', i = 0;
+      const block = from => { let depth = 0, j = from; for (; j < text.length; j++) { if (text[j] === '{') depth++; else if (text[j] === '}') { depth--; if (!depth) break; } } return j; };
+      while (i < text.length) {
+        const open = text.indexOf('{', i); if (open < 0) break;
+        const prelude = text.slice(i, open).trim(), end = block(open);
+        if (prelude.startsWith('@media') || prelude.startsWith('@supports')) { const inner = rewrite(text.slice(open + 1, end)); if (inner) out += `${prelude}{${inner}}`; }
+        else if (!prelude.startsWith('@') && prelude.includes(':has(')) {
+          const sels = split(prelude).map(convert).filter(Boolean);
+          if (sels.length) out += `${sels.join(',')}${text.slice(open, end + 1)}`;
+        }
+        i = end + 1;
+      }
+      return out;
+    }
+    function split(list) { const parts = []; let depth = 0, cur = ''; for (const ch of list) { if (ch === '(') depth++; if (ch === ')') depth--; if (ch === ',' && !depth) { parts.push(cur); cur = ''; } else cur += ch; } parts.push(cur); return parts.map(p => p.trim()).filter(Boolean); }
+    function convert(sel) {
+      if (!sel.includes(':has(')) return '';
+      let guard = 0;
+      while (sel.includes(':has(') && guard++ < 4) {
+        const at = sel.indexOf(':has(');
+        let depth = 1, j = at + 5; for (; j < sel.length && depth; j++) { if (sel[j] === '(') depth++; else if (sel[j] === ')') depth--; }
+        const arg = sel.slice(at + 5, j - 1).trim();
+        if (arg.includes(':has(') || /^[+~]/.test(arg)) return '';
+        // The compound selector :has() is attached to: back to the last combinator outside brackets.
+        let k = at - 1, d = 0; for (; k >= 0; k--) { const ch = sel[k]; if (ch === ')' || ch === ']') d++; else if (ch === '(' || ch === '[') d--; else if (!d && /[\s>+~]/.test(ch)) break; }
+        const anchor = sel.slice(k + 1, at).replace(/:has\(.*$/, '') || '*';
+        const cls = `apk-has-${tests.length}`;
+        tests.push({anchor: anchor.replace(/\.apk-has-\d+/g, '') || '*', arg: arg.startsWith('>') ? `:scope${arg}` : `:scope ${arg}`, cls});
+        sel = sel.slice(0, at) + '.' + cls + sel.slice(j);
+      }
+      return sel;
+    }
+    function apply() {
+      for (const test of tests) {
+        let nodes; try { nodes = document.querySelectorAll(test.anchor); } catch (error) { continue; }
+        for (const node of nodes) { let on = false; try { on = !!node.querySelector(test.arg); } catch (error) { on = false; } if (node.classList.contains(test.cls) !== on) node.classList.toggle(test.cls, on); }
+      }
+    }
+    const links = [...document.querySelectorAll('link[rel="stylesheet"]')];
+    Promise.all(links.map(link => fetch(link.href).then(r => r.text()).then(text => {
+      const css = rewrite(text.replace(/\/\*[\s\S]*?\*\//g, ''));
+      if (!css) return;
+      const style = document.createElement('style'); style.textContent = css; link.after(style);
+    }).catch(() => {}))).then(() => {
+      let frame = 0;
+      const schedule = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; apply(); }); };
+      apply();
+      new MutationObserver(schedule).observe(document.documentElement, {subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'hidden', 'open']});
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hasStandIn); else hasStandIn();
+
   window.RealLauncher = {
     active: !!bridge,
     VERSIONS,
