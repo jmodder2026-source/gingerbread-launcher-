@@ -3,6 +3,8 @@
   'use strict';
 
   const STORE = 'android-time-machine-gb-v1';
+  // Launcher APK, once: 2.3.6 starts again from the site's defaults (the owner asked for a fresh start in build 38).
+  try { if (window.AndroidLauncher && localStorage.getItem('gingerbread-launcher-reset') !== '38') { localStorage.removeItem(STORE); localStorage.setItem('gingerbread-launcher-reset', '38'); } } catch (error) { /* storage blocked */ }
   const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   const defaultData = {
     // Gingerbread's Launcher2 has no first-run clings (Cling.java came with 4.0).
@@ -1773,6 +1775,9 @@
       case 'gbx-edit-done': ui.gbxEdit = false; render(); break;
       case 'gbx-toggle': GBExtras.toggle(data, id); save(); if (floatRoot) floatRoot.innerHTML = ''; render(); ui.overlay = 'gb-dialog-gbx-home'; renderOverlay(); break;
       case 'gbx-lock': ui.overlay = ''; lockScreen(); break;
+      // Launcher settings > Reset to defaults: Android 2.3.6 starts again from the site's defaults (the launcher's own
+      // choices, such as the apps in the drawer and the Android version, stay).
+      case 'gbx-reset': ui.overlay = ''; try { localStorage.removeItem(STORE); } catch (error) { /* storage blocked */ } location.reload(); break;
       case 'gbx-remove': { const slot = Number(id); ICSLauncherFolders.remove(data, {type: 'home', slot, page: ui.page, id: data.homePages[ui.page][slot]}); save(); render(); break; }
       case 'gbx-remove-widget': data.homeWidgets[ui.page] = data.homeWidgets[ui.page].filter(widget => widget.id !== id); if (ui.widgetScroll) delete ui.widgetScroll[id]; save(); render(); break;
       case 'gb-add': ui.overlay = 'gb-dialog-add'; renderOverlay(); break;
