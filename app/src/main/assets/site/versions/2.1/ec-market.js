@@ -43,6 +43,8 @@
     {id: 'lunar-golf', kind: 'games', category: 'Arcade & Action', name: 'Lunar Golf', developer: 'Crater Games', rating: 4.4, price: '$0.99', size: '9.8 MB', description: 'Eighteen holes in low gravity.', art: 'golf', perms: [NET]},
     {id: 'pocket-planner', kind: 'apps', category: 'Productivity', name: 'Pocket Planner', developer: 'Quiet Tools', rating: 4.3, price: '$1.99', size: '1.6 MB', description: 'Plan your week on one simple page.', art: 'planner', perms: [CAL]}
   ].map((x, i) => ({downloads: ['250,000 - 1,000,000', '50,000 - 250,000', '10,000 - 50,000', '5,000 - 10,000'][i % 4], votes: 120 + i * 47, version: `1.${i}.${(i * 3) % 7}`, ...x}));
+  // Launcher APK: Orbit Hopper, Pixel Blocks and Lunar Golf are not offered (the owner's choice).
+  if (window.AndroidLauncher) for (const id of ['orbit', 'blocks', 'lunar-golf', 'movie-orbit']) { const i = CATALOG.findIndex(item => item.id === id); if (i >= 0) CATALOG.splice(i, 1); }
   // The server's categories of the time (Market sends them; not part of the APK).
   const CATEGORIES = {
     apps: ['Comics', 'Communication', 'Entertainment', 'Finance', 'Health', 'Lifestyle', 'Multimedia', 'News & Weather', 'Productivity', 'Reference', 'Shopping', 'Social', 'Sports', 'Themes', 'Tools', 'Travel'],

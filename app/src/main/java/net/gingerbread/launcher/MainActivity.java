@@ -78,6 +78,7 @@ public class MainActivity extends Activity {
     /** Set on the intent CallService uses to bring the call screen up. */
     static final String EXTRA_CALL = "gb_call";
     private static final int DIALER_REQUEST = 13;
+    private static final int VOICE_REQUEST = 17;
     private android.os.PowerManager.WakeLock proximityLock;
     private boolean askedDialer;
     private boolean askedDialerForCall;
@@ -863,6 +864,16 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == VOICE_REQUEST) {
+            // The words Google's speech recognition heard go to the page's search box (window.apkHeard).
+            String heard = "";
+            if (resultCode == RESULT_OK && data != null) {
+                java.util.ArrayList<String> list = data.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS);
+                if (list != null && !list.isEmpty()) heard = list.get(0);
+            }
+            if (web != null && !heard.isEmpty()) web.evaluateJavascript("window.apkHeard && window.apkHeard(" + JSONObject.quote(heard) + ")", null);
+            return;
+        }
         if (requestCode != DIALER_REQUEST) return;
         boolean ours = isDefaultDialer();
         if (!ours && dialerAskExplicit) openDefaultAppsSettings();
@@ -1345,6 +1356,18 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
                 return "";
             }
+        }
+
+        // The microphone of a Google search bar: Android's speech recognition ("Speak now"). False when the phone has none.
+        @JavascriptInterface
+        public boolean listen(String language) {
+            Intent ask = new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                    .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH)
+                    .putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+            if (language != null && !language.isEmpty()) ask.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, language);
+            if (ask.resolveActivity(getPackageManager()) == null) return false;
+            runOnUiThread(() -> { try { startActivityForResult(ask, VOICE_REQUEST); } catch (Exception ignored) { } });
+            return true;
         }
 
         @JavascriptInterface

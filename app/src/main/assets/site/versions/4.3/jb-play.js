@@ -219,6 +219,8 @@
     {id: 'mag-trail', kind: 'magazines', name: 'Trail & Summit', developer: 'August 2013', rating: 4.4, price: '$3.99', colors: ['#2d3a1f', '#c9a85a'], description: 'Hiking routes, gear and mountain stories.'},
     {id: 'mag-kitchen', kind: 'magazines', name: 'Weekend Kitchen', developer: 'Summer 2013', rating: 4.0, price: '$1.99', colors: ['#5a2018', '#f2b35e'], description: 'Fifty easy recipes for long summer evenings.'}
   ];
+  // Launcher APK: Orbit Hopper, Pixel Blocks and Lunar Golf are not offered (the owner's choice).
+  if (window.AndroidLauncher) for (const id of ['orbit', 'blocks', 'lunar-golf', 'movie-orbit']) { const i = EXTRA.findIndex(item => item.id === id); if (i >= 0) EXTRA.splice(i, 1); }
   const DATES = ['July 18, 2013', 'July 2, 2013', 'June 14, 2013', 'May 30, 2013'];
   const catalog = () => (window.ICSPlayStore?.catalog || []).map((item, i) => ({...item, kind: item.category === 'Games' ? 'games' : 'apps', price: 'FREE', downloads: ['10,000,000+', '1,000,000+', '500,000+', '100,000+'][i % 4], votes: 12000 + i * 4173, updated: DATES[i % 4], plus: 120 + i * 37, size: String(item.size || '').replace(' ', ''), whatsnew: 'Bug fixes and performance improvements.'}));
   const all = () => [...catalog(), ...EXTRA.map(item => ({downloads: '50,000+', votes: 812, plus: 46, updated: item.kind === 'magazines' ? 'July 9, 2013' : 'June 3, 2013', size: item.kind === 'books' ? '1.2MB' : item.kind === 'magazines' ? '24MB' : item.kind === 'music' ? '96MB' : item.kind === 'movies' ? '820MB' : item.size, description: item.kind === 'books' ? 'A classic, free from Google Play Books.' : item.kind === 'movies' ? 'A feature film from the simulator\'s small demo shelf.' : item.description, ...item}))];

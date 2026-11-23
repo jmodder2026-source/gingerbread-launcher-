@@ -3,12 +3,16 @@
   'use strict';
   const catalog = [
     {id:'camera',name:'Camera',developer:'Android Demo',category:'Photography',rating:4.6,size:'2.4 MB',description:'Capture a little piece of your day.',app:'camera',art:'photo'},
-    {id:'orbit',name:'Orbit Hopper',developer:'Moonlight Studio',category:'Games',rating:4.8,size:'12 MB',description:'A small adventure among the stars.',art:'orbit'},
-    {id:'blocks',name:'Pixel Blocks',developer:'Pocket Pixels',category:'Games',rating:4.5,size:'8.6 MB',description:'Bright blocks, simple shapes, endless possibilities.',art:'blocks'},
+    {id:'orbit',name:'Orbit Hopper',developer:'Moonlight Studio',category:'Games',rating:4.8,size:'12 MB',description:'A small adventure among the stars.',art:'orbit'},
+
+    {id:'blocks',name:'Pixel Blocks',developer:'Pocket Pixels',category:'Games',rating:4.5,size:'8.6 MB',description:'Bright blocks, simple shapes, endless possibilities.',art:'blocks'},
+
     {id:'calendar',name:'Calendar',developer:'Android Demo',category:'Productivity',rating:4.2,size:'1.8 MB',description:'Make room for the things that matter.',app:'calendar',art:'calendar'},
     {id:'clock',name:'Clock',developer:'Android Demo',category:'Tools',rating:4.1,size:'1.2 MB',description:'A familiar clock and alarms for your day.',app:'clock',art:'clock'},
     {id:'calculator',name:'Calculator',developer:'Android Demo',category:'Tools',rating:4.7,size:'0.8 MB',description:'Everyday sums and scientific discoveries.',app:'calculator',art:'calculator'}
   ];
+  // Launcher APK: Orbit Hopper, Pixel Blocks and Lunar Golf are not offered (the owner's choice).
+  if (window.AndroidLauncher) for (const id of ['orbit', 'blocks', 'lunar-golf', 'movie-orbit']) { const i = catalog.findIndex(item => item.id === id); if (i >= 0) catalog.splice(i, 1); }
   const categories = ['Games','Photography','Communication','Music & audio','Productivity','Tools'];
   const escape = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const initial = () => ({page:'home',tab:'featured',category:'',query:'',selected:'camera',preview:0});

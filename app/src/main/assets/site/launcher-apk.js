@@ -258,6 +258,110 @@
   }
   if (bridge) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', siteKeyboard); else siteKeyboard(); }
 
+
+  /* The phone's camera in every version's Camera app (2.3.6 has its own, gb-real-camera.js): a live <video> over the
+     drawn viewfinder while it is on screen, and each shutter press also saves a real picture to the phone's gallery. */
+  function liveCamera() {
+    const version = (location.pathname.match(/versions\/([\d.]+)\//) || [])[1] || '';
+    if (version === '2.3.6' || !navigator.mediaDevices?.getUserMedia) return;
+    const PREVIEW = '.camera-preview, .jbcam-preview, .gcam-preview, .mmcm-preview, .ngcm-preview, .eccm-preview';
+    const video = document.createElement('video');
+    video.className = 'apk-live'; video.muted = true; video.playsInline = true; video.autoplay = true;
+    video.setAttribute('playsinline', ''); video.setAttribute('muted', '');
+    video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;pointer-events:none;background:#000';
+    let stream = null, starting = null, refused = false;
+    const stop = () => { stream?.getTracks().forEach(t => t.stop()); stream = null; starting = null; video.srcObject = null; video.remove(); };
+    const start = () => {
+      if (starting || stream) return;
+      starting = navigator.mediaDevices.getUserMedia({audio: false, video: {facingMode: {ideal: 'environment'}, width: {ideal: 1280}, height: {ideal: 960}}})
+        .then(s => { if (!starting) { s.getTracks().forEach(t => t.stop()); return; } stream = s; video.srcObject = s; video.play().catch(() => {}); }, () => { refused = true; starting = null; });
+    };
+    function sync() {
+      const preview = !document.hidden && document.querySelector(`#viewport ${PREVIEW.split(', ').join(', #viewport ')}`);
+      if (!preview) { if (stream || starting) stop(); return; }
+      if (refused) return;
+      start();
+      // A viewfinder that is itself a drawn picture (2.1's canvas): the video goes beside it, over its place, before
+      // the buttons that follow. Otherwise it goes inside the viewfinder.
+      const beside = preview.tagName === 'CANVAS' || preview.tagName === 'IMG';
+      if (beside) {
+        const parent = preview.parentElement;
+        if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
+        let after = preview; while (after.nextElementSibling && /^(svg|CANVAS|IMG)$/i.test(after.nextElementSibling.tagName) && after.nextElementSibling !== video) after = after.nextElementSibling;
+        Object.assign(video.style, {inset: 'auto', left: `${preview.offsetLeft}px`, top: `${preview.offsetTop}px`, width: `${preview.offsetWidth}px`, height: `${preview.offsetHeight}px`, zIndex: getComputedStyle(preview).zIndex});
+        if (after.nextSibling !== video) { after.after(video); if (video.srcObject) video.play().catch(() => {}); }
+      } else {
+        Object.assign(video.style, {inset: '0', left: '', top: '', width: '100%', height: '100%', zIndex: '1'});
+        if (getComputedStyle(preview).position === 'static') preview.style.position = 'relative';
+        if (video.parentNode !== preview) { preview.append(video); if (video.srcObject) video.play().catch(() => {}); }
+      }
+    }
+    let frame = 0;
+    new MutationObserver(() => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; sync(); }); }).observe(document.documentElement, {subtree: true, childList: true});
+    document.addEventListener('visibilitychange', sync);
+    window.addEventListener('pagehide', stop);
+    // The shutter: a full picture of the live view to the phone's gallery (the simulator keeps its own copy too).
+    const snap = () => {
+      if (!stream || !video.videoWidth) return;
+      const canvas = document.createElement('canvas'), vw = video.videoWidth, vh = video.videoHeight;
+      canvas.width = vw; canvas.height = vh;
+      canvas.getContext('2d').drawImage(video, 0, 0, vw, vh);
+      try { bridge.savePhoto?.(canvas.toDataURL('image/jpeg', .9)); } catch (error) { /* saving is a bonus */ }
+    };
+    document.addEventListener('click', event => {
+      const el = event.target.closest?.('[data-action]');
+      if (el && /(^|-)(shoot|shutter)$/.test(el.dataset.action)) snap();
+    }, true);
+    // 4.3 and 4.4.4 take the picture on the press itself.
+    document.addEventListener('pointerdown', event => { if (event.target.closest?.('[data-jbcam-shutter]')) snap(); }, true);
+  }
+  if (bridge) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', liveCamera); else liveCamera(); }
+
+  /* The microphone on every Google search bar and in the Google app: Android's own speech recognition (the Google
+     "Speak now" window), then the words go into the version's search box and are searched. */
+  function voiceSearch() {
+    const MIC = ['voice-search', 'eclh-voice', 'mmh-voice', 'ngh-voice', 'mmgg-voice', 'ga-voice-listen', 'voice-listen', 'gbw-voice-open'];
+    let pending = null;
+    document.addEventListener('click', event => {
+      const mic = event.target.closest?.('[data-action]');
+      if (!mic || !MIC.includes(mic.dataset.action) || !bridge.listen) return;
+      if (mic.dataset.apkVoice === 'pass') { delete mic.dataset.apkVoice; return; }
+      event.preventDefault(); event.stopImmediatePropagation();
+      pending = mic;
+      let ok = false;
+      try { ok = !!bridge.listen((navigator.language || 'en').slice(0, 5)); } catch (error) { ok = false; }
+      // No speech recognition on the phone: the version's own (simulated) voice search.
+      if (!ok) { mic.dataset.apkVoice = 'pass'; mic.click(); }
+    }, true);
+    const field = () => [...document.querySelectorAll('#screen input[type="search"], #screen input[type="text"], #screen input:not([type]), #screen textarea')]
+      .find(el => el.offsetParent && !el.disabled && !el.readOnly);
+    function type(el, text) {
+      el.focus();
+      el.value = text; el.dispatchEvent(new Event('input', {bubbles: true}));
+      const enter = new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true});
+      if (el.dispatchEvent(enter) && el.form) { if (el.form.requestSubmit) el.form.requestSubmit(); else el.form.dispatchEvent(new Event('submit', {bubbles: true, cancelable: true})); }
+      el.dispatchEvent(new Event('change', {bubbles: true}));
+      window.apkKeyboardBack?.();
+      // The version's own keyboard (6.0.1, 7.1.2, 2.1) goes down with the search.
+      window.MM?.ime?.hide?.(); el.blur();
+      setTimeout(() => { window.MM?.ime?.hide?.(); if (document.activeElement === el) el.blur(); }, 400);
+    }
+    window.apkHeard = text => {
+      const mic = pending; pending = null;
+      text = String(text || '').trim();
+      if (!text) return;
+      // A search box already on screen (the Google app): fill it in. Otherwise open the bar's search screen first.
+      let el = field();
+      if (el) { type(el, text); return; }
+      const box = mic?.parentElement?.closest('form, [class*="search"], [class*="qsb"], [class*="sbar"], .home-search') || mic?.parentElement;
+      const open = box && [...box.querySelectorAll('[data-action]')].find(n => n !== mic && !MIC.includes(n.dataset.action));
+      open?.click();
+      let tries = 0;
+      const wait = setInterval(() => { el = field(); if (el || ++tries > 20) { clearInterval(wait); if (el) type(el, text); } }, 100);
+    };
+  }
+  if (bridge) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', voiceSearch); else voiceSearch(); }
+
   window.RealLauncher = {
     active: !!bridge,
     VERSIONS,
