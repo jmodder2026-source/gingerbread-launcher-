@@ -10,6 +10,9 @@
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <!-- The Gingerbread Camera shows the real camera; its pictures are also saved to the phone's gallery. -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- The Gingerbread Phone app places real calls. -->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 

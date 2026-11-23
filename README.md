@@ -9,6 +9,8 @@ An Android home screen app that runs the Android 2.3.6 Gingerbread simulator fro
 - Files and Claude are placed on the middle home screen the first time it starts.
 - The Gingerbread Camera shows the phone's real camera (Android asks once for permission); pictures appear in the
   Gingerbread Gallery and are saved to the phone's gallery under Pictures/Gingerbread.
+- The Gingerbread Phone app makes real calls: dial a number (or call from the call log, Contacts or Messaging) and
+  the phone calls it after Android asks once for permission; the number joins the Gingerbread call log.
 - The Market leaves out Orbit Hopper, Pixel Blocks, Lunar Golf and Pocket Planner.
 - The app drawer scrolls (and flings) under your finger.
 - Check boxes and radio buttons show as perfect squares and turn Gingerbread orange while pressed; touching a button

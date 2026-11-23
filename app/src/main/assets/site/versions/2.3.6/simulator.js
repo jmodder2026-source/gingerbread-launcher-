@@ -1185,6 +1185,14 @@
   function contactByPhone(number) { const normalized = String(number).replace(/[^\d+]/g, ''); return data.contacts.find(item => item.phone.replace(/[^\d+]/g, '') === normalized); }
   function startPhoneCall(number) {
     if(!number)return;
+    // Launcher APK: a real call through the phone's own line (Android shows its in-call screen); the number goes into
+    // the Gingerbread call log as an outgoing call.
+    if (GBRealApps.active) {
+      data.callHistory = [...(data.callHistory || []), {number, time: Date.now(), duration: 0, connected: true}].slice(-50);
+      ui.dial = ''; save(); render();
+      GBRealApps.call(number);
+      return;
+    }
     // Add call: the simulator keeps one line, so the call in progress ends and the new one is dialed.
     if(ui.activeCall&&ui.gbAddCall&&!ui.activeCall.endedAt){data.callHistory=[...(data.callHistory||[]),ICSPhoneCall.finish(ui.activeCall)].slice(-50);ui.activeCall=null;save();}
     if(!ui.activeCall)ui.activeCall=ICSPhoneCall.start(number);

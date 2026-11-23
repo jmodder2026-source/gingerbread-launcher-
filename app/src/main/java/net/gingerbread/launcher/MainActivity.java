@@ -76,6 +76,9 @@ public class MainActivity extends Activity {
     private static final int ICON_PX = 96;
 
     private static final int CAMERA_REQUEST = 7;
+    private static final int CALL_REQUEST = 9;
+    // A number waiting for Android's call permission prompt.
+    private String pendingCall;
 
     private WebView web;
     private BroadcastReceiver packageReceiver;
@@ -399,9 +402,31 @@ public class MainActivity extends Activity {
         requestPermissions(new String[]{Manifest.permission.CAMERA}, CAMERA_REQUEST);
     }
 
+    // Calls the number straight away once the call permission is allowed; otherwise opens the phone's dialer with it.
+    private void placeCall(String number) {
+        String digits = number == null ? "" : number.replaceAll("[^0-9+*#,;]", "");
+        if (digits.isEmpty()) return;
+        Uri tel = Uri.fromParts("tel", digits, null);
+        if (checkSelfPermission(Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+            startSafely(new Intent(Intent.ACTION_CALL, tel));
+            return;
+        }
+        pendingCall = digits;
+        requestPermissions(new String[]{Manifest.permission.CALL_PHONE}, CALL_REQUEST);
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
+        if (requestCode == CALL_REQUEST) {
+            String number = pendingCall;
+            pendingCall = null;
+            if (number == null) return;
+            Uri tel = Uri.fromParts("tel", number, null);
+            boolean allowed = results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED;
+            startSafely(new Intent(allowed ? Intent.ACTION_CALL : Intent.ACTION_DIAL, tel));
+            return;
+        }
         if (requestCode != CAMERA_REQUEST || pendingCamera == null) return;
         if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) {
             pendingCamera.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
@@ -687,6 +712,11 @@ public class MainActivity extends Activity {
             } catch (IllegalArgumentException e) {
                 return false;
             }
+        }
+
+        @JavascriptInterface
+        public void call(String number) {
+            runOnUiThread(() -> placeCall(number));
         }
 
         @JavascriptInterface

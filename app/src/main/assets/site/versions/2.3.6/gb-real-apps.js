@@ -48,6 +48,8 @@
     icon: id => `<span class="app-icon"><img src="${e(byId.get(id)?.icon || 'assets/apps.png')}" alt=""></span>`,
     launch: id => { try { bridge?.launch(String(id).slice(5)); } catch (error) { /* the app may have been removed */ } },
     starters: () => shown.slice(),
+    // A real phone call (Android asks once for permission to make calls).
+    call: number => { try { bridge?.call?.(String(number)); } catch (error) { /* no phone line */ } },
     wifi: () => wifi,
     battery: () => battery,
     alarm: () => alarm,
