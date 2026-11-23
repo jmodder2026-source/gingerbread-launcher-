@@ -200,3 +200,7 @@
    flipping stories and videos included (their animation would otherwise show them through visibility:hidden). */
 .drag-ghost.widget-span-ghost>.gbw-yt,.drag-ghost.widget-span-ghost>.gbw-nw,.drag-ghost.widget-span-ghost>.gbw-mk{position:absolute;inset:0;width:auto;height:auto}
 .drag-source-widget,.drag-source-widget *{visibility:hidden!important;animation-play-state:paused!important}
+/* The drag copy lies outside the launcher's .gbl view, so it takes the home screen's widget layout here: the widget at
+   full width, centred in its span, as big as it was on the home screen (the Google search bar shrank to half). */
+.drag-ghost.widget-span-ghost{display:flex;align-items:center;justify-content:center}
+.drag-ghost.widget-span-ghost>*{width:100%}
