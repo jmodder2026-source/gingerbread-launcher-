@@ -84,9 +84,9 @@ public class MainActivity extends Activity {
     private boolean askedDialerForCall;
     private static final String HOST = "appassets.androidplatform.net";
     // The Android version the launcher runs, chosen in Launcher settings (2.3.6 Gingerbread at first).
-    private static final String[] VERSIONS = {"2.1", "2.3.6", "4.0.4", "4.3", "4.4.4", "5.1.1", "6.0.1", "7.1.2"};
+    private static final String[] VERSIONS = {"2.1", "2.3.6", "4.0.4"};
     // Versions whose page gets launcher-mode.js / .css added when the APK serves it (2.1 and 2.3.6 load their own).
-    private static final java.util.regex.Pattern LAUNCHER_MODE = java.util.regex.Pattern.compile("^/assets/site/versions/(4\\.0\\.4|4\\.3|4\\.4\\.4|5\\.1\\.1|6\\.0\\.1|7\\.1\\.2)/(index\\.html)?$");
+    private static final java.util.regex.Pattern LAUNCHER_MODE = java.util.regex.Pattern.compile("^/assets/site/versions/(4\\.0\\.4)/(index\\.html)?$");
     private static final String ICON_PATH = "/assets/site/real-icon/";
     private String startUrl() {
         String version = getSharedPreferences("launcher", MODE_PRIVATE).getString("version", "2.3.6");

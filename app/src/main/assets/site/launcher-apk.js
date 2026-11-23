@@ -6,9 +6,8 @@
   'use strict';
   const bridge = window.AndroidLauncher || null;
   const KEY = 'gingerbread-launcher-v1';
-  const VERSIONS = [['2.1', 'Android 2.1 Eclair'], ['2.3.6', 'Android 2.3.6 Gingerbread'], ['4.0.4', 'Android 4.0.4 Ice Cream Sandwich'],
-    ['4.3', 'Android 4.3 Jelly Bean'], ['4.4.4', 'Android 4.4.4 KitKat'], ['5.1.1', 'Android 5.1.1 Lollipop'], ['6.0.1', 'Android 6.0.1 Marshmallow'],
-    ['7.1.2', 'Android 7.1.2 Nougat']];
+  // The versions the launcher offers (Launcher settings > Android version).
+  const VERSIONS = [['2.1', 'Android 2.1 Eclair'], ['2.3.6', 'Android 2.3.6 Gingerbread'], ['4.0.4', 'Android 4.0.4 Ice Cream Sandwich']];
   // The site root (where this file is), so icon addresses work from any page depth.
   const ROOT = (() => { try { return new URL('.', document.currentScript?.src || location.href).href; } catch (error) { return '/'; } })();
   // This launcher's own icon, for the Launcher settings entry of the app drawer.
