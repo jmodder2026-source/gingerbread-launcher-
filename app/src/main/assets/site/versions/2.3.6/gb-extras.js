@@ -43,8 +43,7 @@
         {action: 'gbx-default', id: 'home', title: t('Default Home app'), summary: yes(d.home), icon: 'ic_menu_home'},
         {action: 'gbx-default', id: 'phone', title: t('Default phone app'), summary: yes(d.phone), icon: 'ic_menu_call'},
         {action: 'gbx-edit', title: t('Remove items'), summary: t('Show a delete button on apps and widgets'), icon: 'ic_menu_delete'},
-        {action: 'gbx-lock', title: t('Lock screen'), summary: t('Lock the phone now'), icon: 'ic_lock_lock'},
-        {action: 'gbx-reset', title: t('Reset to defaults'), summary: t('Home screens, settings and apps as on a new phone'), icon: 'ic_menu_revert'}
+        {action: 'gbx-lock', title: t('Lock screen'), summary: t('Lock the phone now'), icon: 'ic_lock_lock'}
       ]};
     }
     return {title: t('Home screen'), icon: 'ic_menu_preferences', items: [

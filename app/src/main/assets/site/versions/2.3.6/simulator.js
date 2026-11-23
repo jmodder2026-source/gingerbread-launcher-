@@ -1775,9 +1775,6 @@
       case 'gbx-edit-done': ui.gbxEdit = false; render(); break;
       case 'gbx-toggle': GBExtras.toggle(data, id); save(); if (floatRoot) floatRoot.innerHTML = ''; render(); ui.overlay = 'gb-dialog-gbx-home'; renderOverlay(); break;
       case 'gbx-lock': ui.overlay = ''; lockScreen(); break;
-      // Launcher settings > Reset to defaults: Android 2.3.6 starts again from the site's defaults (the launcher's own
-      // choices, such as the apps in the drawer and the Android version, stay).
-      case 'gbx-reset': ui.overlay = ''; try { localStorage.removeItem(STORE); } catch (error) { /* storage blocked */ } location.reload(); break;
       case 'gbx-remove': { const slot = Number(id); ICSLauncherFolders.remove(data, {type: 'home', slot, page: ui.page, id: data.homePages[ui.page][slot]}); save(); render(); break; }
       case 'gbx-remove-widget': data.homeWidgets[ui.page] = data.homeWidgets[ui.page].filter(widget => widget.id !== id); if (ui.widgetScroll) delete ui.widgetScroll[id]; save(); render(); break;
       case 'gb-add': ui.overlay = 'gb-dialog-add'; renderOverlay(); break;
