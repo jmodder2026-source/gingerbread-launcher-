@@ -208,15 +208,8 @@
   };
   const liveNames={all:'All contacts',starred:'Starred contacts',phone:'Contacts with phone numbers'};
   const folderName=id=>{const folder=ICSLauncherFolders.folder(data,id);return folder?.name||i18n.t(folder?.live?liveNames[folder.live]:'Folder');};
-  // gb-extras.js: the floating Back / Home / Recents bar, hidden on the lock screen, while asleep and when turned off.
-  let floatRoot = null;
-  function syncFloatBar() {
-    if (!floatRoot) { floatRoot = document.createElement('div'); floatRoot.id = 'gbx-float'; screen.insertBefore(floatRoot, overlayRoot); }
-    const show = GBExtras.prefs(data).floatBar && !ui.locked && !ui.sleeping && ui.view !== 'lock' && !ui.power;
-    floatRoot.hidden = !show;
-    screen.classList.toggle('gbx-on-home', ui.view === 'home');
-    if (show && !floatRoot.firstElementChild) floatRoot.innerHTML = GBExtras.floatBar(key => i18n.t(key));
-  }
+  // The floating Back / Home / Recents bar has been removed; render() still calls this hook.
+  function syncFloatBar() {}
   const launcherIcon = id => ICSLauncherFolders.folder(data,id)
     ? `<button class="launcher-icon" data-action="folder-open" data-folder-id="${safe(id)}" aria-label="${safe(folderName(id))}" data-no-translate>${appIcon(id)}<span>${safe(folderName(id))}</span></button>`
     : `<button class="launcher-icon" data-action="${id==='apps'?'drawer':'open-app'}" ${id==='apps'?'':`data-app="${id}"`} aria-label="${safe(appNames[id]||'Apps')}">${appIcon(id)}<span>${safe(appNames[id]||'Apps')}</span></button>`;
@@ -310,7 +303,7 @@
     {action: 'gb-add', title: i18n.t('Add'), icon: 'ic_menu_add'},
     {action: 'settings-open', id: 'apps', title: i18n.t('Manage apps'), icon: 'ic_menu_manage'},
     {action: 'gb-wallpaper', title: i18n.t('Wallpaper'), icon: 'ic_menu_gallery'},
-    {action: 'gbx-home-menu', title: i18n.t('Home screen'), icon: 'ic_menu_home'},
+    {action: 'gbx-home-menu', title: i18n.t('Launcher settings'), icon: 'ic_menu_preferences'},
     {action: 'browser-search', title: i18n.t('Search'), icon: 'ic_search_category_default'},
     {action: 'gb-notifications', title: i18n.t('Notifications'), icon: 'ic_menu_notifications'},
     {action: 'open-app', app: 'settings', title: i18n.t('Settings'), icon: 'ic_menu_preferences'}
@@ -581,12 +574,20 @@
   };
   function renderHome() {
     const t = key => i18n.t(key);
-    const gbx = GBExtras.prefs(data), edit = !!ui.gbxEdit;
-    return `<div class="home-view gbl${edit ? ' gbx-editing' : ''}">${edit ? GBExtras.editBar(t) : ''}<div class="home-content"><div class="home-pages" style="transform:translateX(${-ui.page * 100}%)">${data.homePages.map((page, index) => `<div class="home-grid" data-home-page="${index}" ${index !== ui.page ? 'inert' : ''}>${page.map((id, slot) => `<div class="home-slot" data-home-slot="${slot}" style="grid-column:${slot % 4 + 1};grid-row:${Math.floor(slot / 4) + 1}">${id ? launcherIcon(id) + (edit ? GBExtras.removeButton('gbx-remove', slot, t) : '') : ''}</div>`).join('')}${data.homeWidgets[index].map(widget => edit ? homeWidget(widget).replace(/<\/div>$/, GBExtras.removeButton('gbx-remove-widget', widget.id, t) + '</div>') : homeWidget(widget)).join('')}</div>`).join('')}</div></div>${GBLauncher.arrows(ui.page, 5, t)}${gbx.dots ? GBExtras.dots(ui.page, 5, t) : ''}${GBLauncher.dock(t)}<div class="drop-target-bar gbl-delete"><div class="drop-target" data-drop-remove="true" aria-label="${safe(t('Remove'))}"><img src="assets/gb-l2-trashcan.png" alt=""><img class="drop-target-active" src="assets/gb-l2-trashcan_hover.png" alt=""></div></div></div>`;
+    const edit = !!ui.gbxEdit;
+    return `<div class="home-view gbl${edit ? ' gbx-editing' : ''}">${edit ? GBExtras.editBar(t) : ''}<div class="home-content"><div class="home-pages" style="transform:translateX(${-ui.page * 100}%)">${data.homePages.map((page, index) => `<div class="home-grid" data-home-page="${index}" ${index !== ui.page ? 'inert' : ''}>${page.map((id, slot) => `<div class="home-slot" data-home-slot="${slot}" style="grid-column:${slot % 4 + 1};grid-row:${Math.floor(slot / 4) + 1}">${id ? launcherIcon(id) + (edit ? GBExtras.removeButton('gbx-remove', slot, t) : '') : ''}</div>`).join('')}${data.homeWidgets[index].map(widget => edit ? homeWidget(widget).replace(/<\/div>$/, GBExtras.removeButton('gbx-remove-widget', widget.id, t) + '</div>') : homeWidget(widget)).join('')}</div>`).join('')}</div></div>${GBLauncher.arrows(ui.page, 5, t)}${GBLauncher.dock(t)}<div class="drop-target-bar gbl-delete"><div class="drop-target" data-drop-remove="true" aria-label="${safe(t('Remove'))}"><img src="assets/gb-l2-trashcan.png" alt=""><img class="drop-target-active" src="assets/gb-l2-trashcan_hover.png" alt=""></div></div></div>`;
   }
+  // Everything the drawer can list: the image's own 2.3.6 apps plus, in the launcher APK, the phone's installed apps.
+  function drawerEntries() {
+    const stock = apps.map(app => [app[0], i18n.t(app[1])]);
+    const real = GBRealApps.list().map(app => [app.id, app.label]);
+    return [...stock, ...real].sort((a, b) => a[1].localeCompare(b[1], i18n.locale()));
+  }
+  // An app's icon file for list dialogs (Hide apps): the <img> inside appIcon(), or none for drawn fallback icons.
+  const dialogIcon = id => { const m = /src="([^"]+)"/.exec(appIcon(id)); if (!m) return undefined; const src = m[1].replace(/&amp;/g, '&'); return src.startsWith('assets/') ? src.slice(7) : src; };
   // AllApps2D: a black 4-column GridView of application_boxed items (alphabetical) above the home button.
   function renderDrawer() {
-    const sortedApps = GBRealApps.active ? GBRealApps.list().map(app => [app.id, app.label]).sort((a, b) => a[1].localeCompare(b[1], i18n.locale())) : [...apps].sort((a, b) => i18n.t(a[1]).localeCompare(i18n.t(b[1]), i18n.locale()));
+    const sortedApps = drawerEntries().filter(([id]) => !GBExtras.isHidden(data, id));
     return `<div class="drawer-view gbl-allapps-view"><div class="drawer-page drawer-apps gbl-allapps-grid">${sortedApps.map(app => launcherIcon(app[0])).join('')}</div><button class="gbl-allapps-home" data-action="home" aria-label="${safe(i18n.t('Home'))}"></button></div>`;
   }
   function widgetFits(page, x, y, type, ignoredId = '') {
@@ -681,11 +682,11 @@
       default: return renderHome();
     }
   }
-  function openApp(app, resume = false) {
+  function openApp(app, resume = false, fromDock = false) {
     if(ui.locked)return;
     if (GBRealApps.isReal(app)) { ui.overlay = ''; renderOverlay(); GBRealApps.launch(app); return; }
-    if (GBRealApps.active && app === 'phone' && !resume) { GBRealApps.dial(); return; }
-    if (GBRealApps.active && app === 'browser' && !resume) { GBRealApps.browse(); return; }
+    if (GBRealApps.active && fromDock && app === 'phone' && !resume) { GBRealApps.dial(); return; }
+    if (GBRealApps.active && fromDock && app === 'browser' && !resume) { GBRealApps.browse(); return; }
     if (!appNames[app]) return;
     // A capture for Messaging lasts while the Camera is open; Messaging opens on its compose screen, not over it.
     if (!resume) { ui.gbmaCapture = null; ui.gbceCapture = null; if (app === 'messaging') ui.gbmaScreen = null; }
@@ -802,6 +803,7 @@
   function gbDialogSpec() {
     const t = key => i18n.t(key);
     if (ui.overlay === 'gb-dialog-gbx-home') return GBExtras.homeSubmenu(data, t);
+    if (ui.overlay === 'gb-dialog-gbx-hidden') return GBExtras.hiddenDialog(data, drawerEntries().map(([id, label]) => [id, label, dialogIcon(id)]), t);
     if (ui.overlay === 'gb-dialog-add') return {title: t('Add to Home screen'), items: [
       {action: 'gb-add-shortcuts', title: t('Shortcuts'), icon: 'l2-ic_launcher_shortcut'},
       {action: 'gb-add-widgets', title: t('Widgets'), icon: 'l2-ic_launcher_appwidget'},
@@ -1507,7 +1509,7 @@
     if (ui.view === 'messaging' && action.startsWith('gbma-') && window.GBMmsAttach?.handle(action, id, gbMmsContext())) return;
     if (GBApps.has(ui.view) && !['back', 'home', 'menu-key', 'search-key', 'open-app'].includes(action) && GBApps.get(ui.view).handle?.(action, id, gappContext(), button)) return;
     switch (action) {
-      case 'open-app': openApp(app || id, !!button.closest('.recent-item')); break;
+      case 'open-app': openApp(app || id, !!button.closest('.recent-item'), !!button.closest('.gbl-cluster')); break;
       case 'home': if (ui.view !== 'lock') home(); break;
       case 'back': back(); break;
       case 'menu-key': menuKey(); break;
@@ -1640,6 +1642,14 @@
       case 'gbvs-personal': ui.overlay = 'gb-dialog-set'; ui.gbSetDialog = data.settings.vsPersonal ? 'vs-off' : 'vs-on'; renderOverlay(); break;
       case 'gbvs-personal-on': case 'gbvs-personal-off': data.settings.vsPersonal = action === 'gbvs-personal-on'; ui.overlay = ''; save(); renderOverlay(); render(); break;
       case 'gbx-home-menu': ui.overlay = 'gb-dialog-gbx-home'; renderOverlay(); break;
+      case 'gbx-hidden-menu': ui.overlay = 'gb-dialog-gbx-hidden'; renderOverlay(); break;
+      case 'gbx-hide-app': {
+        // Tick in place so the long list keeps its scroll position.
+        const on = GBExtras.toggleHidden(data, id); save();
+        button.setAttribute('aria-checked', String(on));
+        const check = button.querySelector('.gbdlg-check'); if (check) check.src = `assets/gb-btn_check_${on ? 'on' : 'off'}.png`;
+        break;
+      }
       case 'gbx-edit': ui.overlay = ''; ui.gbxEdit = true; render(); break;
       case 'gbx-edit-done': ui.gbxEdit = false; render(); break;
       case 'gbx-toggle': GBExtras.toggle(data, id); save(); if (floatRoot) floatRoot.innerHTML = ''; render(); ui.overlay = 'gb-dialog-gbx-home'; renderOverlay(); break;
@@ -2966,16 +2976,17 @@
   function bootUp(booted) {
     booted ||= AndroidBoot.prepare({markup: apps.map(app => appIcon(app[0])).join('')});
     ui.power = 'boot'; renderPower();
-    // Finish after the native movie, or after a requested skip once startup resources are ready.
+    // The boot animation is removed: finish as soon as the startup resources are ready.
     let finished = false, stop = () => {};
     const finish = () => { if (finished) return; finished = true; stop(); AndroidBoot.complete('2.3.6'); ui.power = ''; lockScreen(); ui.sleeping = false; if (!ui.locked && ui.view !== 'lock') home(); else render(); renderPower(); lastActivity = Date.now(); };
-    stop = GlobalActions.playBoot(powerLayer.firstElementChild, finish, booted);
+    Promise.resolve(booted).then(finish);
     return finish;
   }
   /* A fresh tab always shows the image's boot movie, including reduced-motion/private browsing.
      Its exit waits for decoded launcher/keyguard resources; a requested skip cannot reveal unloaded icons. */
   function coldBoot() {
-    if (!AndroidBoot.shouldBoot('2.3.6')) return;
+    // No boot animation: the launcher starts straight on the home screen.
+    AndroidBoot.complete('2.3.6'); return;
     const booted = AndroidBoot.prepare({markup: apps.map(app => appIcon(app[0])).join('')});
     const finish = bootUp(booted);
     const skip = event => { off(); if (ui.power !== 'boot') return; event.preventDefault(); event.stopPropagation(); suppressClickUntil = Date.now() + 350; booted.then(finish); };
@@ -3018,7 +3029,7 @@
   bindVolumeKey(document.querySelector('#volume-up'), 1);
   bindVolumeKey(document.querySelector('.volume-rocker'), event => event.offsetY < event.currentTarget.clientHeight / 2 ? 1 : -1);
   const powerLayer = document.createElement('div'); powerLayer.id = 'power-layer'; screen.append(powerLayer);
-  function renderPower() { if (ui.power === 'boot' && powerLayer.querySelector('.ga-boot')) return; powerLayer.innerHTML = ui.power === 'off' ? '<div class="ga-off"></div>' : ui.power === 'boot' ? GlobalActions.boot() : ''; }
+  function renderPower() { if (ui.power === 'boot' && powerLayer.querySelector('.ga-boot')) return; powerLayer.innerHTML = ui.power === 'off' ? '<div class="ga-off"></div>' : ui.power === 'boot' ? '<div class="ga-off"></div>' : ''; }
   screen.addEventListener('pointerdown',()=>{if(ui.sleeping){ui.sleeping=false;suppressClickUntil=Date.now()+350;if(ui.locked)render();else home(false);}},true);
   // Full screen (Fullscreen API): hides the browser chrome on phones and keeps portrait where the browser allows it.
   const fullscreenButton = document.querySelector('#fullscreen-button');
