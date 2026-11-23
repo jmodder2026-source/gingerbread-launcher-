@@ -76,3 +76,7 @@ a,input,select,textarea,label,[data-action],[role="button"],[role="option"],[rol
 .apk-launcher .gbcam-triangle{bottom:calc(94.5 * var(--dp))}
 /* Launcher APK on a tall phone: the viewfinder reaches down to the camera's icon strip (no black band under it). */
 .apk-launcher .screen .gbcam-preview{aspect-ratio:auto;height:calc(100% - 40 * var(--dp));max-height:none}
+/* …and with no frame lines around it: the picture runs edge to edge, from the status bar to the icon strip. */
+.apk-launcher .gbcam-frame{top:0}
+.apk-launcher .screen .gbcam-preview{border-image:none;border:0;padding:0;background:none;height:calc(100% - 40 * var(--dp))}
+.apk-launcher .gbcam-scene{inset:0}
