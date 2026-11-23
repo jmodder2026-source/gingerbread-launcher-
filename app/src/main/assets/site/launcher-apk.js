@@ -255,7 +255,7 @@
     // Back closes the keyboard first, as on a phone.
     window.apkKeyboardBack = () => { if (!root) return false; const el = state.field; close(); el?.blur?.(); return true; };
   }
-  if (bridge) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', siteKeyboard); else siteKeyboard(); }
+  // Turned off at the owner's request: the phone's own keyboard is used again (siteKeyboard stays for later).
 
 
   /* The phone's camera in every version's Camera app (2.3.6 has its own, gb-real-camera.js): a live <video> over the
