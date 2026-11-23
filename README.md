@@ -1,9 +1,15 @@
 # Gingerbread Launcher
 
-An Android home screen app that runs the Android 2.3.6 Gingerbread simulator from
+An Android home screen app that runs the Android 2.3.6 Gingerbread (or 2.1 Eclair) simulator from
 [Android Time Machine](https://github.com/szabolevi98/android-time-machine) full screen, with the phone's real apps in it.
 
 - It opens straight to the home screen: no boot animation and no Nexus S key row.
+- It asks to be the default Home app (and the default phone app), so the phone's own home screen does not come back.
+- Launcher settings (Menu on the home screen): tick which of the phone's real apps the drawer shows (hide / unhide; Files
+  and Claude by default), switch between Android 2.3.6 Gingerbread and Android 2.1 Eclair, and set the default apps.
+- Android 2.1 runs in launcher mode too: the real apps in All applications, the real status bar, the phone's keys
+  (Back; two quick Backs for the recent apps; holding Back for Menu), the lock on screen off, and real calls on the
+  2.1 in-call screen with Eclair's sliding Answer / Decline tabs.
 - The app drawer has every Gingerbread app (simulated: Phone, Messaging, Camera, Maps, Market and the rest) plus the
   real Files and Claude; every other real app on the phone stays hidden.
 - Files and Claude are placed on the middle home screen the first time it starts.
@@ -50,7 +56,8 @@ new APK installs over the old one. Builds before build 13 each had a different k
 
 ## Layout
 
-- `app/src/main/assets/site/`: the simulator files (`versions/2.3.6` plus the shared scripts and audio).
+- `app/src/main/assets/site/`: the simulator files (`versions/2.3.6`, `versions/2.1`, the shared scripts such as
+  `launcher-apk.js`, and audio).
 - `app/src/main/java/net/gingerbread/launcher/MainActivity.java`: the WebView and the `window.AndroidLauncher` bridge.
 
 ## License

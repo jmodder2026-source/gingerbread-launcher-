@@ -32,6 +32,20 @@
   // fixedBar: the launcher APK has neither the floating bar (the phone's keys replace it) nor page dots, so neither has a switch.
   function homeSubmenu(data, t, fixedBar = false) {
     const p = prefs(data), state = on => t(on ? 'On' : 'Off');
+    // The launcher APK: Launcher settings, with the real apps, the Android version and the default apps.
+    const L = window.RealLauncher;
+    if (fixedBar && L?.active) {
+      const d = L.defaults(), yes = on => t(on ? 'Yes' : 'No – touch to set');
+      const version = (L.VERSIONS.find(([v]) => v === L.version()) || L.VERSIONS[0])[1];
+      return {title: t('Launcher settings'), icon: 'ic_menu_preferences', items: [
+        {action: 'gbx-apps', title: t('Apps in the drawer'), summary: `${L.shown().length} / ${L.all().length}`, icon: 'ic_menu_view'},
+        {action: 'gbx-version', title: t('Android version'), summary: version, icon: 'ic_menu_info_details'},
+        {action: 'gbx-default', id: 'home', title: t('Default Home app'), summary: yes(d.home), icon: 'ic_menu_home'},
+        {action: 'gbx-default', id: 'phone', title: t('Default phone app'), summary: yes(d.phone), icon: 'ic_menu_call'},
+        {action: 'gbx-edit', title: t('Remove items'), summary: t('Show a delete button on apps and widgets'), icon: 'ic_menu_delete'},
+        {action: 'gbx-lock', title: t('Lock screen'), summary: t('Lock the phone now'), icon: 'ic_lock_lock'}
+      ]};
+    }
     return {title: t('Home screen'), icon: 'ic_menu_preferences', items: [
       {action: 'gbx-edit', title: t('Remove items'), summary: t('Show a delete button on apps and widgets'), icon: 'ic_menu_delete'},
       ...(fixedBar ? [] : [{action: 'gbx-toggle', id: 'floatBar', title: t('Floating bar'), summary: state(p.floatBar), icon: 'ic_menu_more'}]),
@@ -44,19 +58,18 @@
     data.gbExtras = {...prefs(data), [key]: !prefs(data)[key]};
   }
 
-  // A finger on a tick, or on the row it belongs to, marks it pressed so the tick turns Gingerbread orange (CSS
-  // :active alone is not set reliably under touch in a WebView). The mark goes when the finger lifts or moves away.
-  let pressed = null, pressX = 0, pressY = 0;
-  const release = () => { pressed?.classList.remove('gbx-pressed'); pressed = null; };
-  document.addEventListener('pointerdown', event => {
-    release();
-    const tick = event.target.closest?.('img[src*="gb-btn_check_"],img[src*="gb-btn_radio_"],.gbsp-check,.gbcal-check,.nwp-check,.nwp-radio,.gbnet-checkline,.gm-quoted-bar,.tg-switch,.gbem-setup-default');
-    const row = tick ? tick.closest('[data-action],button,label') || tick : event.target.closest?.('[data-action],button,label');
-    if (!row || !row.querySelector?.('img[src*="gb-btn_check_"],img[src*="gb-btn_radio_"],.gbsp-check,.gbcal-check,.nwp-check,.nwp-radio,.gbnet-checkline input,.gm-quoted-bar input,.tg-switch input,.gbem-setup-default span') && !tick) return;
-    pressed = row; pressX = event.clientX; pressY = event.clientY; row.classList.add('gbx-pressed');
-  }, true);
-  document.addEventListener('pointermove', event => { if (pressed && Math.hypot(event.clientX - pressX, event.clientY - pressY) > 10) release(); }, true);
-  ['pointerup', 'pointercancel', 'blur'].forEach(type => window.addEventListener(type, () => setTimeout(release, 60), true));
+  // Launcher settings > Apps in the drawer: every real app with a check box (checked = shown in the drawer).
+  function appsDialog(t) {
+    const L = window.RealLauncher;
+    return {title: t('Apps in the drawer'), choice: 'multi', items: L.all().map(app => ({action: 'gbx-app-toggle', id: app.id, title: app.label, checked: L.isShown(app.id)})),
+      buttons: [{action: 'gbx-apps-done', title: t('OK')}]};
+  }
+  // Launcher settings > Android version: the versions the launcher can run.
+  function versionDialog(t) {
+    const L = window.RealLauncher, current = L.version();
+    return {title: t('Android version'), choice: 'single', selected: Math.max(0, L.VERSIONS.findIndex(([v]) => v === current)),
+      items: L.VERSIONS.map(([v, name]) => ({action: 'gbx-version-pick', id: v, title: name})), buttons: [{action: 'close-overlay', title: t('Cancel')}]};
+  }
 
-  window.GBExtras = {DEFAULTS, prefs, floatBar, dots, removeButton, editBar, homeSubmenu, toggle};
+  window.GBExtras = {DEFAULTS, prefs, floatBar, dots, removeButton, editBar, homeSubmenu, appsDialog, versionDialog, toggle};
 })();

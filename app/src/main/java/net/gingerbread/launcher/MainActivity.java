@@ -81,7 +81,13 @@ public class MainActivity extends Activity {
     private android.os.PowerManager.WakeLock proximityLock;
     private boolean askedDialer;
     private static final String HOST = "appassets.androidplatform.net";
-    private static final String START = "https://" + HOST + "/assets/site/versions/2.3.6/index.html";
+    // The Android version the launcher runs: "2.3.6" (Gingerbread) or "2.1" (Eclair), chosen in Launcher settings.
+    private static final String[] VERSIONS = {"2.3.6", "2.1"};
+    private String startUrl() {
+        String version = getSharedPreferences("launcher", MODE_PRIVATE).getString("version", "2.3.6");
+        if (!java.util.Arrays.asList(VERSIONS).contains(version)) version = "2.3.6";
+        return "https://" + HOST + "/assets/site/versions/" + version + "/index.html";
+    }
     private static final int ICON_PX = 96;
 
     private static final int CAMERA_REQUEST = 7;
@@ -129,6 +135,8 @@ public class MainActivity extends Activity {
 
         final WebViewAssetLoader loader = new WebViewAssetLoader.Builder()
                 .setDomain(HOST)
+                // The phone's app icons as image files: /assets/site/real-icon/<package>__<activity>.png
+                .addPathHandler("/assets/site/real-icon/", path -> appIconResponse(path))
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
                 .build();
 
@@ -179,7 +187,7 @@ public class MainActivity extends Activity {
         });
         setContentView(web);
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
-        else web.loadUrl(START);
+        else web.loadUrl(startUrl());
 
         // Reload the app list when an app is installed, updated or removed.
         packageReceiver = new BroadcastReceiver() {
@@ -191,7 +199,7 @@ public class MainActivity extends Activity {
         watchWifi();
         watchBatteryAndAlarm();
         CallService.sink = this::onCallReport;
-        offerDefaultDialer();
+        offerDefaults();
         watchPhone();
 
         IntentFilter filter = new IntentFilter();
@@ -759,6 +767,36 @@ public class MainActivity extends Activity {
         return telecom != null && getPackageName().equals(telecom.getDefaultDialerPackage());
     }
 
+    // The default Home app, so Samsung's (or any other) home screen never comes up in place of the launcher.
+    boolean isDefaultHome() {
+        ResolveInfo home = getPackageManager().resolveActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), PackageManager.MATCH_DEFAULT_ONLY);
+        return home != null && home.activityInfo != null && getPackageName().equals(home.activityInfo.packageName);
+    }
+
+    private boolean askedHome;
+
+    void askDefaultHome() {
+        try {
+            if (Build.VERSION.SDK_INT >= 29) {
+                android.app.role.RoleManager roles = getSystemService(android.app.role.RoleManager.class);
+                if (roles != null && roles.isRoleAvailable(android.app.role.RoleManager.ROLE_HOME)) {
+                    startActivityForResult(roles.createRequestRoleIntent(android.app.role.RoleManager.ROLE_HOME), DIALER_REQUEST + 1);
+                    return;
+                }
+            }
+            // Android 9 and older: the Home app chooser in Settings (Samsung: Apps > Default apps > Home screen).
+            Intent settings = new Intent(Settings.ACTION_HOME_SETTINGS);
+            if (settings.resolveActivity(getPackageManager()) == null) settings = new Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS);
+            startActivity(settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (Exception ignored) { }
+    }
+
+    // On start and on return: first make sure the launcher is the Home app, then the phone app. Once per run each.
+    private void offerDefaults() {
+        if (!askedHome && !isDefaultHome()) { askedHome = true; askDefaultHome(); return; }
+        offerDefaultDialer();
+    }
+
     // Asks once (per run of the launcher) to become the default phone app, so calls use the Gingerbread call screen.
     private void offerDefaultDialer() {
         if (askedDialer || isDefaultDialer()) return;
@@ -873,6 +911,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         if (web != null) web.evaluateJavascript("window.gbOnResume && window.gbOnResume()", null);
+        offerDefaults();
         tellPageWifi();
         tellPagePhone();
         lastMobileBytes = -1;
@@ -960,7 +999,8 @@ public class MainActivity extends Activity {
     private final Runnable singleBack = () -> { backWaiting = false; pressKey(".touch-back"); };
 
     private void openRecents() {
-        if (web != null) web.evaluateJavascript("(function(){var s=document.querySelector('#screen');if(!s)return;var b=document.createElement('button');b.hidden=true;b.dataset.action='recent';s.appendChild(b);b.click();b.remove();})()", null);
+        // 2.1 opens its RecentApplicationsDialog through window.gbxRecents; 2.3.6 takes a data-action="recent" click.
+        if (web != null) web.evaluateJavascript("(function(){if(window.gbxRecents){window.gbxRecents();return;}var s=document.querySelector('#screen');if(!s)return;var b=document.createElement('button');b.hidden=true;b.dataset.action='recent';s.appendChild(b);b.click();b.remove();})()", null);
     }
 
     private void backTapped() {
@@ -1066,6 +1106,33 @@ public class MainActivity extends Activity {
         }
     }
 
+    // "com.example/.Main" -> "com.example__.Main.png": the icon's file name under /assets/site/real-icon/.
+    static String iconFile(String component) {
+        return component.replace("/", "__") + ".png";
+    }
+
+    // Serves one app's launcher icon as a 96 px PNG for /assets/site/real-icon/<file>.
+    private WebResourceResponse appIconResponse(String path) {
+        try {
+            String name = Uri.decode(path);
+            if (!name.endsWith(".png")) return null;
+            String component = name.substring(0, name.length() - 4).replace("__", "/");
+            ComponentName cn = ComponentName.unflattenFromString(component);
+            if (cn == null) return null;
+            Drawable icon = getPackageManager().getActivityIcon(cn);
+            Bitmap bitmap = Bitmap.createBitmap(ICON_PX, ICON_PX, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+            icon.setBounds(0, 0, ICON_PX, ICON_PX);
+            icon.draw(canvas);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+            bitmap.recycle();
+            return new WebResourceResponse("image/png", null, new java.io.ByteArrayInputStream(out.toByteArray()));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private static String iconData(Drawable drawable) {
         Bitmap bitmap = Bitmap.createBitmap(ICON_PX, ICON_PX, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
@@ -1092,13 +1159,39 @@ public class MainActivity extends Activity {
                     JSONObject app = new JSONObject();
                     app.put("id", "real:" + pkg + "/" + info.activityInfo.name);
                     app.put("label", String.valueOf(info.loadLabel(pm)));
-                    app.put("icon", iconData(info.loadIcon(pm)));
+                    app.put("file", iconFile(pkg + "/" + info.activityInfo.name));
                     list.put(app);
                 } catch (Exception ignored) {
                     // Skip an app whose label or icon cannot be read.
                 }
             }
             return list.toString();
+        }
+
+        // Launcher settings: the Android version, and the default Home / phone app.
+        @JavascriptInterface
+        public String version() {
+            return getSharedPreferences("launcher", MODE_PRIVATE).getString("version", "2.3.6");
+        }
+
+        @JavascriptInterface
+        public void setVersion(String version) {
+            if (!java.util.Arrays.asList(VERSIONS).contains(version)) return;
+            getSharedPreferences("launcher", MODE_PRIVATE).edit().putString("version", version).apply();
+            runOnUiThread(() -> { if (web != null) web.loadUrl(startUrl()); });
+        }
+
+        @JavascriptInterface
+        public String defaults() {
+            return "{\"home\":" + isDefaultHome() + ",\"phone\":" + isDefaultDialer() + "}";
+        }
+
+        @JavascriptInterface
+        public void makeDefault(String which) {
+            runOnUiThread(() -> {
+                if ("home".equals(which)) askDefaultHome();
+                else { askedDialer = false; offerDefaultDialer(); }
+            });
         }
 
         @JavascriptInterface

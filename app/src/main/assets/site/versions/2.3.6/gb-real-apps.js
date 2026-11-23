@@ -4,14 +4,13 @@
 (() => {
   'use strict';
   const bridge = window.AndroidLauncher || null;
-  let list = [];
+  // The phone's apps and which of them the drawer shows come from ../../launcher-apk.js (Launcher settings).
+  const L = window.RealLauncher;
   if (bridge) {
-    try { list = JSON.parse(bridge.apps()) || []; } catch (error) { list = []; }
-    document.documentElement.classList.add('apk-launcher');
     // A home screen opens straight away: no boot animation.
     try { sessionStorage.setItem('android-sim-booted-2.3.6', '1'); } catch (error) { /* storage blocked */ }
   }
-  const byId = new Map(list.map(app => [app.id, app]));
+  const installed = new Map((L?.all() || []).map(app => [app.id, app]));
   // The phone's real Wi-Fi: the launcher reports it now and whenever it connects or drops.
   let wifi = false;
   try { wifi = !!bridge?.wifiConnected?.(); } catch (error) { wifi = false; }
@@ -29,25 +28,19 @@
   window.gbRealAlarm = on => { alarm = !!on; window.dispatchEvent(new Event('gb-real-wifi')); };
   const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 
-  // Files apps on common phones, and Claude: placed on the middle home screen the first time the launcher runs.
-  const FILES = ['com.google.android.apps.nbu.files', 'com.google.android.documentsui', 'com.android.documentsui', 'com.sec.android.app.myfiles', 'com.mi.android.globalFileexplorer', 'com.coloros.filemanager', 'com.oneplus.filemanager', 'com.huawei.filemanager'];
-  const CLAUDE = ['com.anthropic.claude'];
-  const pkg = id => String(id).slice(5).split('/')[0];
-  const find = packages => { for (const name of packages) { const app = list.find(item => pkg(item.id) === name); if (app) return app.id; } return null; };
-  // Only Files and Claude are shown; every other app on the phone stays hidden.
-  const shown = [find(FILES), find(CLAUDE)].filter(Boolean);
-  list = list.filter(app => shown.includes(app.id));
 
   window.GBRealApps = {
     active: !!bridge,
-    list: () => list,
-    ids: () => list.map(app => app.id),
-    has: id => byId.has(id),
+    // The real apps the drawer shows (Launcher settings > Apps in the drawer), read fresh each time.
+    list: () => L?.shown() || [],
+    ids: () => (L?.all() || []).map(app => app.id),
+    // Installed: an app placed on the home screen stays there while it is installed, shown in the drawer or not.
+    has: id => installed.has(id),
     isReal: id => typeof id === 'string' && id.startsWith('real:'),
-    name: id => byId.get(id)?.label || '',
-    icon: id => `<span class="app-icon"><img src="${e(byId.get(id)?.icon || 'assets/apps.png')}" alt=""></span>`,
-    launch: id => { try { bridge?.launch(String(id).slice(5)); } catch (error) { /* the app may have been removed */ } },
-    starters: () => shown.slice(),
+    name: id => installed.get(id)?.label || '',
+    icon: id => `<span class="app-icon"><img src="${e(installed.has(id) ? L.iconUrl(installed.get(id)) : 'assets/apps.png')}" alt=""></span>`,
+    launch: id => L?.launch(id),
+    starters: () => L?.starters() || [],
     // A real phone call (Android asks once for permission to make calls).
     // Returns 'incall' when the launcher is the default phone app (the call then shows on the Gingerbread call screen).
     call: number => { try { return String(bridge?.call?.(String(number)) ?? ''); } catch (error) { return ''; } },

@@ -160,7 +160,7 @@
   const appNames = Object.fromEntries(apps.map(app => [app[0], app[1]]));
   appNames.google = 'Google';
   // gb-real-apps.js: inside the launcher APK the phone's real apps join the simulated ones (ids "real:<package>/<activity>").
-  for (const app of GBRealApps.list()) appNames[app.id] = app.label;
+  for (const id of GBRealApps.ids()) appNames[id] = GBRealApps.name(id);
   const knownApps = () => [...apps.map(app => app[0]), ...GBRealApps.ids()];
   ICSLauncherFolders.initialize(data,knownApps());
   if (GBRealApps.active) {
@@ -392,7 +392,7 @@
     {action: 'gb-add', title: i18n.t('Add'), icon: 'ic_menu_add'},
     {action: 'settings-open', id: 'apps', title: i18n.t('Manage apps'), icon: 'ic_menu_manage'},
     {action: 'gb-wallpaper', title: i18n.t('Wallpaper'), icon: 'ic_menu_gallery'},
-    {action: 'gbx-home-menu', title: i18n.t('Home screen'), icon: 'ic_menu_home'},
+    {action: 'gbx-home-menu', title: i18n.t(GBRealApps.active ? 'Launcher settings' : 'Home screen'), icon: GBRealApps.active ? 'ic_menu_preferences' : 'ic_menu_home'},
     {action: 'browser-search', title: i18n.t('Search'), icon: 'ic_search_category_default'},
     {action: 'gb-notifications', title: i18n.t('Notifications'), icon: 'ic_menu_notifications'},
     {action: 'open-app', app: 'settings', title: i18n.t('Settings'), icon: 'ic_menu_preferences'}
@@ -888,6 +888,8 @@
   function gbDialogSpec() {
     const t = key => i18n.t(key);
     if (ui.overlay === 'gb-dialog-gbx-home') return GBExtras.homeSubmenu(data, t, GBRealApps.active);
+    if (ui.overlay === 'gb-dialog-gbx-apps') return GBExtras.appsDialog(t);
+    if (ui.overlay === 'gb-dialog-gbx-version') return GBExtras.versionDialog(t);
     if (ui.overlay === 'gb-dialog-callwith') return {title: t('Call with'), icon: 'ic_menu_call', items: (ui.gbCallAccounts || []).map((label, index) => ({action: 'gbx-call-account', id: String(index), title: label}))};
     if (ui.overlay === 'gb-dialog-add') return {title: t('Add to Home screen'), items: [
       {action: 'gb-add-shortcuts', title: t('Shortcuts'), icon: 'l2-ic_launcher_shortcut'},
@@ -1739,6 +1741,13 @@
       case 'gbvs-personal-on': case 'gbvs-personal-off': data.settings.vsPersonal = action === 'gbvs-personal-on'; ui.overlay = ''; save(); renderOverlay(); render(); break;
       case 'gbx-call-account': ui.overlay = ''; GBRealCalls.action(ui.gbCallAccountFor, 'account', id); render(); break;
       case 'gbx-home-menu': ui.overlay = 'gb-dialog-gbx-home'; renderOverlay(); break;
+      // Launcher settings (launcher APK): hide / unhide real apps, switch the Android version, the default apps.
+      case 'gbx-apps': ui.overlay = 'gb-dialog-gbx-apps'; renderOverlay(); break;
+      case 'gbx-app-toggle': { const list = overlayRoot.querySelector('.gbdlg-list'), top = list?.scrollTop || 0; RealLauncher.toggle(id); renderOverlay(); const again = overlayRoot.querySelector('.gbdlg-list'); if (again) again.scrollTop = top; break; }
+      case 'gbx-apps-done': ui.overlay = ''; render(); break;
+      case 'gbx-version': ui.overlay = 'gb-dialog-gbx-version'; renderOverlay(); break;
+      case 'gbx-version-pick': ui.overlay = ''; if (id !== RealLauncher.version()) RealLauncher.setVersion(id); else renderOverlay(); break;
+      case 'gbx-default': ui.overlay = ''; renderOverlay(); RealLauncher.makeDefault(id); break;
       case 'gbx-edit': ui.overlay = ''; ui.gbxEdit = true; render(); break;
       case 'gbx-edit-done': ui.gbxEdit = false; render(); break;
       case 'gbx-toggle': GBExtras.toggle(data, id); save(); if (floatRoot) floatRoot.innerHTML = ''; render(); ui.overlay = 'gb-dialog-gbx-home'; renderOverlay(); break;
