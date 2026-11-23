@@ -62,18 +62,21 @@
   }
   const statusRoot = document.querySelector('#status-bar');
   // Then the icons the module always draws the same way: signal, data, Wi-Fi bars, Bluetooth connected, the real alarm.
+  // Each icon the module draws carries data-ec-drawn (its own picture), so a second pass never re-fixes a fixed one;
+  // a picture is only set when it differs (setting the same one would still count as a change and loop).
   function fixIcons() {
     if (!statusRoot) return;
     const p = state.phone;
+    const set = (img, file) => { const src = `assets/${file}`; if (img.getAttribute('src') !== src) img.setAttribute('src', src); };
     for (const img of statusRoot.querySelectorAll('img')) {
-      const src = img.getAttribute('src') || '';
-      if (src.endsWith('fw-stat_sys_signal_4.png')) img.setAttribute('src', `assets/${p.noSim ? 'fw-stat_sys_no_sim.png' : `fw-stat_sys_signal_${Math.max(0, Math.min(4, p.signal))}.png`}`);
-      else if (src.endsWith('fw-stat_sys_data_connected_3g.png')) {
+      const drawn = img.dataset.ecDrawn || (img.dataset.ecDrawn = (img.getAttribute('src') || '').replace(/^.*\//, ''));
+      if (drawn === 'fw-stat_sys_signal_4.png') set(img, p.noSim ? 'fw-stat_sys_no_sim.png' : `fw-stat_sys_signal_${Math.max(0, Math.min(4, p.signal))}.png`);
+      else if (drawn === 'fw-stat_sys_data_connected_3g.png') {
         if (!p.data) { (img.closest('.ecsb-icon') || img).remove(); continue; }
         const type = p.data === 'h' ? '3g' : p.data;   // 2.1 has no H icon
-        img.setAttribute('src', `assets/fw-stat_sys_data_${p.dataActive && type === '3g' ? 'inandout' : 'connected'}_${type}.png`);
-      } else if (src.endsWith('fw-stat_sys_wifi_signal_4.png')) img.setAttribute('src', `assets/fw-stat_sys_wifi_signal_${Math.max(0, Math.min(4, p.wifiLevel))}.png`);
-      else if (src.endsWith('fw-stat_sys_data_bluetooth.png') && p.bluetoothConnected) img.setAttribute('src', 'assets/fw-stat_sys_data_bluetooth_connected.png');
+        set(img, `fw-stat_sys_data_${p.dataActive && type === '3g' ? 'inandout' : 'connected'}_${type}.png`);
+      } else if (drawn === 'fw-stat_sys_wifi_signal_4.png') set(img, `fw-stat_sys_wifi_signal_${Math.max(0, Math.min(4, p.wifiLevel))}.png`);
+      else if (drawn === 'fw-stat_sys_data_bluetooth.png') set(img, p.bluetoothConnected ? 'fw-stat_sys_data_bluetooth_connected.png' : 'fw-stat_sys_data_bluetooth.png');
     }
     const clock = statusRoot.querySelector('.ecsb-clock');
     if (state.alarm && clock && !statusRoot.querySelector('img[src$="fw-stat_notify_alarm.png"]')) {
@@ -81,9 +84,14 @@
       clock.before(icon);
     }
   }
-  let fixing = false;
-  if (statusRoot) new MutationObserver(() => { if (fixing) return; fixing = true; fixIcons(); fixing = false; }).observe(statusRoot, {childList: true, subtree: true, attributes: true, attributeFilter: ['src']});
-  const refresh = () => { intoSettings(); c.render(); };
+  // Fix the icons after each draw of the bar; the observer pauses while fixing, so its own changes do not wake it.
+  if (statusRoot) {
+    const watch = {childList: true, subtree: true};
+    const observer = new MutationObserver(() => { observer.disconnect(); try { fixIcons(); } finally { observer.takeRecords(); observer.observe(statusRoot, watch); } });
+    observer.observe(statusRoot, watch);
+  }
+  let started = false;
+  const refresh = () => { intoSettings(); if (started) c.render(); };
   window.gbRealWifi = on => { state.wifi = !!on; refresh(); };
   window.gbRealBattery = (level, charging) => { state.battery = {level: Number(level), charging: !!charging}; refresh(); };
   window.gbRealAlarm = on => { state.alarm = !!on; refresh(); };
@@ -287,6 +295,8 @@
       c.dialog({title: tr(TEXT.callWith), icon: null, items: report.accounts, onItem(index) { c.closeOverlay(); try { bridge.callAction(call.id, 'account', String(index)); } catch (error) { /* gone */ } }});
     }
     show();
+    // Tell the APK the call is on screen (otherwise it shows its own Answer / End dialog after 3 s).
+    if (c.el.viewport.querySelector('.ecic') || c.ui.overlay === 'ui-dialog') { try { bridge.callShown?.(report.id); } catch (error) { /* gone */ } }
   };
 
   // The 2.1 in-call screen, now for real calls. The dialer's c.open('incall') with ui.callNumber places the call.
@@ -334,6 +344,7 @@
   // The home screen once: Files and Claude in the free row under the search bar of the middle screen.
   const STARTED = 'gingerbread-launcher-eclair-seeded';
   document.addEventListener('DOMContentLoaded', () => {
+    started = !!c.data;
     intoSettings();
     let seeded = false;
     try { seeded = !!localStorage.getItem(STARTED); } catch (error) { seeded = true; }

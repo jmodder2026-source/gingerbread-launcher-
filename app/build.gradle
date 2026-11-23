@@ -10,8 +10,8 @@ android {
         applicationId 'net.gingerbread.launcher'
         minSdk 24
         targetSdk 34
-        versionCode 23
-        versionName '3.2'
+        versionCode 24
+        versionName '3.3'
     }
 
     // One fixed key for every build, so a new APK installs over the old one. Like Android's own debug key, it is

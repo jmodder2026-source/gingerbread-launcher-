@@ -814,9 +814,60 @@ public class MainActivity extends Activity {
         } catch (Exception ignored) { }
     }
 
+    /* Safety net: the page confirms each call it shows (AndroidLauncher.callShown). A call it has not confirmed within
+       3 s (the page failed to load, or froze) gets a plain Android dialog instead, so a call can always be answered,
+       declined or ended. */
+    private final java.util.Set<String> shownCalls = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+    private final java.util.Map<String, android.app.AlertDialog> fallbackDialogs = new java.util.HashMap<>();
+    private final java.util.Map<String, String> callStates = new java.util.HashMap<>();
+    private final java.util.Map<String, String> callNumbers = new java.util.HashMap<>();
+    private final java.util.Set<String> fallbackScheduled = new java.util.HashSet<>();
+
+    private void watchCallShown(String id) {
+        if (shownCalls.contains(id) || !fallbackScheduled.add(id)) return;
+        keys.postDelayed(() -> {
+            String st = callStates.get(id);
+            if (shownCalls.contains(id) || st == null || "disconnected".equals(st) || "disconnecting".equals(st)) return;
+            showFallbackCall(id);
+        }, 3000);
+    }
+
+    private void showFallbackCall(String id) {
+        android.app.AlertDialog old = fallbackDialogs.remove(id);
+        if (old != null) old.dismiss();
+        String st = callStates.get(id), number = callNumbers.get(id);
+        boolean ringing = "ringing".equals(st);
+        android.app.AlertDialog.Builder b = new android.app.AlertDialog.Builder(this)
+                .setTitle(ringing ? "Incoming call" : "Call")
+                .setMessage(number == null ? "" : number)
+                .setCancelable(false);
+        if (ringing) {
+            b.setPositiveButton("Answer", (d, w) -> { CallService.act(id, "answer", ""); fallbackDialogs.remove(id); if (!shownCalls.contains(id)) keys.postDelayed(() -> showFallbackCall(id), 500); });
+            b.setNegativeButton("Decline", (d, w) -> { CallService.act(id, "reject", ""); fallbackDialogs.remove(id); });
+        } else {
+            b.setNegativeButton("End call", (d, w) -> { CallService.act(id, "hangup", ""); fallbackDialogs.remove(id); });
+        }
+        try { android.app.AlertDialog dialog = b.show(); fallbackDialogs.put(id, dialog); } catch (Exception ignored) { }
+    }
+
     // A call's state from CallService: to the page, plus the lock-screen and proximity handling around calls.
     private void onCallReport(String json, boolean anyLive) {
         if (web != null) web.evaluateJavascript("window.gbRealCall && window.gbRealCall(" + json + ")", null);
+        try {
+            JSONObject o = new JSONObject(json);
+            String id = o.optString("id"), st = o.optString("state");
+            callStates.put(id, st);
+            if (o.has("number")) callNumbers.put(id, o.optString("number"));
+            if ("disconnected".equals(st) || "disconnecting".equals(st)) {
+                android.app.AlertDialog dialog = fallbackDialogs.remove(id);
+                if (dialog != null) dialog.dismiss();
+                shownCalls.remove(id); fallbackScheduled.remove(id);
+            } else {
+                // A fallback dialog follows the call: Answer / Decline while ringing, End once it is answered.
+                if (fallbackDialogs.containsKey(id) && !"ringing".equals(st)) showFallbackCall(id);
+                watchCallShown(id);
+            }
+        } catch (Exception ignored) { }
         if (Build.VERSION.SDK_INT >= 27) { setShowWhenLocked(anyLive); setTurnScreenOn(anyLive); }
         else if (anyLive) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
         else getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
@@ -1299,6 +1350,13 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public String callAction(String id, String action, String value) {
             return onUi(() -> CallService.act(id, action, value));
+        }
+
+        // The page has put this call on its call screen.
+        @JavascriptInterface
+        public void callShown(String id) {
+            shownCalls.add(id);
+            runOnUiThread(() -> { android.app.AlertDialog dialog = fallbackDialogs.remove(id); if (dialog != null) dialog.dismiss(); });
         }
 
         @JavascriptInterface

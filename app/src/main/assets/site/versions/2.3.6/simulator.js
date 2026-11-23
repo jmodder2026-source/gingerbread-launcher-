@@ -274,6 +274,8 @@
     // Dual SIM without a default: Android asks which SIM to call with; Gingerbread shows the choice as a list.
     if (report.state === 'select-account' && report.accounts?.length && ui.overlay !== 'gb-dialog-callwith') { ui.gbCallAccounts = report.accounts; ui.gbCallAccountFor = report.id; ui.overlay = 'gb-dialog-callwith'; }
     showRealCall();
+    // Tell the APK the call is on screen (otherwise it shows its own Answer / End dialog after 3 s).
+    if (viewport.querySelector('.gbic') || ui.overlay === 'gb-dialog-callwith') { try { window.AndroidLauncher?.callShown?.(report.id); } catch (error) { /* not in the APK */ } }
   }
   // IncomingCallWidget: slide the green tab to answer, the red tab to decline.
   function attachIncomingCall() {
