@@ -74,3 +74,5 @@ a,input,select,textarea,label,[data-action],[role="button"],[role="option"],[rol
 .apk-launcher .gbcam-iconbar{bottom:0}
 .apk-launcher .gbcam-popup{bottom:calc(106.5 * var(--dp))}
 .apk-launcher .gbcam-triangle{bottom:calc(94.5 * var(--dp))}
+/* Launcher APK on a tall phone: the viewfinder reaches down to the camera's icon strip (no black band under it). */
+.apk-launcher .screen .gbcam-preview{aspect-ratio:auto;height:calc(100% - 40 * var(--dp));max-height:none}
