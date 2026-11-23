@@ -1,0 +1,95 @@
+/* Gmail 5.0.2 (PrebuiltGmail.apk of LMY48Y) on the Material UnifiedEmail screens, 1 dp = 0.906 px.
+   section_teaser_view.xml: the welcome and change-categories boxes 16 dp padded on white, a 21 sp title and 16 sp light
+   text in #58585b, the links in the accent_blue #4285f4 (textColorLink); folder_teaser_item.xml: 56 dp rows, the 24 dp
+   icon 24 dp in (72 dp start), 16 sp bold #212121 names over 14 sp light #757575 senders, 16 dp end padding, the
+   unseen count 12 sp white, 6 dp padded, at least 57 sp wide on a 1 dp rounded rectangle; the 0.5 dp #e5e5e5 divider. */
+.gm-teaser{background:#fff}
+.screen .gm-welcome{display:flex;flex-direction:column;width:100%;padding:calc(16.0045 * var(--dp));border:0;border-bottom:calc(.4967 * var(--dp)) solid #e5e5e5;background:#fff;text-align:left;cursor:pointer}
+.gm-welcome b{font:400 calc(21.0045 * var(--dp))/1.2 Roboto,sans-serif;color:#58585b}
+.gm-welcome span{font:300 calc(16.0045 * var(--dp))/1.3 Roboto,sans-serif;color:#58585b}
+.gm-welcome .gm-link{font-weight:400;color:#4285f4}
+.screen .gm-section{display:flex;align-items:center;width:100%;min-height:calc(56.0045 * var(--dp));padding:0 calc(16.0045 * var(--dp)) 0 0;border:0;border-bottom:calc(.4967 * var(--dp)) solid #e5e5e5;background:#fff;text-align:left;cursor:pointer}
+.gm-section-icon{flex:none;width:calc(23.9956 * var(--dp));height:calc(23.9956 * var(--dp));margin:0 calc(23.9956 * var(--dp));background:var(--gm-color);-webkit-mask:var(--gm-icon) center/contain no-repeat;mask:var(--gm-icon) center/contain no-repeat}
+.gm-section-copy{flex:1;min-width:0;display:flex;flex-direction:column;padding-right:calc(16.0045 * var(--dp))}
+.gm-section-copy b{font:700 calc(16.0045 * var(--dp)) Roboto,sans-serif;color:#212121;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gm-section-copy small{font:300 calc(13.9956 * var(--dp)) Roboto,sans-serif;color:#757575;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gm-section em{flex:none;min-width:calc(56.9978 * var(--dp));padding:0 calc(6.0045 * var(--dp));border-radius:calc(1.0045 * var(--dp));background:var(--gm-color);font:400 calc(11.9978 * var(--dp))/1.35 Roboto,sans-serif;font-style:normal;color:#fff;text-align:center}
+.screen .gm-welcome:active,.screen .gm-section:active{background:#d9d9d9}
+.gm-caret{width:calc(9.9338 * var(--dp));height:auto;margin-right:calc(2.2076 * var(--dp));align-self:center}
+.gm-chip{display:inline-block;margin-left:calc(8.0023 * var(--dp));padding:calc(1.1038 * var(--dp)) calc(5.5188 * var(--dp));border-radius:calc(2.2076 * var(--dp));background:#eee;font:400 calc(11.9978 * var(--dp)) Roboto,sans-serif;color:#666;vertical-align:middle}
+/* Gmail settings (audit step 5): the preference screens, the category icons, the list and signature dialogs. */
+.gmp-app{position:absolute;inset:0;display:flex;flex-direction:column;background:#fff;font-family:Roboto,sans-serif}
+.gmp-bar{flex:none;display:flex;align-items:center}
+.gmp-bar b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.screen .gmp-up{display:flex;align-items:center;height:100%;padding:0;border:0;background:none}
+.gmp-scroll{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none}
+.screen .gmp-row{display:flex;align-items:center;width:100%;min-height:calc(56.0045 * var(--dp));padding:calc(8.0023 * var(--dp)) calc(16.0045 * var(--dp));border:0;background:none;text-align:left}
+.gmp-text{flex:1;min-width:0;display:flex;flex-direction:column}
+.gmp-text small{margin-top:calc(1.9978 * var(--dp));white-space:pre-line;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical}
+.gmp-cat-icon{flex:none;width:calc(23.9956 * var(--dp));height:calc(23.9956 * var(--dp));margin-right:calc(31.9978 * var(--dp));background:center/contain no-repeat}
+.gmp-primary{background-image:url('assets/gmp-ic_drawer_primary_24dp.png')}
+.gmp-social{background-image:url('assets/gmp-ic_drawer_social_24dp.png')}
+.gmp-promotions{background-image:url('assets/gmp-ic_drawer_promotions_24dp.png')}
+.gmp-updates{background-image:url('assets/gmp-ic_drawer_updates_24dp.png')}
+.gmp-forums{background-image:url('assets/gmp-ic_drawer_forums_24dp.png')}
+.gmp-scrim{position:absolute;inset:0;z-index:40;border:0;background:#0009}
+.gmp-dialog{position:absolute;z-index:41;top:50%;transform:translateY(-50%);background:#fff}
+.gmp-dialog h3{margin:0}
+.screen .gmp-choice{display:flex;align-items:center;width:100%;min-height:calc(48.0023 * var(--dp));border:0;background:none;text-align:left}
+.gmp-choice span{flex:1}
+.gmp-choice i{flex:none;width:calc(31.9978 * var(--dp));height:calc(31.9978 * var(--dp))}
+.screen .gmp-signature{display:block;width:calc(100% - calc(32.0089 * var(--dp)));margin:calc(8.0023 * var(--dp)) calc(16.0045 * var(--dp));padding:calc(8.0023 * var(--dp)) calc(3.9956 * var(--dp));border:0;border-bottom:calc(1.9978 * var(--dp)) solid #4285f4;background:none;outline:none;resize:none;font:400 calc(16.0045 * var(--dp))/1.3 Roboto,sans-serif;color:#000}
+/* UnifiedEmailTheme v21 (Gmail 5.0): the 56 dp quantum_googred500 #da4336 bar with the white arrow and 20 sp title,
+   categories in the #4285f4 accent, 16 sp #de000000 titles over 14 sp #8a000000 summaries, Material check boxes,
+   radio buttons and dialogs. */
+.gmp-bar{height:calc(56.0045 * var(--dp));background:#da4336;box-shadow:0 calc(1.9978 * var(--dp)) calc(3.9956 * var(--dp)) #0003}
+.screen .gmp-up{justify-content:center;width:calc(56.0045 * var(--dp))}
+.gmp-up i{position:relative;width:calc(16.0045 * var(--dp));height:calc(1.9978 * var(--dp));background:#fff}
+.gmp-up i::before{content:'';position:absolute;left:0;top:50%;width:calc(8.9956 * var(--dp));height:calc(8.9956 * var(--dp));border-left:calc(1.9978 * var(--dp)) solid #fff;border-bottom:calc(1.9978 * var(--dp)) solid #fff;transform:translate(calc(1.1038 * var(--dp)),-50%) rotate(45deg)}
+.gmp-bar b{margin-left:calc(16.0045 * var(--dp));font:500 calc(20 * var(--dp)) Roboto,sans-serif;color:#fff}
+.screen .gmp-up:active{background:#ffffff33}
+.screen .gmp-row:active,.screen .gmp-dialog button:active{background:#0000001a}
+.gmp-cat{margin:0;padding:calc(16.0045 * var(--dp)) calc(16.0045 * var(--dp)) calc(8.0023 * var(--dp));font:500 calc(13.9956 * var(--dp)) Roboto,sans-serif;color:#4285f4}
+.screen .gmp-row{min-height:calc(71.9978 * var(--dp));padding:calc(11.9978 * var(--dp)) calc(16.0045 * var(--dp))}
+.gmp-text b{font:400 calc(16.0045 * var(--dp)) Roboto,sans-serif;color:#000000de}
+.gmp-text small{font:400 calc(13.9956 * var(--dp))/1.3 Roboto,sans-serif;color:#0000008a}
+.gmp-check{flex:none;position:relative;width:calc(18.0023 * var(--dp));height:calc(18.0023 * var(--dp));margin:0 calc(3.0023 * var(--dp)) 0 calc(16.0045 * var(--dp));box-sizing:border-box;border:calc(1.9978 * var(--dp)) solid #0000008a;border-radius:calc(1.9978 * var(--dp))}
+.gmp-check.on{border-color:#4285f4;background:#4285f4}
+.gmp-check.on::after{content:'';position:absolute;left:calc(3.9956 * var(--dp));top:calc(.4967 * var(--dp));width:calc(5 * var(--dp));height:calc(10 * var(--dp));border:solid #fff;border-width:0 calc(1.9978 * var(--dp)) calc(1.9978 * var(--dp)) 0;transform:rotate(45deg)}
+.gmp-dialog{left:calc(23.9956 * var(--dp));right:calc(23.9956 * var(--dp));padding-bottom:calc(8.0023 * var(--dp));border-radius:calc(1.9978 * var(--dp));box-shadow:0 calc(11.9978 * var(--dp)) calc(23.9956 * var(--dp)) #0000004d}
+.gmp-dialog h3{padding:calc(23.9956 * var(--dp)) calc(23.9956 * var(--dp)) calc(11.9978 * var(--dp));font:500 calc(20 * var(--dp)) Roboto,sans-serif;color:#000000de}
+.screen .gmp-choice{flex-direction:row-reverse;gap:calc(20 * var(--dp));padding:0 calc(23.9956 * var(--dp));font:400 calc(16.0045 * var(--dp)) Roboto,sans-serif;color:#000000de}
+.gmp-choice i{display:grid;place-items:center;width:calc(23.9956 * var(--dp));height:calc(23.9956 * var(--dp))}
+.gmp-choice i::before{content:'';width:calc(20 * var(--dp));height:calc(20 * var(--dp));box-sizing:border-box;border:calc(1.9978 * var(--dp)) solid #0000008a;border-radius:50%}
+.gmp-choice.on i::before{border-color:#4285f4;background:radial-gradient(#4285f4 0 calc(5 * var(--dp)), transparent calc(5.4967 * var(--dp)))}
+.gmp-buttons{display:flex;justify-content:flex-end;gap:calc(8.0023 * var(--dp));padding:calc(8.0023 * var(--dp)) calc(8.0023 * var(--dp)) 0}
+.screen .gmp-buttons button{min-width:calc(63.9956 * var(--dp));height:calc(36.0045 * var(--dp));padding:0 calc(8.0023 * var(--dp));border:0;border-radius:calc(1.9978 * var(--dp));background:none;font:500 calc(13.9956 * var(--dp)) Roboto,sans-serif;color:#4285f4;text-transform:uppercase}
+/* Label settings, Manage labels, Days of mail to sync and the Vacation responder (vacation_responder.xml under its
+   Discard / Done bar): Material fields and switch in Gmail's red. */
+.gmp-row.off{opacity:.38}
+.gmp-text small{white-space:pre-line}
+.gmx-list{max-height:calc(330 * var(--dp));overflow-y:auto;scrollbar-width:none}
+.screen .gmx-days{display:block;width:calc(100% - calc(48 * var(--dp)));box-sizing:border-box;margin:calc(8 * var(--dp)) calc(24 * var(--dp));padding:calc(8 * var(--dp)) 0;border:0;border-bottom:calc(2 * var(--dp)) solid #da4336;font:400 calc(16 * var(--dp)) Roboto,sans-serif;text-align:center;outline:0;background:transparent;color:#000;color-scheme:light}
+.gmx-donebar{justify-content:space-between}
+.screen .gmx-donebar button{display:flex;align-items:center;gap:calc(8 * var(--dp));height:100%;padding:0 calc(16 * var(--dp));border:0;background:none;color:#fff;font:500 calc(14 * var(--dp)) Roboto,sans-serif;text-transform:uppercase}
+.gmx-donebar button:active{background:#ffffff33}
+.gmx-x,.gmx-tick{position:relative;width:calc(18 * var(--dp));height:calc(18 * var(--dp))}
+.gmx-x::before,.gmx-x::after{content:'';position:absolute;left:50%;top:50%;width:calc(16 * var(--dp));height:calc(2 * var(--dp));background:#fff;transform:translate(-50%,-50%) rotate(45deg)}
+.gmx-x::after{transform:translate(-50%,-50%) rotate(-45deg)}
+.gmx-tick::before{content:'';position:absolute;left:calc(5 * var(--dp));top:calc(1 * var(--dp));width:calc(6 * var(--dp));height:calc(12 * var(--dp));border:solid #fff;border-width:0 calc(2 * var(--dp)) calc(2 * var(--dp)) 0;transform:rotate(45deg)}
+.gmx-vac{display:flex;flex-direction:column;padding:0 calc(16 * var(--dp)) calc(16 * var(--dp))}
+.gmx-switchrow{display:flex;align-items:center;min-height:calc(56 * var(--dp));font:400 calc(16 * var(--dp)) Roboto,sans-serif;color:#000000de}
+.gmx-switchrow span{flex:1}
+.gmx-switch{appearance:none;-webkit-appearance:none;position:relative;width:calc(36 * var(--dp));height:calc(14 * var(--dp));margin:0;border-radius:calc(7 * var(--dp));background:#00000042}
+.gmx-switch::after{content:'';position:absolute;left:calc(-3 * var(--dp));top:calc(-3 * var(--dp));width:calc(20 * var(--dp));height:calc(20 * var(--dp));border-radius:50%;background:#f1f1f1;box-shadow:0 calc(1 * var(--dp)) calc(3 * var(--dp)) #0006;transition:transform .15s}
+.gmx-switch:checked{background:#da433680}
+.gmx-switch:checked::after{transform:translateX(calc(22 * var(--dp)));background:#da4336}
+.gmx-date{display:flex;flex-direction:column;padding:calc(8 * var(--dp)) 0;border-bottom:calc(1 * var(--dp)) solid #e0e0e0}
+.gmx-date small{font:400 calc(12 * var(--dp)) Roboto,sans-serif;color:#0000008a}
+.screen .gmx-date input{margin-top:calc(4 * var(--dp));padding:calc(4 * var(--dp)) 0;border:0;background:none;font:400 calc(16 * var(--dp)) Roboto,sans-serif;color:#000000de;outline:0}
+.screen .gmx-input{display:block;width:100%;box-sizing:border-box;margin-top:calc(8 * var(--dp));padding:calc(12 * var(--dp)) 0;border:0;border-bottom:calc(1 * var(--dp)) solid #e0e0e0;background:none;font:400 calc(16 * var(--dp)) Roboto,sans-serif;color:#000000de;resize:none;outline:0}
+.screen .gmx-input:focus{border-bottom:calc(2 * var(--dp)) solid #da4336}
+.gmx-checked{display:flex;align-items:center;gap:calc(16 * var(--dp));min-height:calc(48 * var(--dp));font:400 calc(16 * var(--dp)) Roboto,sans-serif;color:#000000de}
+.gmx-checked input{appearance:none;-webkit-appearance:none;position:relative;flex:none;width:calc(18 * var(--dp));height:calc(18 * var(--dp));margin:0 0 0 calc(3 * var(--dp));box-sizing:border-box;border:calc(2 * var(--dp)) solid #0000008a;border-radius:calc(2 * var(--dp))}
+.gmx-checked input:checked{border-color:#da4336;background:#da4336}
+.gmx-checked input:checked::after{content:'';position:absolute;left:calc(4 * var(--dp));top:calc(.5 * var(--dp));width:calc(5 * var(--dp));height:calc(10 * var(--dp));border:solid #fff;border-width:0 calc(2 * var(--dp)) calc(2 * var(--dp)) 0;transform:rotate(45deg)}

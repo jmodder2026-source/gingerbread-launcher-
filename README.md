@@ -7,6 +7,11 @@ An Android home screen app that runs the Android 2.3.6 Gingerbread (or 2.1 Eclai
 - It asks to be the default Home app (and the default phone app), so the phone's own home screen does not come back.
 - Launcher settings (Menu on the home screen): tick which of the phone's real apps the drawer shows (hide / unhide; Files
   and Claude by default), switch between Android 2.3.6 Gingerbread and Android 2.1 Eclair, and set the default apps.
+- Eight Android versions from the site: 2.1, 2.3.6, 4.0.4, 4.3, 4.4.4, 5.1.1, 6.0.1 and 7.1.2 (Launcher settings >
+  Android version). From 4.0.4 on, the APK adds `launcher-mode.js` / `.css` to the version's page when it serves it:
+  full screen without the on-screen navigation bar, the real apps and a Launcher settings entry in the app drawer,
+  the phone's keys (Back, two quick Backs for Recents, holding Back for Launcher settings, Home), the lock on screen
+  off, real calls from the version's Phone app, and the launcher's own call screen for real calls.
 - Android 2.1 runs in launcher mode too: the real apps in All applications, the real status bar, the phone's keys
   (Back; two quick Backs for the recent apps; holding Back for Menu), the lock on screen off, and real calls on the
   2.1 in-call screen with Eclair's sliding Answer / Decline tabs.

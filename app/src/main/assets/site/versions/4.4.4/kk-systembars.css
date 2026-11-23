@@ -1,0 +1,48 @@
+/* KitKat 4.4.4 system bars (SystemUI BarTransitions, PhoneStatusBarTransitions, NavigationBarTransitions):
+   25 dp status bar and 48 dp navigation bar. Apps get opaque black bars with the status icons at 75 % alpha
+   (status_bar_icon_drawing_alpha); the launcher and keyguard are translucent: the content runs under the bars, which
+   draw status_background / nav_background (black gradients) with the icons at full alpha. White xxhdpi icons, the
+   16 dp white clock and the BatteryMeterView (40 % white frame, white level, #FF3300 at 15 % and below). */
+.screen{--sb:calc(25 * var(--dp));--nb:calc(48.0023 * var(--dp))}
+.status-button,.screen .status-button{background:#000;color:#fff!important;padding:0 calc(6.0045 * var(--dp)) 0 calc(6.0045 * var(--dp));transition:background-color .2s}
+.status-right,.status-left{opacity:.75;transition:opacity .2s}
+.status-left img{height:calc(18.0023 * var(--dp));max-width:calc(24.2826 * var(--dp));margin-right:calc(2.9802 * var(--dp))}
+.status-right img{height:calc(18.0023 * var(--dp))}
+.status-right img.status-bluetooth{margin-right:0}
+.status-right img.status-battery{display:none}
+.status-cluster{padding-left:calc(1.9978 * var(--dp))}
+.status-right img.status-wifi{margin-right:calc(-6.0045 * var(--dp))}
+.status-data-type{height:calc(18.0023 * var(--dp))!important}
+.kk-battery{flex:none;width:calc(10.4967 * var(--dp));height:calc(16.0045 * var(--dp));margin:0 0 calc(.3312 * var(--dp)) calc(3.9956 * var(--dp));display:block}
+.status-clock{padding-left:calc(6.0045 * var(--dp));color:#fff;font:400 calc(16.0045 * var(--dp)) RobotoICS,Roboto,Arial,sans-serif}
+/* navigation_bar.xml (rot0): a 40 dp gap, Back, Home and Recents 80 dp wide (navigation_key_width) with equal weighted
+   space between them, then the 40 dp menu key, invisible on a KitKat phone; so Home sits in the middle. */
+#nav-bar{background:#000;transition:background-color .2s;justify-content:space-between;padding:0 calc(40.0111 * var(--dp))}
+#nav-bar .nav-key{width:calc(80.0221 * var(--dp));padding:0}
+.nav-key img{width:calc(80.0221 * var(--dp));height:calc(48.0023 * var(--dp));opacity:.7}
+.nav-key:active img{opacity:1}
+/* Translucent mode (Launcher3 / keyguard: windowTranslucentStatus + windowTranslucentNavigation). */
+.screen.kk-translucent #viewport{top:0;bottom:0}
+.screen.kk-translucent .status-button{background:linear-gradient(#0000009d,#0000008e 8%,#0000006a 33%,#00000045 50%,#00000025 67%,#0000000d 83%,#00000003 96%,transparent)}
+.screen.kk-translucent #nav-bar{background:linear-gradient(transparent,#00000004 7%,#00000016 29%,#00000030 43%,#00000052 57%,#00000078 71%,#00000092 100%)}
+.screen.kk-translucent .status-right,.screen.kk-translucent .status-left{opacity:1}
+.screen.kk-translucent .nav-key img{opacity:1}
+/* SYSTEM_UI_FLAG_LOW_PROFILE (the launcher clings): notification and system icons fade out, battery and clock drop to
+   50 %, and the navigation keys give way to the lights-out dots. */
+.screen.kk-lights-out .status-left{opacity:0}
+.screen.kk-lights-out .status-right,.screen.kk-translucent.kk-lights-out .status-right{opacity:.5}
+.screen.kk-lights-out .status-right>:not(.kk-battery):not(.status-clock){opacity:0}
+.screen.kk-lights-out .nav-key img{opacity:0;transition:opacity .25s}
+.screen.kk-lights-out .nav-key{background:url('assets/kk-ic_sysbar_lights_out_dot_small.png') center/contain no-repeat}
+.screen.kk-lights-out .nav-key.nav-home{background-image:url('assets/kk-ic_sysbar_lights_out_dot_large.png')}
+/* Quick settings battery tile: BatteryMeterView at 16 x 26 dp inside the 32 dp icon box. */
+.jb-qs-icon .kk-qs-battery{position:absolute;left:50%;top:50%;width:calc(16.0045 * var(--dp));height:calc(26.0045 * var(--dp));margin:calc(-13.0023 * var(--dp)) 0 0 calc(-8.0023 * var(--dp))}
+/* Recents (RecentsActivity 4.4.4): the panel is laid out behind both bars (SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+   LAYOUT_HIDE_NAVIGATION), so its #E0000000 to #99000000 background and bg_protect run under them, and the bars keep the
+   translucency of the window below (PRIVATE_FLAG_INHERIT_TRANSLUCENT_DECOR): over the launcher they stay translucent,
+   over an app opaque. The task list pads itself to the bars (fitsSystemWindows); "No recent apps" is centred on the
+   whole panel. */
+.recent-panel.jb-recents{inset:0;z-index:7;padding:var(--sb) 0 var(--nb)}
+.jb-recents .recent-empty{position:absolute;inset:0;height:fit-content}
+/* Recents: status_bar_recent_panel.xml's foreground bg_protect (xxhdpi 9-patch, 25 % black over 100 dp at either end). */
+.kk-recents-protect{position:absolute;inset:0;pointer-events:none;background:linear-gradient(#00000040,#0000 calc(100 * var(--dp)),#0000 calc(100% - calc(100 * var(--dp))),#00000040)}

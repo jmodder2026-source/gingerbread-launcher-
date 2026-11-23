@@ -1,0 +1,71 @@
+/* Android 7.1.2 framework AlertDialog (ng-dialog.js), in dp, from framework-res.apk of N2G48C:
+   - the window: dialog_min_width_minor 95 % of the screen wide in portrait, centred; dialog_background_material insets
+     it 16 dp (2 dp corners, colorBackgroundFloating white), floating_window_z 16 dp; the dim behind at
+     backgroundDimAmount 0.6. Animation.Material.Dialog is popup_enter_material / popup_exit_material: a 150 ms fade
+     (config_activityShortDur, decelerate_cubic).
+   - the title: dialog_padding_top_material 18 dp above, dialogPreferredPadding 24 dp at the sides,
+     TextAppearance.Material.DialogWindowTitle (Title: text_size_title_material 20 sp, sans-serif-medium, textColorPrimary
+     #de000000), one line; the 32 dp icon 8 dp before it.
+   - the message: TextAppearance.Material.Subhead (16 sp, #de000000), 24 dp at the sides; textSpacerNoTitle 18 dp above
+     it without a title, textSpacerNoButtons 18 dp under it without buttons; contentPanel 48 dp high at least.
+   - a list: select_dialog_material (dialog_list_padding_top_no_title / _bottom_no_buttons 8 dp), rows of
+     select_dialog_item_material (listPreferredItemHeightSmall 48 dp, textAppearanceListItemSmall 16 sp, 24 dp in).
+   - the buttons: alert_dialog_button_bar_material, 4 dp above and below, 12 dp at the sides;
+     Widget.Material.Button.ButtonBar.AlertDialog (Borderless.Colored: 64 dp wide, alert_dialog_button_bar_height 48 dp
+     high at least; btn_default_mtrl_shape's 4 / 6 dp insets and 8 / 4 dp padding; TextAppearance.Material.Button 14 sp
+     sans-serif-medium all caps in colorAccent #009688, btn_colored_borderless_text_material at 0.26 disabled).
+   - the progress dialog: the 48 dp spinner (progress_medium_material: a 19 dp ring, 4 dp stroke in colorControlActivated)
+     24 dp before the message, 18 dp above and below. */
+.ngdlg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:30;animation:ngdlg-in 150ms cubic-bezier(.215,.61,.355,1)}
+@keyframes ngdlg-in{from{opacity:0}to{opacity:1}}
+.ngdlg-dim{position:absolute;inset:0;background:#00000099}
+.ngdlg-win{position:relative;width:calc(95% - 32 * var(--dp));max-height:calc(100% - 64 * var(--dp));overflow:auto;display:flex;flex-direction:column;background:#fff;border-radius:calc(2 * var(--dp));box-shadow:0 calc(16 * var(--dp)) calc(24 * var(--dp)) #00000038,0 calc(6 * var(--dp)) calc(16 * var(--dp)) #00000024;color:#000000de;font-family:Roboto,sans-serif}
+.ngdlg-title{flex:none;display:flex;align-items:center;padding:calc(18 * var(--dp)) calc(24 * var(--dp)) 0}
+.ngdlg-title img{flex:none;width:calc(32 * var(--dp));height:calc(32 * var(--dp));margin-right:calc(8 * var(--dp));object-fit:contain}
+.ngdlg-title span{flex:1;min-width:0;font:500 calc(20 * var(--dp))/calc(26.56 * var(--dp)) Roboto,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ngdlg-message{min-height:calc(48 * var(--dp));padding:0 calc(24 * var(--dp));box-sizing:border-box;font:400 calc(16 * var(--dp))/calc(21.25 * var(--dp)) Roboto,sans-serif;white-space:pre-line;overflow-wrap:anywhere}
+.ngdlg-message.first{padding-top:calc(18 * var(--dp))}
+.ngdlg-message.last{padding-bottom:calc(18 * var(--dp))}
+.ngdlg-title+.ngdlg-message{margin-top:0}
+.ngdlg-list{display:flex;flex-direction:column;overflow-y:auto}
+.ngdlg-list.first{padding-top:calc(8 * var(--dp))}
+.ngdlg-list.last{padding-bottom:calc(8 * var(--dp))}
+.ngdlg-title+.ngdlg-list{margin-top:calc(8 * var(--dp))}
+.ngdlg-item{display:flex;align-items:center;min-height:calc(48 * var(--dp));padding:0 calc(24 * var(--dp));border:0;background:none;color:#000000de;font:400 calc(16 * var(--dp))/calc(21.25 * var(--dp)) Roboto,sans-serif;text-align:left;-webkit-tap-highlight-color:transparent}
+.ngdlg-item:active{background:#0000001f}
+.ngdlg-body{flex:none}
+.ngdlg-buttons{flex:none;display:flex;align-items:flex-end;padding:calc(4 * var(--dp)) calc(12 * var(--dp))}
+.ngdlg-spacer{flex:1}
+.ngdlg-button{position:relative;min-width:calc(64 * var(--dp));min-height:calc(48 * var(--dp));padding:calc(10 * var(--dp)) calc(12 * var(--dp));border:0;background:none;color:var(--ngdlg-accent,#009688);font:500 calc(14 * var(--dp))/calc(18.59 * var(--dp)) Roboto,sans-serif;text-transform:uppercase;-webkit-tap-highlight-color:transparent}
+.ngdlg-button::before{content:"";position:absolute;inset:calc(6 * var(--dp)) calc(4 * var(--dp));border-radius:calc(2 * var(--dp));background:#0000001f;opacity:0;transition:opacity .2s}
+.ngdlg-button:active::before{opacity:1;transition:none}
+.ngdlg-button:disabled{color:#00968842}
+.ngdlg-win[style] .ngdlg-button:disabled{color:var(--ngdlg-accent);opacity:.26}
+.ngdlg-win[style] .ngst-radio{--ngw-accent:var(--ngdlg-accent)}
+.ngdlg-progress{display:flex;align-items:center;padding:calc(18 * var(--dp)) calc(24 * var(--dp));font:400 calc(16 * var(--dp))/calc(21.25 * var(--dp)) Roboto,sans-serif}
+.ngdlg-spinner{flex:none;width:calc(48 * var(--dp));height:calc(48 * var(--dp));margin-right:calc(24 * var(--dp));animation:ngdlg-spin 1.333s linear infinite}
+.ngdlg-spinner circle{fill:none;stroke:#009688;stroke-width:4;stroke-dasharray:90 30;stroke-linecap:square}
+@keyframes ngdlg-spin{to{transform:rotate(360deg)}}
+.ngdlg-message{white-space:pre-line}
+/* ng-pickers.js: TimePickerDialog (the 96 dp header, the 224 dp dial) and DatePickerDialog (the header, the month with
+   its ic_chevron_start / _end arrows, the day grid). */
+.ngtp{overflow:hidden}
+.ngtp-head{display:flex;align-items:center;justify-content:center;height:calc(96 * var(--dp));font:calc(60 * var(--dp))/1 Roboto,sans-serif}
+.ngtp-head>button{padding:0;border:0;background:none;font:inherit}
+.ngtp-ampm{display:flex;flex-direction:column;margin-left:calc(16 * var(--dp))}
+.ngtp-ampm button{padding:calc(2 * var(--dp)) 0;border:0;background:none;font:calc(16 * var(--dp))/1.2 Roboto,sans-serif;text-align:left;text-transform:uppercase}
+.ngtp-body{display:flex;justify-content:center;padding:calc(16 * var(--dp)) 0 calc(8 * var(--dp))}
+.ngtp-dial{width:calc(224 * var(--dp));height:calc(224 * var(--dp));font-family:Roboto,sans-serif;touch-action:none;cursor:pointer}
+.ngdp{overflow:hidden}
+.ngdp-head{display:flex;flex-direction:column;padding:calc(16 * var(--dp)) calc(24 * var(--dp));color:#fff}
+.ngdp-head small{font-size:calc(16 * var(--dp));color:#ffffffb3}
+.ngdp-head b{font:400 calc(36 * var(--dp))/1.2 Roboto,sans-serif}
+.ngdp-month{display:flex;align-items:center;justify-content:space-between;height:calc(48 * var(--dp));padding:0 calc(8 * var(--dp));font:500 calc(14 * var(--dp)) Roboto,sans-serif;color:#000000de}
+.ngdp-month button{width:calc(48 * var(--dp));height:calc(48 * var(--dp));padding:0;border:0;border-radius:50%;background:none;display:grid;place-items:center}
+.ngdp-month button:active{background:#0000001f}
+.ngdp-month i{width:calc(24 * var(--dp));height:calc(24 * var(--dp));background:#0000008a;-webkit-mask:url('assets/fw-ic_chevron_start.svg') center/100% no-repeat;mask:url('assets/fw-ic_chevron_start.svg') center/100% no-repeat}
+.ngdp-month button+span+button i{-webkit-mask-image:url('assets/fw-ic_chevron_end.svg');mask-image:url('assets/fw-ic_chevron_end.svg')}
+.ngdp-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:0 calc(12 * var(--dp)) calc(8 * var(--dp));text-align:center}
+.ngdp-grid i{font-style:normal;font-size:calc(12 * var(--dp));line-height:calc(32 * var(--dp));color:#0000008a}
+.ngdp-grid button{justify-self:center;width:calc(36 * var(--dp));height:calc(36 * var(--dp));padding:0;border:0;border-radius:50%;background:none;font:calc(12 * var(--dp)) Roboto,sans-serif;color:#000000de}
+.ngdp-grid button.on{color:#fff}

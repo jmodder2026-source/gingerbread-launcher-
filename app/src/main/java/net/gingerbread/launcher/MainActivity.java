@@ -80,9 +80,13 @@ public class MainActivity extends Activity {
     private static final int DIALER_REQUEST = 13;
     private android.os.PowerManager.WakeLock proximityLock;
     private boolean askedDialer;
+    private boolean askedDialerForCall;
     private static final String HOST = "appassets.androidplatform.net";
-    // The Android version the launcher runs: "2.3.6" (Gingerbread) or "2.1" (Eclair), chosen in Launcher settings.
-    private static final String[] VERSIONS = {"2.3.6", "2.1"};
+    // The Android version the launcher runs, chosen in Launcher settings (2.3.6 Gingerbread at first).
+    private static final String[] VERSIONS = {"2.1", "2.3.6", "4.0.4", "4.3", "4.4.4", "5.1.1", "6.0.1", "7.1.2"};
+    // Versions whose page gets launcher-mode.js / .css added when the APK serves it (2.1 and 2.3.6 load their own).
+    private static final java.util.regex.Pattern LAUNCHER_MODE = java.util.regex.Pattern.compile("^/assets/site/versions/(4\\.0\\.4|4\\.3|4\\.4\\.4|5\\.1\\.1|6\\.0\\.1|7\\.1\\.2)/(index\\.html)?$");
+    private static final String ICON_PATH = "/assets/site/real-icon/";
     private String startUrl() {
         String version = getSharedPreferences("launcher", MODE_PRIVATE).getString("version", "2.3.6");
         if (!java.util.Arrays.asList(VERSIONS).contains(version)) version = "2.3.6";
@@ -156,7 +160,21 @@ public class MainActivity extends Activity {
         web.setWebViewClient(new WebViewClient() {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                return loader.shouldInterceptRequest(request.getUrl());
+                Uri url = request.getUrl();
+                String path = url.getPath();
+                if (HOST.equals(url.getHost()) && path != null) {
+                    // App icons first, before the asset loader can answer the path with "not found".
+                    if (path.startsWith(ICON_PATH)) {
+                        WebResourceResponse icon = appIconResponse(path.substring(ICON_PATH.length()));
+                        if (icon != null) return icon;
+                    }
+                    java.util.regex.Matcher page = LAUNCHER_MODE.matcher(path);
+                    if (page.matches()) {
+                        WebResourceResponse html = launcherPage(page.group(1));
+                        if (html != null) return html;
+                    }
+                }
+                return loader.shouldInterceptRequest(url);
             }
 
             @Override
@@ -797,21 +815,56 @@ public class MainActivity extends Activity {
         offerDefaultDialer();
     }
 
-    // Asks once (per run of the launcher) to become the default phone app, so calls use the Gingerbread call screen.
+    // Asks once (per run of the launcher) to become the default phone app, so calls use the launcher's call screen.
     private void offerDefaultDialer() {
         if (askedDialer || isDefaultDialer()) return;
         askedDialer = true;
+        askDefaultDialer(false);
+    }
+
+    // A number waiting for the answer to "make Gingerbread Launcher the default phone app?" before it is called.
+    private String callAfterDialerAsk;
+    // Asked from Launcher settings: if Android shows no prompt or the answer is no, its default-apps screen opens.
+    private boolean dialerAskExplicit;
+
+    private boolean askDefaultDialer(boolean settingsFallback) {
         try {
-            Intent ask;
+            Intent ask = null;
             if (Build.VERSION.SDK_INT >= 29) {
                 android.app.role.RoleManager roles = getSystemService(android.app.role.RoleManager.class);
-                if (roles == null || !roles.isRoleAvailable(android.app.role.RoleManager.ROLE_DIALER)) return;
-                ask = roles.createRequestRoleIntent(android.app.role.RoleManager.ROLE_DIALER);
+                if (roles != null && roles.isRoleAvailable(android.app.role.RoleManager.ROLE_DIALER)) ask = roles.createRequestRoleIntent(android.app.role.RoleManager.ROLE_DIALER);
             } else {
                 ask = new Intent(TelecomManager.ACTION_CHANGE_DEFAULT_DIALER).putExtra(TelecomManager.EXTRA_CHANGE_DEFAULT_DIALER_PACKAGE_NAME, getPackageName());
             }
-            startActivityForResult(ask, DIALER_REQUEST);
+            if (ask != null && ask.resolveActivity(getPackageManager()) != null) {
+                startActivityForResult(ask, DIALER_REQUEST);
+                return true;
+            }
         } catch (Exception ignored) { }
+        if (settingsFallback) openDefaultAppsSettings();
+        return false;
+    }
+
+    // Android's own Default apps screen (Samsung: Settings > Apps > Default apps > Phone app / Calling app).
+    private void openDefaultAppsSettings() {
+        try {
+            Toast.makeText(this, "Choose Gingerbread Launcher as the Phone app", Toast.LENGTH_LONG).show();
+            startActivity(new Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (Exception e) {
+            try { startActivity(new Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception ignored) { }
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != DIALER_REQUEST) return;
+        boolean ours = isDefaultDialer();
+        if (!ours && dialerAskExplicit) openDefaultAppsSettings();
+        dialerAskExplicit = false;
+        String number = callAfterDialerAsk;
+        callAfterDialerAsk = null;
+        if (number != null) placeCall(number);
     }
 
     /* Safety net: the page confirms each call it shows (AndroidLauncher.callShown). A call it has not confirmed within
@@ -909,6 +962,15 @@ public class MainActivity extends Activity {
         if (digits.isEmpty()) return;
         Uri tel = Uri.fromParts("tel", digits, null);
         if (checkSelfPermission(Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+            // Not the default phone app yet: ask first (once per run), so the call shows on the launcher's call screen
+            // and not on the phone maker's. The call goes ahead whatever the answer (onActivityResult).
+            if (!isDefaultDialer() && !askedDialerForCall) {
+                askedDialerForCall = true;
+                askedDialer = true;
+                callAfterDialerAsk = digits;
+                if (askDefaultDialer(false)) return;
+                callAfterDialerAsk = null;
+            }
             if (isDefaultDialer()) {
                 try {
                     ((TelecomManager) getSystemService(Context.TELECOM_SERVICE)).placeCall(tel, new Bundle());
@@ -1037,7 +1099,7 @@ public class MainActivity extends Activity {
         setIntent(intent);
         if (intent.getBooleanExtra(EXTRA_CALL, false)) { CallService.reportAll(); return; }
         if (handleDialIntent(intent)) return;
-        if (web != null) web.evaluateJavascript("(function(){var k=document.querySelector('.touch-home');if(k&&!k.disabled)k.click();})()", null);
+        pressKey(".touch-home");
     }
 
     /* The phone's own keys drive the simulator (a Galaxy J7 Prime 2 has Recents, Home and Back, and no Menu key):
@@ -1065,8 +1127,11 @@ public class MainActivity extends Activity {
         keys.postDelayed(singleBack, DOUBLE_BACK_MS);
     }
 
+    // A key of the simulator: versions 4.0.4 and later take it through window.launcherKey (launcher-mode.js),
+    // 2.1 and 2.3.6 through their on-screen key's button.
     private void pressKey(String selector) {
-        if (web != null) web.evaluateJavascript("(function(){var k=document.querySelector('" + selector + "');if(k&&!k.disabled)k.click();})()", null);
+        String name = selector.replace(".touch-", "");
+        if (web != null) web.evaluateJavascript("(function(){if(window.launcherKey&&window.launcherKey('" + name + "'))return;var k=document.querySelector('" + selector + "');if(k&&!k.disabled)k.click();})()", null);
     }
 
     // Back and Menu come here before the WebView, so a page that is focused cannot swallow them.
@@ -1162,23 +1227,57 @@ public class MainActivity extends Activity {
         return component.replace("/", "__") + ".png";
     }
 
+    // An app's icon from "<package>__<activity>" (or "<package>/<activity>"); the app's own icon if the activity is gone.
+    private Drawable appIcon(String component) {
+        String c = component.contains("/") ? component : component.replaceFirst("__", "/");
+        ComponentName cn = ComponentName.unflattenFromString(c);
+        if (cn == null) return null;
+        try { return getPackageManager().getActivityIcon(cn); } catch (Exception e) { /* try the package */ }
+        try { return getPackageManager().getApplicationIcon(cn.getPackageName()); } catch (Exception e) { return null; }
+    }
+
+    private static byte[] iconPng(Drawable icon) {
+        Bitmap bitmap = Bitmap.createBitmap(ICON_PX, ICON_PX, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        icon.setBounds(0, 0, ICON_PX, ICON_PX);
+        icon.draw(canvas);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+        bitmap.recycle();
+        return out.toByteArray();
+    }
+
     // Serves one app's launcher icon as a 96 px PNG for /assets/site/real-icon/<file>.
     private WebResourceResponse appIconResponse(String path) {
         try {
             String name = Uri.decode(path);
             if (!name.endsWith(".png")) return null;
-            String component = name.substring(0, name.length() - 4).replace("__", "/");
-            ComponentName cn = ComponentName.unflattenFromString(component);
-            if (cn == null) return null;
-            Drawable icon = getPackageManager().getActivityIcon(cn);
-            Bitmap bitmap = Bitmap.createBitmap(ICON_PX, ICON_PX, Bitmap.Config.ARGB_8888);
-            Canvas canvas = new Canvas(bitmap);
-            icon.setBounds(0, 0, ICON_PX, ICON_PX);
-            icon.draw(canvas);
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
-            bitmap.recycle();
-            return new WebResourceResponse("image/png", null, new java.io.ByteArrayInputStream(out.toByteArray()));
+            Drawable icon = appIcon(name.substring(0, name.length() - 4));
+            if (icon == null) return null;
+            java.util.Map<String, String> headers = new java.util.HashMap<>();
+            headers.put("Cache-Control", "max-age=86400");
+            headers.put("Access-Control-Allow-Origin", "*");
+            return new WebResourceResponse("image/png", null, 200, "OK", headers, new java.io.ByteArrayInputStream(iconPng(icon)));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // A version page with the launcher's add-ons: launcher-apk.js first (it skips the boot animation), then
+    // launcher-mode.css and launcher-mode.js after the page's own deferred scripts.
+    private WebResourceResponse launcherPage(String version) {
+        try (java.io.InputStream in = getAssets().open("site/versions/" + version + "/index.html")) {
+            ByteArrayOutputStream buf = new ByteArrayOutputStream();
+            byte[] chunk = new byte[16384];
+            for (int n; (n = in.read(chunk)) > 0; ) buf.write(chunk, 0, n);
+            String html = buf.toString("UTF-8");
+            html = html.replaceFirst("(?i)<head>", "<head><script src=\"../../launcher-apk.js\"></script>");
+            int end = html.toLowerCase(java.util.Locale.ROOT).lastIndexOf("</body>");
+            String tail = "<link rel=\"stylesheet\" href=\"../../launcher-mode.css\"><script defer src=\"../../launcher-mode.js\"></script>";
+            html = end >= 0 ? html.substring(0, end) + tail + html.substring(end) : html + tail;
+            java.util.Map<String, String> headers = new java.util.HashMap<>();
+            headers.put("Cache-Control", "no-cache");
+            return new WebResourceResponse("text/html", "UTF-8", 200, "OK", headers, new java.io.ByteArrayInputStream(html.getBytes("UTF-8")));
         } catch (Exception e) {
             return null;
         }
@@ -1232,6 +1331,17 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> { if (web != null) web.loadUrl(startUrl()); });
         }
 
+        // An app's icon as a data: address, for an <img> that could not load /real-icon/.
+        @JavascriptInterface
+        public String iconData(String component) {
+            try {
+                Drawable icon = appIcon(component);
+                return icon == null ? "" : "data:image/png;base64," + Base64.encodeToString(iconPng(icon), Base64.NO_WRAP);
+            } catch (Exception e) {
+                return "";
+            }
+        }
+
         @JavascriptInterface
         public String defaults() {
             return "{\"home\":" + isDefaultHome() + ",\"phone\":" + isDefaultDialer() + "}";
@@ -1241,7 +1351,8 @@ public class MainActivity extends Activity {
         public void makeDefault(String which) {
             runOnUiThread(() -> {
                 if ("home".equals(which)) askDefaultHome();
-                else { askedDialer = false; offerDefaultDialer(); }
+                else if (isDefaultDialer()) Toast.makeText(MainActivity.this, "Gingerbread Launcher is the Phone app", Toast.LENGTH_SHORT).show();
+                else { askedDialer = true; dialerAskExplicit = true; askDefaultDialer(true); }
             });
         }
 

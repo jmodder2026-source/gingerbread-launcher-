@@ -1,0 +1,225 @@
+/* Android 7.1.2: the phone's radios and switches, and what the status bar shows of them. Logic only (6.0.1's, with the
+   N2G48C image's defaults).
+   - Saved settings (SettingsProvider defaults of the image where the simulator does not differ): Wi-Fi on and connected
+     to the simulator's network (the image's def_wifi_on is false, the simulator starts set up, as every version),
+     Bluetooth on (def_bluetooth_on true in this image), airplane off (def_airplane_mode_on), zen 0 (Settings.Global.
+     ZEN_MODE: 0 off, 1 priority only, 2 total silence, 3 alarms only), mobile data on, rotation not locked
+     (def_accelerometer_rotation true), location on (def_location_providers_allowed "gps"), automatic brightness
+     (def_screen_brightness_automatic_mode true, def_screen_brightness 82, screen_auto_brightness_adj 0).
+   - Airplane mode turns the radios of def_airplane_mode_radios off (cell, bluetooth, wifi) and back on as they were.
+   - The portable hotspot (SystemUI's HotspotControllerImpl, Settings' WifiApEnabler): switching it on turns Wi-Fi off
+     and remembers it (WIFI_SAVED_STATE), switching it off turns that Wi-Fi back on; switching Wi-Fi on stops the hotspot,
+     so does airplane mode. It is "turning on" / "turning off" for a moment (WIFI_AP_STATE_ENABLING / _DISABLING).
+   - PhoneStatusBarPolicy: the status icons in config_statusBarIcons order (data_saver, cast, hotspot, location, bluetooth, zen,
+     volume … alarm_clock): zen is stat_sys_dnd, or stat_sys_dnd_total_silence for total silence; Bluetooth shows while it
+     is on (connected: its own icon); the alarm while AlarmManager has a next alarm clock.
+   - SignalClusterView: Wi-Fi, the 4 dp spacer when both show, the mobile signal with its data type over it (LTE), the
+     airplane after its spacer. The icons are drawn "fully" while the network has internet.
+   - The screen's brightness: the simulator dims the phone with a CSS filter (manual: 0.5 at 0 up to 1 at 255; automatic:
+     the adjustment below the middle dims down to 0.5). Color inversion (DisplayAdjustmentUtils' MATRIX_INVERT_COLOR,
+     which inverts the lightness and keeps the hues) is the same filter's invert(1) hue-rotate(180deg). */
+(() => {
+  'use strict';
+  Object.assign(NG.defaults.settings, {wifi: true, wifiSsid: 'Home Network', bluetooth: true, airplane: false, zen: 0, zenFavorite: 3, zenUntil: 0, mobileData: true,
+    rotationLocked: false, location: true, brightnessAuto: true, brightness: 82, brightnessAdj: 0});
+  // What is not saved: the flashlight (it goes off with the camera service on a reboot) and the radios coming up.
+  const live = {flashlight: false, hotspotChanging: 0, wifiConnecting: 0, btConnecting: {}, btPairing: null, btTurningOn: 0, btScanUntil: 0, bootAt: Date.now()};
+
+  // The simulator's Wi-Fi networks, as every version has them (names are data, not interface text): level is
+  // WifiManager.calculateSignalLevel(rssi, 4), 0..3; saved ones connect without a password. freq (MHz) and speed (Mbps)
+  // are the WifiInfo the connection reports.
+  const NETWORKS = [{ssid: 'AndroidAP', secure: true, level: 3, freq: 2437, speed: 72}, {ssid: 'CoffeeShop', secure: false, level: 2, freq: 2412, speed: 54},
+    {ssid: 'Home Network', secure: true, level: 3, saved: true, freq: 5180, speed: 433}, {ssid: 'Library Wi-Fi', secure: false, level: 1, freq: 2462, speed: 24}];
+
+  // The simulator's Bluetooth devices, as the other versions have them (names are data): a headset that pairs with the
+  // legacy PIN (BluetoothDevice class 0x404, Phone audio) and a car kit with a display (0x408 handsfree: passkey
+  // confirmation, Phone audio, Media audio and Contact sharing). rssi orders the found ones.
+  const BT_DEVICES = [{id: 'headset', name: 'Wireless Headset', cls: 0x404, profiles: ['headset'], pairing: 'pin', rssi: -60},
+    {id: 'car', name: 'Car Audio', cls: 0x408, profiles: ['headset', 'a2dp', 'pbap'], pairing: 'confirm', rssi: -70}];
+
+  // The phone's Google account (the demo data of every version: <device>.demo@gmail.com).
+  NG.account = {name: 'Nexus 6P', email: 'nexus6p.demo@gmail.com'};
+  const sys = NG.system = {
+    live,
+    // CachedBluetoothDeviceManager's devices: bonded ones (connected first) and those the scan has found.
+    btDevices(c) {
+      const s = c.data.settings, bonded = s.btBonded || [], connected = s.btConnected || [], names = s.btNames || {};
+      return BT_DEVICES.map(d => ({...d, name: names[d.id] || d.name, bonded: bonded.includes(d.id), connected: connected.includes(d.id),
+        pairing: live.btPairing === d.id, connecting: live.btConnecting?.[d.id] > Date.now(), mode: d.pairing}));
+    },
+    // Pairing ends bonded and connected (the profiles connect as A2DP / HFP sinks do after bonding).
+    btBond(c, id) {
+      const s = c.data.settings;
+      live.btPairing = null;
+      s.btBonded = [...new Set([...(s.btBonded || []), id])];
+      sys.btConnect(c, id);
+    },
+    btConnect(c, id) {
+      live.btConnecting[id] = Date.now() + 1500; sys.changed(c);
+      setTimeout(() => { const s = c.data.settings; if ((s.btBonded || []).includes(id) && s.bluetooth) { s.btConnected = [...new Set([...(s.btConnected || []), id])]; c.save(); } sys.changed(c); }, 1550);
+    },
+    btDisconnect(c, id) { const s = c.data.settings; s.btConnected = (s.btConnected || []).filter(d => d !== id); c.save(); sys.changed(c); },
+    btForget(c, id) { const s = c.data.settings; s.btBonded = (s.btBonded || []).filter(d => d !== id); s.btConnected = (s.btConnected || []).filter(d => d !== id); c.save(); sys.changed(c); },
+    // WifiTracker's list: AccessPoint.compareTo puts the active network first, then the saved ones, then the stronger,
+    // then by name.
+    accessPoints(c) {
+      const s = c.data.settings, connected = sys.wifiState(c) === 'connected';
+      const forgotten = s.wifiForgotten || [];
+      return NETWORKS.map(n => ({...n, saved: (n.saved && !forgotten.includes(n.ssid)) || (s.wifiSaved || []).includes(n.ssid), active: connected && n.ssid === s.wifiSsid}))
+        .sort((a, b) => (b.active - a.active) || (b.saved - a.saved) || (b.level - a.level) || a.ssid.localeCompare(b.ssid, undefined, {sensitivity: 'base'}));
+    },
+    connectWifi(c, ssid) {
+      const s = c.data.settings;
+      s.wifiSsid = ssid; s.wifiSaved = [...new Set([...(s.wifiSaved || []), ssid])];
+      s.wifiForgotten = (s.wifiForgotten || []).filter(n => n !== ssid);
+      sys.setWifi(c, true);
+    },
+    // WifiManager.forget: the network's configuration goes; forgetting the connected one disconnects.
+    forgetWifi(c, ssid) {
+      const s = c.data.settings;
+      s.wifiSaved = (s.wifiSaved || []).filter(n => n !== ssid); s.wifiForgotten = [...new Set([...(s.wifiForgotten || []), ssid])];
+      if (s.wifiSsid === ssid) s.wifiSsid = '';
+      c.save(); sys.changed(c);
+    },
+    // DataUsageController.getDataUsageInfo: the policy's cycle (NetworkPolicyManagerService starts it on the day the SIM
+    // was first seen; the simulator's on the 1st), the default 2 GB warning, no limit. The usage is the simulator's own:
+    // about 42 MB a day of the cycle.
+    dataUsage(c) {
+      const now = new Date(), start = new Date(now.getFullYear(), now.getMonth(), 1), end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const usage = Math.round(now.getDate() * 41.7 * 1048576 + now.getHours() * 1.6 * 1048576);
+      let period;
+      try { period = new Intl.DateTimeFormat(c.locale(), {month: 'short', day: 'numeric'}).formatRange(start, end); }
+      catch { const f = new Intl.DateTimeFormat(c.locale(), {month: 'short', day: 'numeric'}); period = `${f.format(start)} – ${f.format(end)}`; }
+      return {usage, warning: 2147483648, limit: 0, period, carrier: c.data.settings.airplane ? '' : NG.text('shade').t('carrier')};
+    },
+    setMobileData(c, on) { c.data.settings.mobileData = on; c.save(); sys.changed(c); },
+    setPowerSave(c, on) { c.data.settings.powerSave = on; c.save(); sys.changed(c); },
+    // LocationController.setLocationEnabled (Secure.LOCATION_MODE high accuracy / off).
+    setLocation(c, on) { c.data.settings.location = on; c.save(); sys.changed(c); },
+    // DataSaverController (NetworkPolicyManager.setRestrictBackground).
+    setDataSaver(c, on) { c.data.settings.dataSaver = on; c.save(); sys.changed(c); },
+    // Secure.ACCESSIBILITY_DISPLAY_INVERSION_ENABLED.
+    setInversion(c, on) { c.data.settings.inversion = on; c.save(); sys.changed(c); },
+    // Wi-Fi: off, searching (a moment after switching it on, or with no network to join) or connected.
+    wifiState(c) { const s = c.data.settings; return !s.wifi ? 'off' : live.wifiConnecting > Date.now() || !s.wifiSsid ? 'searching' : 'connected'; },
+    setWifi(c, on) {
+      const s = c.data.settings;
+      if (on && s.hotspot) { s.hotspot = false; s.wifiSavedState = false; }
+      // Switching on from off: WIFI_STATE_ENABLING for the first second (Settings' "Turning Wi-Fi on…").
+      if (on && !s.wifi) live.wifiStarting = Date.now() + 1000;
+      s.wifi = on; if (on) live.wifiConnecting = Date.now() + 2500;
+      c.save(); sys.changed(c);
+      if (on) setTimeout(() => sys.changed(c), 2600);
+    },
+    // WifiApConfigStore's default configuration (made on first use): no name of its own (the framework's AndroidAP),
+    // WPA2 PSK with a random 12 character password, the 2.4 GHz band.
+    hotspotConfig(c) {
+      const s = c.data.settings;
+      if (!s.hotspotConfig) { const u = globalThis.crypto?.randomUUID?.() || Math.random().toString(16).slice(2).padEnd(13, '0'); s.hotspotConfig = {ssid: '', security: 1, password: u.slice(0, 8) + u.slice(9, 13), band: 0}; c.save(); }
+      return s.hotspotConfig;
+    },
+    hotspotState(c) { return live.hotspotChanging > Date.now() ? (c.data.settings.hotspot ? 'enabling' : 'disabling') : c.data.settings.hotspot ? 'on' : 'off'; },
+    setHotspot(c, on) {
+      const s = c.data.settings;
+      if (on === !!s.hotspot) return;
+      if (on) { if (s.wifi) { s.wifi = false; s.wifiSavedState = true; } s.hotspotUsed = Date.now(); }
+      s.hotspot = on; live.hotspotChanging = Date.now() + 1200;
+      c.save(); sys.changed(c);
+      setTimeout(() => {
+        if (!on && s.wifiSavedState) { s.wifiSavedState = false; s.wifi = true; live.wifiConnecting = Date.now() + 2500; c.save(); setTimeout(() => sys.changed(c), 2600); }
+        sys.changed(c);
+      }, 1250);
+    },
+    // BluetoothAdapter: STATE_TURNING_ON for a moment, then on with the bonded devices reconnecting; off drops them.
+    setBluetooth(c, on) {
+      const s = c.data.settings;
+      s.bluetooth = on; live.btTurningOn = on ? Date.now() + 1000 : 0;
+      if (!on) s.btConnected = [];
+      c.save(); sys.changed(c);
+      if (on) setTimeout(() => sys.changed(c), 1050);
+    },
+    setAirplane(c, on) {
+      const s = c.data.settings;
+      if (on === s.airplane) return;
+      if (on) { s.beforeAirplane = {wifi: s.wifi, bluetooth: s.bluetooth}; s.wifi = false; s.bluetooth = false; s.hotspot = false; s.wifiSavedState = false; }
+      else { const b = s.beforeAirplane || {}; s.wifi = !!b.wifi; s.bluetooth = !!b.bluetooth; if (s.wifi) live.wifiConnecting = Date.now() + 2500; delete s.beforeAirplane; }
+      s.airplane = on; c.save(); sys.changed(c);
+      if (!on && s.wifi) setTimeout(() => sys.changed(c), 2600);
+    },
+    setZen(c, zen) { const s = c.data.settings; s.zen = zen; if (!zen) s.zenUntil = 0; c.save(); sys.changed(c); },
+    setFlashlight(c, on) { live.flashlight = on; sys.changed(c); },
+    setRotationLocked(c, on) { c.data.settings.rotationLocked = on; c.save(); sys.changed(c); },
+    // The mobile network: no service in airplane mode; connected to data when Wi-Fi is not.
+    mobile(c) {
+      const s = c.data.settings;
+      if (s.airplane || live.radioPower === false) return {service: false, data: false};
+      return {service: true, data: s.mobileData && sys.wifiState(c) !== 'connected'};
+    },
+    // The screen's brightness factor for the filter.
+    brightness(c) {
+      const s = c.data.settings;
+      if (s.brightnessAuto) return s.brightnessAdj < 0 ? 1 + s.brightnessAdj * 0.5 : 1;
+      return 0.5 + 0.5 * (s.brightness / 255);
+    },
+    applyBrightness(c) {
+      const f = sys.brightness(c), parts = [];
+      if (c.data.settings.inversion) parts.push('invert(1) hue-rotate(180deg)');
+      if (f < 1) parts.push(`brightness(${f.toFixed(3)})`);
+      c.el.screen.style.filter = parts.join(' ');
+    },
+    // Something changed: the status bar and an open shade draw it again.
+    changed(c) {
+      sys.applyBrightness(c);
+      c.renderStatus?.();
+      if (c.ui.overlay === 'shade') NG.module('shade')?.refresh?.(c);
+      // An open Settings screen follows the radios (the Wi-Fi and Bluetooth lists, their switch bars).
+      if (c.ui.view === 'settings' && !c.ui.overlay && !c.ui.sleeping) c.render();
+    }
+  };
+
+  /* The alarms (c.data.clock.alarms, the Clock app's; AlarmManager's next alarm clock for the status bar, the keyguard
+     and quick settings): the simulator's demo alarm of every version, 7:00 on weekdays switched on (docs/demo-data.md),
+     with DeskClock's two default alarms (8:30 on weekdays, 9:00 at the weekend) off. days: Date.getDay() numbers. */
+  NG.defaults.clock = {alarms: [{id: 3, h: 7, m: 0, days: [1, 2, 3, 4, 5], on: true, vibrate: true, label: ''}, {id: 1, h: 8, m: 30, days: [1, 2, 3, 4, 5], on: false, vibrate: true, label: ''}, {id: 2, h: 9, m: 0, days: [6, 0], on: false, vibrate: true, label: ''}]};
+  function nextFire(a, from = new Date()) {
+    for (let i = 0; i < 8; i++) {
+      const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + i, a.h, a.m);
+      if (d > from && (!a.days.length || a.days.includes(d.getDay()))) return d;
+    }
+    return null;
+  }
+  // AlarmManager.getNextAlarmClock: the time (ms) of the next alarm that is on, 0 with none.
+  NG.clock = {nextFire, nextAlarm: c => NG.appData?.stopped(c, 'clock') ? 0 : (c.data.clock?.alarms || []).filter(a => a.on).map(a => nextFire(a)).filter(Boolean).sort((x, y) => x - y)[0]?.getTime() || 0};
+
+  NG.register('system', {
+    app: false,
+    render: () => '',
+    init(c) {
+      // The status icons (PhoneStatusBarPolicy) and the signal cluster (SignalClusterView), for ng-statusbar.js.
+      c.statusIcons = () => {
+        const s = c.data.settings, out = [];
+        if (s.dataSaver) out.push('stat_sys_data_saver');
+        if (s.hotspot) out.push('stat_sys_hotspot');
+        if (s.bluetooth) out.push((s.btConnected || []).length ? 'stat_sys_data_bluetooth_connected' : 'stat_sys_data_bluetooth');
+        if (s.zen) out.push(s.zen === 2 ? 'stat_sys_dnd_total_silence' : 'stat_sys_dnd');
+        // The volume slot: vibrate unless total silence or alarms only (PhoneStatusBarPolicy.updateVolumeZen).
+        if (s.ringerMode === 'vibrate' && s.zen !== 2 && s.zen !== 3) out.push('stat_sys_ringer_vibrate');
+        // alarm_clock: shown while AlarmManager has a next alarm clock set.
+        if (NG.clock.nextAlarm(c)) out.push('stat_sys_alarm');
+        return out;
+      };
+      c.signal = () => {
+        const s = c.data.settings, wifi = sys.wifiState(c), m = sys.mobile(c);
+        return {
+          wifi: wifi === 'connected' ? 'stat_sys_wifi_signal_4_fully' : null,
+          mobile: m.service ? 'stat_sys_signal_4_fully' : null,
+          type: m.service && m.data ? 'stat_sys_data_fully_connected_lte' : null,
+          airplane: s.airplane
+        };
+      };
+      sys.applyBrightness(c);
+    },
+    // A countdown condition ends Do not disturb at its time (ZenModeConditions / CountdownConditionProvider).
+    tick(c) { const s = c.data.settings; if (s.zen && s.zenUntil && Date.now() >= s.zenUntil) sys.setZen(c, 0); }
+  });
+})();

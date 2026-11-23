@@ -1,0 +1,79 @@
+/* Android 7.1.2 lock screen (ng-lock.js), in dp: SystemUI's keyguard_status_bar.xml, keyguard_status_view.xml,
+   keyguard_status_area.xml and keyguard_bottom_area.xml of N2G48C. The keyguard window covers the screen; its panel
+   ends above the navigation bar (683.43 dp), whose keys the keyguard hides. */
+.nglk{position:absolute;inset:0;overflow:hidden;color:#fff;font-family:Roboto,sans-serif;touch-action:none;user-select:none}
+/* The wallpaper as WallpaperManager draws it: the full display high (2560 px = 731.43 dp), scrolled with the launcher. */
+.nglk-wall{position:absolute;inset:0;background:#000 var(--ng-lock-wallpaper,url('assets/fw-default_wallpaper.png')) var(--ng-lock-position,left top)/var(--ng-lock-size,auto 100%) no-repeat}
+.nglk-scrim{position:absolute;inset:0;background:#000;opacity:.45}
+.nglk-panel{position:absolute;left:0;right:0;top:0;bottom:calc(48 * var(--dp))}
+/* KeyguardStatusBarView: 40 dp; the carrier 16 dp in (textAppearanceSmall 14 sp), the system icons centred in the bar
+   6 dp (system_icons_super_container_avatarless_margin_end) and 4 dp (system_icons_keyguard_padding_end) from the end;
+   the battery level 12 sp 6 dp after the battery, 2 dp padding after it. */
+.nglk-bar{position:absolute;left:0;right:0;top:0;height:calc(40 * var(--dp));display:flex;align-items:center}
+.nglk-carrier{flex:1;min-width:0;margin-left:calc(16 * var(--dp));font:400 calc(14 * var(--dp))/calc(18.59 * var(--dp)) Roboto,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nglk-icons{flex:none;display:flex;align-items:center;height:calc(24 * var(--dp));margin:0 calc(10 * var(--dp)) 0 calc(16 * var(--dp))}
+.nglk-level{margin-left:calc(6 * var(--dp));padding-right:calc(2 * var(--dp));font:400 calc(12 * var(--dp)) Roboto,sans-serif}
+/* KeyguardStatusView (keyguard_security_width 320 dp at most), centred: the clock (sans-serif-light 88 dp, -1 dp over
+   the status area), the date and the alarm (widget_label 14 sp, caps, letter spacing 0.15), the owner info (14 sp
+   clock_gray, letter spacing 0.05, 6 dp down, 16 dp in). It shrinks and fades about its centre top while pulled. */
+.nglk-status{position:absolute;left:50%;width:min(100%,calc(320 * var(--dp)));margin-left:max(-50%,calc(-160 * var(--dp)));display:flex;flex-direction:column;align-items:center;transform-origin:50% 0}
+.nglk-clock{margin-bottom:calc(-1 * var(--dp));font:300 calc(88 * var(--dp))/calc(116.8 * var(--dp)) Roboto,sans-serif;white-space:nowrap}
+.nglk-area{display:flex;align-items:center;justify-content:center;max-width:100%}
+.nglk-date,.nglk-alarm{font:400 calc(14 * var(--dp))/calc(18.59 * var(--dp)) Roboto,sans-serif;letter-spacing:.15em;text-transform:uppercase;white-space:nowrap}
+.nglk-alarm{display:flex;align-items:center;margin-left:calc(6 * var(--dp));color:#ffffffb3}
+.nglk-alarm img{width:calc(18 * var(--dp));height:calc(18 * var(--dp));margin-right:calc(6 * var(--dp))}
+.nglk-owner{max-width:calc(100% - 32 * var(--dp));margin-top:calc(6 * var(--dp));font:400 calc(14 * var(--dp))/calc(18.59 * var(--dp)) Roboto,sans-serif;letter-spacing:.05em;color:#ffffffb3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* The rows on the keyguard: ActivatableNotificationView dimmed (notification_material_background_dimmed_color
+   #ccffffff); an activated row is drawn normally. */
+.nglk-notes{position:absolute;left:0;right:0}
+.nglk-notes .ngnt-row{background:#ffffffcc;transition:background-color .22s}
+.nglk-notes .ngnt-row.active{background:#fff}
+/* KeyguardBottomAreaView: the indication (textAppearanceSmall italic, white) 65 dp from the bottom; the 56 dp
+   affordances at the bottom corners, the LockIcon in the middle. */
+.nglk-bottom{position:absolute;inset:0;pointer-events:none}
+.nglk-bottom>*{pointer-events:auto}
+.nglk-indication{position:absolute;left:0;right:0;bottom:calc(65 * var(--dp));text-align:center;font:italic 400 calc(14 * var(--dp))/calc(18.59 * var(--dp)) Roboto,sans-serif;pointer-events:none}
+.nglk-aff,.nglk-lock{position:absolute;bottom:0;width:calc(56 * var(--dp));height:calc(56 * var(--dp));padding:0;border:0;background:none;display:grid;place-items:center;-webkit-tap-highlight-color:transparent}
+.nglk-left{left:0}
+.nglk-camera{right:0}
+.nglk-lock{left:50%;margin-left:calc(-28 * var(--dp))}
+.nglk-lock img{width:calc(24 * var(--dp));height:calc(24 * var(--dp))}
+/* KeyguardAffordanceView: the icon at its resting alpha 0.5, white turning black (SRC_ATOP) as the white circle grows to
+   keyguard_affordance_min_background_radius 30 dp; the circle at half alpha up to full past 45 dp. */
+.nglk-circle{position:absolute;left:50%;top:50%;width:calc(var(--r,0) * 2 * var(--dp));height:calc(var(--r,0) * 2 * var(--dp));transform:translate(-50%,-50%);border-radius:50%;background:#fff;opacity:var(--ca,.5)}
+.nglk-icon{position:relative;display:block;opacity:var(--a,.5);background:color-mix(in srgb,#000 calc(var(--ink,0) * 100%),#fff);-webkit-mask:center/contain no-repeat;mask:center/contain no-repeat}
+.nglk-left .nglk-icon{width:calc(26 * var(--dp));height:calc(26 * var(--dp));-webkit-mask-image:url('assets/sui-ic_mic_26dp.svg');mask-image:url('assets/sui-ic_mic_26dp.svg')}
+.nglk-camera .nglk-icon{width:calc(24 * var(--dp));height:calc(24 * var(--dp));-webkit-mask-image:url('assets/sui-ic_camera_alt_24dp.png');mask-image:url('assets/sui-ic_camera_alt_24dp.png')}
+/* The bouncer (ng-lock.js bouncer()): the in-front scrim, KeyguardSecurityContainer at the bottom, the PIN pad, the
+   password field, the pattern and the emergency button, in N2G48C's dp. */
+.ngbo{position:absolute;inset:0;z-index:5;color:#fff}
+.ngbo-scrim{position:absolute;inset:0;background:#000000bf;animation:ngbo-in .2s}
+@keyframes ngbo-in{from{opacity:0}}
+.ngbo-container{position:absolute;left:50%;bottom:0;width:min(100%,calc(320 * var(--dp)));height:min(calc(100% - 24 * var(--dp)),calc(450 * var(--dp)));transform:translateX(-50%);padding-top:calc(8 * var(--dp));box-sizing:border-box;animation:ngbo-up .3s cubic-bezier(.4,0,.2,1)}
+@keyframes ngbo-up{from{transform:translate(-50%,calc(40 * var(--dp)));opacity:0}}
+.ngbo-view{display:flex;flex-direction:column;height:100%}
+.ngbo-view.password,.ngbo-view.pattern{height:min(100%,calc(400 * var(--dp)));margin-top:auto}
+.ngbo-container:has(.password),.ngbo-container:has(.pattern){display:flex;flex-direction:column;justify-content:flex-end}
+.ngbo-msg{flex:none;min-height:calc(19 * var(--dp));text-align:center;color:#ffffffb3;font-size:calc(14 * var(--dp));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ngbo-rows{flex:1;display:flex;flex-direction:column;min-height:0}
+.ngbo-row0,.ngbo-row{flex:1;display:flex;min-height:0}
+.ngbo-row0{position:relative;align-items:center;justify-content:center;padding-bottom:calc(16 * var(--dp));border-bottom:calc(1 * var(--dp)) solid #ffffff28}
+.ngbo-entry{display:flex;gap:calc(8 * var(--dp));align-items:center}
+.ngbo-entry i{width:calc(9 * var(--dp));height:calc(9 * var(--dp));border-radius:50%;background:#fff;animation:ngbo-dot .15s}
+@keyframes ngbo-dot{from{transform:scale(0)}}
+.ngbo-del{position:absolute;right:0;top:0;bottom:calc(16 * var(--dp));padding:calc(8 * var(--dp)) calc(8 * var(--dp)) calc(8 * var(--dp)) calc(24 * var(--dp));border:0;background:none;display:grid;place-items:center}
+.ngbo-del img{width:calc(24 * var(--dp));height:calc(24 * var(--dp))}
+.ngbo-row>*{flex:1}
+.ngbo-key{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;border:0;border-radius:50%;background:none;color:#fff}
+.ngbo-key:active,.ngbo-del:active,.ngbo-emergency:active{background:#ffffff26}
+.ngbo-digit{font:300 calc(36 * var(--dp))/1 Roboto,sans-serif}
+.ngbo-letters{min-height:calc(14 * var(--dp));margin-top:calc(2 * var(--dp));color:#ffffff80;font-size:calc(12 * var(--dp))}
+.ngbo-key img{width:calc(24 * var(--dp));height:calc(24 * var(--dp));margin-bottom:calc(11 * var(--dp))}
+.ngbo-eca{flex:none;display:flex;justify-content:center;margin-top:calc(-10 * var(--dp))}
+.ngbo-emergency{min-height:calc(48 * var(--dp));padding:0 calc(16 * var(--dp));border:0;border-radius:calc(2 * var(--dp));background:none;color:#ffffffb3;font:calc(14 * var(--dp)) Roboto,sans-serif;text-transform:uppercase}
+.ngbo-space7{flex:7}.ngbo-space2{flex:2}
+.ngbo-field{align-self:center;width:calc(280 * var(--dp));padding:calc(8 * var(--dp)) 0;border:0;border-bottom:calc(2 * var(--dp)) solid #80cbc4;background:none;outline:none;text-align:center;color:#fff;font:calc(16 * var(--dp)) Roboto,sans-serif}
+.ngbo-pat{flex:1;display:flex;justify-content:center;align-items:center;min-height:0;margin:0 calc(8 * var(--dp)) calc(4 * var(--dp))}
+.ngbo-pat .ngpt{height:100%;max-width:100%;--ngpt-regular:#fff;--ngpt-success:#fff;--ngpt-error:#f4511e}
+.ngbo-container.locked .ngbo-rows,.ngbo-container.locked .ngbo-pat,.ngbo-container.locked .ngbo-field{opacity:.4}
+.nglk.bouncing .nglk-panel{visibility:hidden}

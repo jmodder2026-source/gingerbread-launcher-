@@ -1,0 +1,553 @@
+/* Simple 2013 screens for the other stock Nexus 5 Google apps (1 dp = 0.906 px): Holo Light action bars (#f2f2f2
+   with a darker edge) carrying the app icon, Maps' floating search card, Keep's coloured note cards, YouTube's feed
+   cards, the Google+ stream, Earth's globe in space and the dark News & Weather. */
+.sa-app{display:flex;flex-direction:column;overflow:hidden;position:relative;background:#eee;color:#333;color-scheme:light;font-family:RobotoICS,Roboto,sans-serif}
+.sa-bar{flex:none;display:flex;align-items:center;height:calc(48.0023 * var(--dp));background:#f2f2f2;border-bottom:calc(1.9978 * var(--dp)) solid #d2d2d2;color:#555;z-index:2}
+.sa-bar.dark{background:#222;border-bottom-color:#33b5e5;color:#eee}
+.sa-up{flex:none;position:relative;display:flex;align-items:center;height:100%;padding:0 calc(4.4151 * var(--dp)) 0 calc(10 * var(--dp));border:0;background:none}
+.sa-up span{position:absolute;left:0;font:300 calc(23.9956 * var(--dp))/1 RobotoICS,sans-serif;color:#999}
+.sa-up img{width:calc(31.9978 * var(--dp));height:calc(31.9978 * var(--dp))}
+.sa-title{flex:1;min-width:0;display:flex;flex-direction:column;margin-left:calc(6.0045 * var(--dp))}
+.sa-title b{font:400 calc(18.0023 * var(--dp)) RobotoICS,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sa-title small{font-size:calc(11.9978 * var(--dp));color:#888}
+.sa-btn{flex:none;width:calc(48.0023 * var(--dp));height:calc(48.0023 * var(--dp));padding:0;border:0;background:none;display:grid;place-items:center;color:inherit!important}
+.sa-btn svg{width:calc(23.9956 * var(--dp));height:calc(23.9956 * var(--dp))}
+.sa-app button:active{background-color:#0000001a}
+.sa-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;scrollbar-width:none}
+.sa-scroll::-webkit-scrollbar{display:none}
+.sa-empty{padding:calc(33.1126 * var(--dp));text-align:center;color:#999;font-size:calc(15 * var(--dp))}
+.sa-thumb{display:block;width:100%;height:100%}
+.sa-avatar{flex:none;display:grid;place-items:center;width:calc(40 * var(--dp));height:calc(40 * var(--dp));color:#fff;font:400 calc(19.8676 * var(--dp)) RobotoICS,sans-serif}
+/* Google (Now) fills the screen; Voice Search listens. */
+.sa-google .gnow-page{position:absolute;inset:0}
+/* Settings lists */
+.sa-settings{background:#fafafa}
+.sa-settings h4{margin:calc(15.4526 * var(--dp)) calc(16.0045 * var(--dp)) calc(4.4151 * var(--dp));padding-bottom:calc(5.5188 * var(--dp));border-bottom:calc(1.9978 * var(--dp)) solid #ccc;font:700 calc(13.9956 * var(--dp)) RobotoICS,sans-serif;color:#555}
+.sa-row{display:flex;align-items:center;gap:calc(15.4526 * var(--dp));width:100%;min-height:calc(52.9802 * var(--dp));padding:0 calc(16.0045 * var(--dp));border:0;border-bottom:var(--dp) solid #e5e5e5;background:none;text-align:left;font:400 calc(18.0023 * var(--dp)) RobotoICS,sans-serif;color:#222!important}
+.sa-row i{flex:none;width:calc(26.4901 * var(--dp));height:calc(26.4901 * var(--dp));color:#777}
+.sa-switch-row{display:flex;align-items:center;justify-content:space-between;min-height:calc(61.8102 * var(--dp));padding:0 calc(16.0045 * var(--dp));font:400 calc(18.0023 * var(--dp)) RobotoICS,sans-serif}
+.sa-switch{min-width:calc(70.6402 * var(--dp));padding:calc(4.4151 * var(--dp)) calc(11.0376 * var(--dp));border:0;background:#bbb;font:700 calc(13.9956 * var(--dp)) RobotoICS,sans-serif;color:#fff!important}
+.sa-switch.on{background:#33b5e5}
+/* Maps */
+.sa-maps{background:#ece8df}
+.sa-map{position:absolute;inset:0;width:100%;height:100%}
+.sa-maps-card{position:absolute;left:0;right:0;bottom:var(--nb);display:flex;flex-direction:column;padding:calc(13.2451 * var(--dp)) calc(66.2252 * var(--dp)) calc(13.2451 * var(--dp)) calc(15.4526 * var(--dp));background:#fff;box-shadow:0 calc(-1.1038 * var(--dp)) calc(4.4151 * var(--dp)) #0003;z-index:3}
+.sa-maps-card b{font:400 calc(20 * var(--dp)) RobotoICS,sans-serif}
+.sa-maps-card small{color:#777}
+.sa-maps-card .sa-btn{position:absolute;right:calc(8.8301 * var(--dp));top:calc(8.8301 * var(--dp));color:#4285f4!important}
+/* Drive */
+.sa-files{background:#fff}
+.sa-file{display:flex;align-items:center;gap:calc(15.4526 * var(--dp));width:100%;min-height:calc(63.9956 * var(--dp));padding:0 calc(16.0045 * var(--dp));border:0;border-bottom:var(--dp) solid #eee;background:none;text-align:left;color:#333!important}
+.sa-file i{flex:none;display:grid;place-items:center;width:calc(30.9051 * var(--dp));height:calc(30.9051 * var(--dp));border-radius:calc(2.2076 * var(--dp));color:#fff;font:700 calc(15.4526 * var(--dp)) RobotoICS,sans-serif;font-style:normal}
+.sa-file i svg{width:calc(19.8676 * var(--dp));height:calc(19.8676 * var(--dp))}
+.sa-file span{display:flex;flex-direction:column;min-width:0}
+.sa-file b{font:400 calc(16.9978 * var(--dp)) RobotoICS,sans-serif}
+.sa-file small{font-size:calc(13.0023 * var(--dp));color:#999}
+.sa-doc{background:#e5e5e5;padding:calc(13.2451 * var(--dp))}
+.sa-page{min-height:100%;padding:calc(26.4901 * var(--dp)) calc(22.0751 * var(--dp));background:#fff;box-shadow:0 calc(1.1038 * var(--dp)) calc(3.3113 * var(--dp)) #0003;font:400 calc(15 * var(--dp))/1.6 Arial,sans-serif;color:#222}
+.sa-page p{margin:0 0 calc(8.8301 * var(--dp))}
+/* Keep */
+/* YouTube */
+.sa-youtube{background:#ebebeb}
+.sa-yt-watch{background:#fff}
+.sa-yt-player{position:relative;flex:none;aspect-ratio:16/9;background:#000;overflow:hidden;cursor:pointer}
+.sa-yt-player .sa-thumb{transition:transform 8s linear}
+.sa-yt-player.playing .sa-thumb{animation:pm-pan 10s ease-in-out infinite alternate}
+.sa-yt-state{position:absolute;left:50%;top:50%;width:calc(52.9802 * var(--dp));height:calc(52.9802 * var(--dp));margin:calc(-26.4901 * var(--dp));color:#fff}
+.sa-yt-progress{position:absolute;left:0;bottom:0;height:calc(3.3113 * var(--dp));width:30%;background:#e62117}
+.sa-yt-player.playing .sa-yt-progress{animation:sa-yt 60s linear forwards}
+@keyframes sa-yt{to{width:100%}}
+/* Google+ */
+.sa-gplus{background:#e5e5e5}
+.sa-stream{padding:calc(8.0023 * var(--dp))}
+.sa-post{position:relative;margin-bottom:calc(8.0023 * var(--dp));padding:calc(11.0376 * var(--dp)) calc(13.2451 * var(--dp)) 0 calc(64.0177 * var(--dp));background:#fff;box-shadow:0 calc(1.1038 * var(--dp)) calc(2.2076 * var(--dp)) #0002}
+.sa-post .sa-avatar{position:absolute;left:calc(13.2451 * var(--dp));top:calc(13.2451 * var(--dp))}
+.sa-post-head{display:flex;flex-direction:column}
+.sa-post-head b{font:700 calc(16.0045 * var(--dp)) RobotoICS,sans-serif;color:#222}
+.sa-post-head small{font-size:calc(13.0023 * var(--dp));color:#999}
+.sa-post p{margin:calc(6.6226 * var(--dp)) 0 calc(8.8301 * var(--dp));font:400 calc(16.0045 * var(--dp))/1.4 RobotoICS,sans-serif}
+.sa-post-photo{margin:0 calc(-13.2451 * var(--dp)) 0 calc(-64.0177 * var(--dp));aspect-ratio:16/9}
+.sa-post footer{display:flex;justify-content:space-between;align-items:center;margin:0 calc(-13.2451 * var(--dp)) 0 calc(-64.0177 * var(--dp));padding:calc(6.6226 * var(--dp)) calc(13.2451 * var(--dp));border-top:var(--dp) solid #eee}
+.sa-post footer button{border:0;background:none;color:#888!important;font:700 calc(13.9956 * var(--dp)) RobotoICS,sans-serif}
+.sa-post footer svg{width:calc(19.8676 * var(--dp));height:calc(19.8676 * var(--dp))}
+.sa-plus{padding:calc(3.3113 * var(--dp)) calc(8.8301 * var(--dp))!important;border:var(--dp) solid #ccc!important;border-radius:calc(2.2076 * var(--dp))}
+.sa-plus.on{background:#dd4b39!important;border-color:#dd4b39!important;color:#fff!important}
+/* Earth */
+.sa-earth{background:radial-gradient(ellipse at 50% 55%,#0c1a33,#000 70%)}
+.sa-stars{position:absolute;inset:0;background-image:radial-gradient(calc(1.1038 * var(--dp)) calc(1.1038 * var(--dp)) at 20% 30%,#fff,transparent),radial-gradient(calc(1.1038 * var(--dp)) calc(1.1038 * var(--dp)) at 70% 20%,#fff,transparent),radial-gradient(calc(1.1038 * var(--dp)) calc(1.1038 * var(--dp)) at 40% 80%,#fff,transparent),radial-gradient(calc(1.1038 * var(--dp)) calc(1.1038 * var(--dp)) at 85% 70%,#fff,transparent),radial-gradient(calc(1.1038 * var(--dp)) calc(1.1038 * var(--dp)) at 10% 65%,#ccc,transparent),radial-gradient(calc(1.1038 * var(--dp)) calc(1.1038 * var(--dp)) at 60% 50%,#aaa,transparent);background-size:calc(198.6755 * var(--dp)) calc(198.6755 * var(--dp));opacity:.8}
+.sa-globe{position:absolute;left:50%;top:52%;width:86%;aspect-ratio:1;transform:translate(-50%,-50%)}
+.sa-globe svg{width:100%;height:100%}
+.sa-land{animation:sa-spin 30s linear infinite}
+@keyframes sa-spin{from{transform:translateX(0)}to{transform:translateX(calc(-220.7506 * var(--dp)))}}
+/* News & Weather (Holo dark) */
+/* Action buttons with the apps' own drawables (32 dp holo menu icons; 24 dp Material on 5.1.1). */
+.sa-btn img{width:calc(31.9978 * var(--dp));height:calc(31.9978 * var(--dp))}
+.sa-btn.tint img{filter:brightness(0) invert(1)}
+.screen .sa-btn:active{background:#ffffff26}
+
+/* The up caret: the framework's ic_ab_back_holo_* (only with up navigation, no text glyph). */
+.sa-up .sa-caret{width:calc(16.0045 * var(--dp));height:calc(31.9978 * var(--dp));margin:0 calc(1.9978 * var(--dp)) 0 calc(-6.0045 * var(--dp))}
+
+/* News & Weather 1.3.11 (audit step 4): GenieWidget's own tabs, news rows and weather panel at the KitKat scale (hdpi
+   drawables x0.604). weather_background_grey is a flat #1a1a1a. */
+.sa-news{background:#1a1a1a;color:#fff}
+.sa-news .sa-bar.dark{background:#222}
+.nw-tabs{flex:none;display:flex;overflow-x:auto;scrollbar-width:none;background:#222}
+.nw-tabs::-webkit-scrollbar{display:none}
+.screen .nw-tabs button{position:relative;flex:none;height:calc(51.9978 * var(--dp));padding:0 calc(35 * var(--dp));border:0;background:#222;box-shadow:inset 0 calc(-.9934 * var(--dp)) #505050;font:400 calc(11.9978 * var(--dp)) Roboto,sans-serif;color:#fff;white-space:nowrap;cursor:pointer}
+.screen .nw-tabs button.on{box-shadow:inset 0 calc(-6.0045 * var(--dp)) #33b5e5}
+.nw-tabs button::after{content:'';position:absolute;right:0;top:calc(10 * var(--dp));bottom:calc(10 * var(--dp));width:calc(.9934 * var(--dp));background:#505050}
+.nw-list{background:#1a1a1a}
+.screen .nw-item{display:flex;align-items:center;width:100%;height:calc(80 * var(--dp));padding:0 calc(15 * var(--dp));border:0;border-bottom:calc(.9934 * var(--dp)) solid #ffffff1f;background:none;text-align:left;cursor:pointer}
+.screen .nw-item.pic{padding:0 calc(10 * var(--dp)) 0 calc(15 * var(--dp))}
+.nw-item>span:first-child{flex:1;min-width:0;display:flex;flex-direction:column}
+.nw-item b{font:700 calc(16.0045 * var(--dp))/1.3 Roboto,sans-serif;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nw-item small{font:400 calc(13.9956 * var(--dp))/1.35 Roboto,sans-serif;color:#bfbfbf;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nw-pic{flex:none;width:calc(70 * var(--dp));height:calc(60 * var(--dp));margin-left:calc(5 * var(--dp));overflow:hidden}
+.nw-pic .sa-thumb{width:100%;height:100%}
+.screen .nw-item:active{background:#33b5e566}
+.nw-weather{border-style:solid;border-width:calc(15.3312 * var(--dp));border-image:url('assets/nw-bg_weather_panel_app.png') 23 fill/calc(15.3312 * var(--dp))}
+.nw-weather>*{margin:0 calc(-5.3312 * var(--dp))}
+.nw-city{display:flex;align-items:center;height:calc(50 * var(--dp));padding:0 calc(10 * var(--dp)) 0 calc(20 * var(--dp))}
+.nw-city b{flex:1;min-width:0;font:400 calc(30 * var(--dp)) Roboto,sans-serif;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.screen .nw-city button{padding:0;border:0;background:none}
+.nw-city img{width:calc(27.34 * var(--dp));height:calc(27.34 * var(--dp));display:block}
+.nw-divider{display:block;height:calc(1.9978 * var(--dp));background:#1a1a1a1a}
+.nw-today{position:relative}
+.nw-twc{position:absolute;right:0;top:0;width:calc(34.989 * var(--dp));height:calc(34.989 * var(--dp));padding:calc(5 * var(--dp)) calc(5 * var(--dp)) 0 0}
+.nw-now{display:flex;align-items:flex-start}
+.nw-now img{width:calc(90 * var(--dp));height:calc(90 * var(--dp));padding-top:calc(10 * var(--dp))}
+.nw-now b{font:400 calc(80 * var(--dp))/1.2 Roboto,sans-serif;color:#fff}
+.nw-range{padding:0 0 calc(20 * var(--dp)) calc(95 * var(--dp));display:flex;flex-wrap:wrap;align-items:baseline}
+.nw-range span{font:400 calc(20.9934 * var(--dp)) Roboto,sans-serif;color:#fff}
+.nw-range span.lo{color:#bfbfbf;padding-left:calc(10 * var(--dp))}
+.nw-range p{flex-basis:100%;margin:0;font:400 calc(16.0045 * var(--dp)) Roboto,sans-serif;color:#fff}
+.nw-range small{flex-basis:100%;font:400 calc(11.9978 * var(--dp)) Roboto,sans-serif;color:#bfbfbf}
+.nw-forecast{display:flex;justify-content:space-around}
+.nw-forecast div{display:flex;flex-direction:column;align-items:center;padding:calc(20 * var(--dp)) 0 calc(25 * var(--dp));font:400 calc(15 * var(--dp)) Roboto,sans-serif;color:#fff}
+.nw-forecast img{width:calc(30 * var(--dp));height:calc(30 * var(--dp))}
+.nw-forecast b{font-weight:400}
+.nw-forecast small{font-size:calc(15 * var(--dp));color:#bfbfbf}
+
+/* Earth 7.1.3 (audit step 4): the overlay action bar on header_bar_bg_80_percent_black with Search and Reset to north;
+   Search expands into the bar, a search's query becomes the title. */
+.sa-earth .sa-earth-bar{position:absolute;left:0;right:0;top:0;z-index:3;background:#000000cc;border-bottom:0;color:#fff}
+.sa-earth-bar .sa-btn.tall img{width:calc(12.5056 * var(--dp));height:calc(25.9934 * var(--dp))}
+.sa-earth-field{flex:1;min-width:0;display:flex;align-items:center}
+.sa-earth-field input{width:100%;padding:calc(4.702 * var(--dp)) calc(2.351 * var(--dp));border:0;border-bottom:calc(1.9978 * var(--dp)) solid #33b5e5;background:none;color:#fff;font:400 calc(18.0023 * var(--dp)) Roboto,sans-serif;outline:0}
+
+/* Google Settings (audit step 4): common_settings_bg (xhdpi 9-patch, #dddddd with a darker 1.5 dp bottom) 48 dp tall,
+   the invisible 16 dp up icon, the icon in 32 dp with 4 dp after it, 18 sp black title; Theme.Holo.Light's list: rows
+   48 dp, 8 dp padding, 18 sp, list_divider_holo_light, on background_holo_light. */
+.sa-gsettings{background:#f3f3f3}
+.gs-bar{flex:none;display:flex;align-items:center;height:calc(48.0023 * var(--dp));border-style:solid;border-width:calc(13.6645 * var(--dp)) calc(7.6711 * var(--dp)) calc(1.9978 * var(--dp)) calc(8.0023 * var(--dp));border-image:url('assets/gms-common_settings_bg.png') 41 23 6 24 fill/calc(13.6645 * var(--dp)) calc(7.6711 * var(--dp)) calc(1.9978 * var(--dp)) calc(8.0023 * var(--dp));box-sizing:border-box}
+.gs-bar>*{margin-top:calc(-13.6645 * var(--dp));margin-bottom:calc(-1.9978 * var(--dp))}
+.screen .gs-up{display:flex;align-items:center;height:calc(48.0023 * var(--dp));margin-left:calc(-8.0023 * var(--dp));padding:0;border:0;background:none;cursor:pointer}
+.gs-up i{width:calc(16.0045 * var(--dp))}
+.gs-up img{width:calc(31.9978 * var(--dp));height:calc(31.9978 * var(--dp));margin-right:calc(4.0067 * var(--dp))}
+.screen .gs-up:active{background:#33b5e566}
+.gs-bar b{font:400 calc(18.0023 * var(--dp)) Roboto,sans-serif;color:#000}
+.gs-list{margin:0 calc(16.0045 * var(--dp))}
+.screen .gs-list button{display:flex;align-items:center;width:100%;min-height:calc(48.0023 * var(--dp));padding:0 calc(8.0023 * var(--dp));border:0;border-bottom:calc(.9934 * var(--dp)) solid #0000001f;background:none;text-align:left;font:400 calc(18.0023 * var(--dp)) Roboto,sans-serif;color:#000;cursor:pointer}
+.screen .gs-list button:active{background:#33b5e566}
+
+/* Voice Search (audit step 4): the search plate's voice mode at the Nexus 5 scale. search_bg (xhdpi, 12 dp of shadow
+   margin); the mic (68 dp container, 4 dp padding, centerInside) with its centre 42 dp from the right and 34 dp from the
+   top; the level circle and the guide clipped to SoundLevels' 152 dp box. */
+.sa-voice{background:#eee}
+.vs-panel{margin-top:calc(20 * var(--dp));border-style:solid;border-width:calc(21.9978 * var(--dp)) calc(23.0023 * var(--dp));border-image:url('assets/vn3-search_bg.png') 44 46 fill/calc(21.9978 * var(--dp)) calc(23.0023 * var(--dp))}
+.vs-speech{position:relative;height:calc(260 * var(--dp));margin:calc(-10 * var(--dp)) calc(-11.0045 * var(--dp));overflow:hidden}
+.vs-logo{position:absolute;left:calc(30 * var(--dp));top:calc(28.0023 * var(--dp));width:calc(103.4989 * var(--dp));height:calc(36.5012 * var(--dp))}
+.vs-levels{position:absolute;right:0;top:0;width:calc(151.9978 * var(--dp));height:calc(151.9978 * var(--dp));overflow:hidden}
+.vs-levels i,.vs-levels b{position:absolute;left:calc(100% - calc(41.9978 * var(--dp)));top:calc(33.9956 * var(--dp));border-radius:50%;transform:translate(-50%,-50%)}
+.vs-levels i{width:calc(200 * var(--dp));height:calc(200 * var(--dp));border:calc(1.0045 * var(--dp)) solid #dbdbdb;box-sizing:border-box}
+.vs-levels b{width:calc(68.0023 * var(--dp));height:calc(68.0023 * var(--dp));background:#dbdbdb;opacity:0;transition:opacity .2s}
+.vs-levels.on b{opacity:1;animation:vs-level 1.1s ease-in-out infinite}
+@keyframes vs-level{0%,100%{transform:translate(-50%,-50%) scale(1)}35%{transform:translate(-50%,-50%) scale(2.1)}60%{transform:translate(-50%,-50%) scale(1.4)}80%{transform:translate(-50%,-50%) scale(1.8)}}
+.screen .vs-mic{position:absolute;right:calc(8.0023 * var(--dp));top:0;width:calc(68.0023 * var(--dp));height:calc(68.0023 * var(--dp));padding:calc(3.9956 * var(--dp));border:0;background:none;cursor:pointer}
+.vs-mic img{width:100%;height:100%;display:block}
+.vs-speech p{position:absolute;left:calc(31.9978 * var(--dp));right:calc(31.9978 * var(--dp));bottom:calc(31.9978 * var(--dp));margin:0;font:300 calc(20 * var(--dp))/1.3 'Roboto Light',Roboto,sans-serif;color:#777}
+
+/* Maps 7.5 (audit step 4): base_main_internal.xml at the Nexus 5 scale (xhdpi drawables x.453). The omnibox 9-patch's
+   padding holds its edge and shadow, so it sits 10 dp from the sides and top; the button 9-patch is the my-location button's 52 dp backing. */
+.sa-maps7 .mp7-map{position:absolute;inset:0;overflow:hidden}
+.mp7-omnibox{position:absolute;left:calc(10 * var(--dp));right:calc(10 * var(--dp));top:calc(10 * var(--dp));display:flex;align-items:center;height:calc(71.9978 * var(--dp));box-sizing:border-box;border-style:solid;border-width:calc(13.0023 * var(--dp)) calc(13.4989 * var(--dp)) calc(15 * var(--dp)) calc(14.5034 * var(--dp));border-image:url('assets/mp7-omnibox.png') 26 27 30 29 fill/calc(13.0023 * var(--dp)) calc(13.4989 * var(--dp)) calc(15 * var(--dp)) calc(14.5034 * var(--dp))}
+.mp7-omnibox input{flex:1;min-width:0;height:100%;padding:0 calc(10 * var(--dp));border:0;background:none;font:300 calc(16.9978 * var(--dp)) 'Roboto Light',Roboto,sans-serif;color:#222;outline:none}
+.mp7-omnibox i{width:calc(1.0045 * var(--dp));height:calc(23.9956 * var(--dp));background:#dedede}
+.screen .mp7-omnibox button{height:100%;padding:0 calc(15 * var(--dp));border:0;background:none}
+.mp7-omnibox button img{width:calc(23.9956 * var(--dp));height:calc(23.9956 * var(--dp));display:block}
+.mp7-watermark{position:absolute;left:calc(8.9956 * var(--dp));bottom:calc(8.9956 * var(--dp));width:calc(56.0045 * var(--dp));height:calc(21.0045 * var(--dp))}
+.screen .mp7-locate{position:absolute;right:0;bottom:0;width:calc(51.9978 * var(--dp));height:calc(51.9978 * var(--dp));padding:0;border:0;background:url('assets/mp7-button.png') center/100% 100% no-repeat;display:grid;place-items:center}
+.mp7-locate img{width:calc(31.9978 * var(--dp));height:calc(31.9978 * var(--dp))}
+.screen .mp7-tab{position:absolute;right:0;bottom:calc(60 * var(--dp));padding:0;border:0;background:none}
+.mp7-tab img{width:calc(21.0045 * var(--dp));height:calc(51.9978 * var(--dp));display:block}
+.screen .mp7-scrim{position:absolute;inset:0;border:0;background:transparent}
+.mp7-panel{position:absolute;right:0;top:0;bottom:0;width:min(calc(300 * var(--dp)),100%);overflow-y:auto;background:url('assets/mp7-layers_background.png') 0 0/calc(40 * var(--dp)) calc(60 * var(--dp)) repeat;color:#dedede}
+.mp7-spacer{display:block;height:calc(8.9956 * var(--dp))}
+.screen .mp7-panel button{display:flex;align-items:center;width:calc(100% - calc(30 * var(--dp)));margin:0 calc(15 * var(--dp));border:0;background:none;text-align:left;color:#dedede;cursor:pointer}
+.screen .mp7-panel .mp7-layer{height:calc(45 * var(--dp));margin-bottom:calc(8.0023 * var(--dp));gap:calc(8.0023 * var(--dp));font:400 calc(16.0045 * var(--dp)) Roboto,sans-serif}
+.screen .mp7-panel .mp7-layer.on{border-style:solid;border-width:calc(9.5034 * var(--dp)) calc(8.9956 * var(--dp)) calc(8.4989 * var(--dp));border-image:url('assets/mp7-layers_selected_background.png') 19 18 17 fill/calc(9.5034 * var(--dp)) calc(8.9956 * var(--dp)) calc(8.4989 * var(--dp));padding:0;color:#fff;margin-left:calc(6.0045 * var(--dp));width:calc(100% - calc(21.0045 * var(--dp)));box-sizing:border-box}
+.mp7-layer img{width:calc(26.9978 * var(--dp));height:calc(26.9978 * var(--dp))}
+.mp7-layer .mp7-shortcut{margin-left:calc(15 * var(--dp))}
+.screen .mp7-panel .mp7-earth{margin-bottom:calc(8.9956 * var(--dp))}
+.mp7-panel hr{height:calc(.7506 * var(--dp));margin:0 calc(15 * var(--dp));border:0;border-top:calc(.7506 * var(--dp)) solid #000;border-bottom:calc(.7506 * var(--dp)) solid #66696c}
+.screen .mp7-panel .mp7-menu{height:calc(56.0045 * var(--dp));padding-left:calc(15 * var(--dp));font:700 calc(18.0023 * var(--dp)) Roboto,sans-serif}
+.screen .mp7-panel button:active{color:#fff}
+.sa-maps7 .sa-maps-card{z-index:1}
+
+/* Keep 2.0.51 (1.0's pieces, KitKat scale) (audit step 4): quick_edit.xml across the width on quick_edit_shadow (xhdpi slices 20 28 36 28), "Add quick
+   note" in 18 sp #99000000 (8 dp left, 48 dp right padding), a 1 dp #25000000 divider over add_items_bar.xml (38 dp, four
+   32 dp icons); notes on note_shadow with their color inside, 16 sp #99000000 with 8 dp padding, two columns or one. */
+.sa-keep .sa-keep-add{display:block;margin:0;padding:0;background:none;box-shadow:none;border:0 solid transparent;border-width:calc(10 * var(--dp)) calc(13.9956 * var(--dp)) calc(18.0023 * var(--dp));border-image:url('assets/kp2-quick_edit_shadow.png') 20 28 36 28 fill / calc(10 * var(--dp)) calc(13.9956 * var(--dp)) calc(18.0023 * var(--dp)) stretch}
+.sa-keep .sa-keep-add input{display:block;width:100%;height:auto;border:0;background:none;outline:none;padding:calc(8.0023 * var(--dp)) calc(48.0023 * var(--dp)) calc(8.0023 * var(--dp)) calc(8.0023 * var(--dp));font:400 calc(18.0023 * var(--dp)) Roboto,sans-serif;color:#000}
+.sa-keep .sa-keep-add input::placeholder{color:#00000099}
+.sa-keep .sa-keep-add>i{display:block;height:calc(.9934 * var(--dp));background:#00000025}
+.sa-keep-items{display:flex;height:calc(38.0023 * var(--dp))}
+.screen .sa-keep-new{flex:1;display:flex;align-items:center;justify-content:center;padding:0;border:0;background:none}
+.sa-keep-new img{width:calc(31.9978 * var(--dp));height:calc(31.9978 * var(--dp))}
+.screen .sa-keep-new:active{background:#33b5e566}
+.sa-keep .sa-notes{columns:2;column-gap:0;padding:0 calc(3.9956 * var(--dp))}
+.sa-keep .sa-notes.single{columns:1}
+.screen .sa-keep .sa-note{display:block;width:100%;min-height:calc(48.0023 * var(--dp));break-inside:avoid;margin:0;padding:calc(8.0023 * var(--dp));border:0 solid transparent;border-width:calc(10 * var(--dp)) calc(13.9956 * var(--dp)) calc(18.0023 * var(--dp));border-image:url('assets/kp2-note_shadow.png') 20 28 36 28 / calc(10 * var(--dp)) calc(13.9956 * var(--dp)) calc(18.0023 * var(--dp)) stretch;background:var(--note,#fff) padding-box;box-shadow:none;text-align:left;font:400 calc(16.0045 * var(--dp))/1.35 Roboto,sans-serif;color:#000000bb!important}
+.screen .sa-keep .sa-note:active{border-image-source:url('assets/kp2-note_shadow_activated.png')}
+/* Keep 2.0's overlay action bar on ab_solid (xhdpi slices 36 20 8 24, #dce1e3 at 90%), the 16 dp drawer indicator, 18 sp
+   #99000000 title; quick_edit.xml sits an action bar's height down; drawer_fragment.xml 300 dp on #f5f5f5 under the bar,
+   items 48 dp: 32 dp icon 4 dp in, 18 sp text 8 dp after it. */
+.sa-keep2{background:#dce1e3}
+.sa-keep2 .kp2-bar{position:absolute;left:0;right:0;top:0;z-index:3;height:calc(48.0023 * var(--dp));box-sizing:border-box;border-style:solid;border-width:calc(18.0023 * var(--dp)) calc(10 * var(--dp)) calc(3.9956 * var(--dp)) calc(11.9978 * var(--dp));border-image:url('assets/kp2-ab_solid.png') 36 20 8 24 fill/calc(18.0023 * var(--dp)) calc(10 * var(--dp)) calc(3.9956 * var(--dp)) calc(11.9978 * var(--dp));background:none;color:#00000099}
+.sa-keep2 .kp2-bar>*{margin-top:calc(-18.0023 * var(--dp));margin-bottom:calc(-3.9956 * var(--dp))}
+.sa-keep2 .kp2-bar .sa-up{margin-left:calc(-11.9978 * var(--dp));padding-left:0}
+.kp2-drawer-icon{width:calc(16.0045 * var(--dp))!important;height:calc(16.0045 * var(--dp))!important;margin:0 calc(1.9978 * var(--dp)) 0 0}
+.sa-keep2 .kp2-bar .sa-title b{font:400 calc(18.0023 * var(--dp)) Roboto,sans-serif;color:#00000099}
+.sa-keep2 .sa-scroll{padding-top:calc(48.0023 * var(--dp))}
+.sa-keep2 .sa-keep-edit{margin-top:calc(56.0045 * var(--dp))}
+.screen .kp2-scrim{position:absolute;left:0;right:0;top:calc(48.0023 * var(--dp));bottom:0;z-index:2;border:0;background:#0006}
+.kp2-drawer{position:absolute;left:0;top:calc(48.0023 * var(--dp));bottom:0;z-index:2;width:min(calc(300 * var(--dp)),85%);background:#f5f5f5;overflow-y:auto}
+.kp2-account{height:calc(48.0023 * var(--dp));margin:0 calc(11.9978 * var(--dp));display:flex;align-items:center;border-bottom:calc(1.0045 * var(--dp)) solid #c8c8c8;font:400 calc(16.0045 * var(--dp)) Roboto,sans-serif;color:#58585b}
+.screen .kp2-drawer button{display:flex;align-items:center;width:calc(100% - calc(31.9978 * var(--dp)));height:calc(48.0023 * var(--dp));margin:0 calc(16.0045 * var(--dp));padding:0;border:0;background:none;font:400 calc(18.0023 * var(--dp)) Roboto,sans-serif;color:#58585b;text-align:left;cursor:pointer}
+.kp2-drawer button img{width:calc(31.9978 * var(--dp));height:calc(31.9978 * var(--dp));margin:0 calc(8.0023 * var(--dp)) 0 calc(3.9956 * var(--dp))}
+.screen .kp2-drawer button.on{color:#33b5e5cc}
+.screen .kp2-drawer button:active{background:#33b5e566}
+.sa-keep2 .sa-empty{padding:calc(80 * var(--dp)) calc(20 * var(--dp));font:400 calc(21.9978 * var(--dp)) Roboto,sans-serif;color:#0000004d;text-align:center}
+
+/* YouTube 5.2 (audit step 4) at the Nexus 5 scale (xhdpi drawables x.453): the gradient action bar with the 37 x 32 dp
+   logo after the 16 dp guide toggle; card_frame (xhdpi slices 6 8 10 8) 10 dp from the sides; the guide 85% wide over
+   the feed. */
+.sa-yt5{background:#ededed}
+.sa-yt5 .yt5-bar{background:url('assets/yt5-action_bar_background.png') 0 0/100% 100%;border-bottom:0;color:#666}
+.yt5-bar .sa-up img.yt5-toggle{width:calc(16.0045 * var(--dp));height:calc(16.0045 * var(--dp));margin-right:calc(1.9978 * var(--dp))}
+.yt5-bar .sa-up img.yt5-logo{width:calc(36.9978 * var(--dp));height:calc(31.9978 * var(--dp))}
+.yt5-feed{padding:calc(5 * var(--dp)) 0}
+.screen .yt5-card{display:block;width:calc(100% - calc(20 * var(--dp)));margin:calc(5 * var(--dp)) calc(10 * var(--dp));padding:0 0 calc(11.9978 * var(--dp));border-style:solid;border-width:calc(3.0023 * var(--dp)) calc(3.9956 * var(--dp)) calc(5 * var(--dp));border-image:url('assets/yt5-card_frame.png') 6 8 10 fill/calc(3.0023 * var(--dp)) calc(3.9956 * var(--dp)) calc(5 * var(--dp));background:none;text-align:left;cursor:pointer}
+.yt5-thumb,.yt5-row-thumb{position:relative;display:block;aspect-ratio:16/9;overflow:hidden}
+.yt5-thumb .sa-thumb,.yt5-row-thumb .sa-thumb{position:absolute;inset:0;width:100%;height:100%}
+.yt5-thumb em,.yt5-row-thumb em{position:absolute;right:calc(3.9956 * var(--dp));bottom:calc(3.9956 * var(--dp));padding:calc(6.0045 * var(--dp));border:calc(1.0045 * var(--dp)) solid #ffffff44;background:#000000cc;font:400 calc(11.9978 * var(--dp))/1 Roboto,sans-serif;font-style:normal;color:#fff}
+.yt5-row-thumb em{padding:calc(1.9978 * var(--dp)) calc(3.9956 * var(--dp))}
+.yt5-copy{position:relative;display:flex;flex-direction:column;padding:calc(11.9978 * var(--dp)) calc(43.9956 * var(--dp)) 0 calc(11.9978 * var(--dp))}
+.yt5-copy b{font:400 calc(18.0023 * var(--dp))/1.3 Roboto,sans-serif;color:#333}
+.yt5-copy small{margin-top:calc(3.0023 * var(--dp));font:400 calc(13.9956 * var(--dp)) Roboto,sans-serif;color:#999}
+.yt5-anchor{position:absolute;right:calc(16.0045 * var(--dp));top:calc(11.9978 * var(--dp));width:calc(3.9956 * var(--dp));height:calc(16.0045 * var(--dp))}
+.sa-yt5.sa-yt-watch{background:#ededed}
+.yt5-info,.yt5-suggested{position:relative;margin:calc(10 * var(--dp)) calc(10 * var(--dp)) 0;border-style:solid;border-width:calc(3.0023 * var(--dp)) calc(3.9956 * var(--dp)) calc(5 * var(--dp));border-image:url('assets/yt5-card_frame.png') 6 8 10 fill/calc(3.0023 * var(--dp)) calc(3.9956 * var(--dp)) calc(5 * var(--dp))}
+.yt5-info h3{margin:0;padding:calc(11.9978 * var(--dp)) calc(48.0023 * var(--dp)) 0 calc(11.9978 * var(--dp));font:400 calc(18.0023 * var(--dp))/1.3 Roboto,sans-serif;color:#333}
+.yt5-info p{margin:calc(1.9978 * var(--dp)) calc(11.9978 * var(--dp)) 0;font:400 calc(13.9956 * var(--dp)) Roboto,sans-serif;color:#999}
+.yt5-expand{position:absolute;right:calc(18.0023 * var(--dp));top:calc(18.0023 * var(--dp));width:calc(11.0045 * var(--dp));height:calc(6.0045 * var(--dp))}
+.yt5-likes{display:flex;gap:calc(16.0045 * var(--dp));margin:calc(11.9978 * var(--dp)) calc(11.9978 * var(--dp)) 0;padding-top:calc(8.0023 * var(--dp));border-top:calc(1.0045 * var(--dp)) solid #e1e1e1;min-height:calc(40 * var(--dp))}
+.screen .yt5-likes button{display:flex;align-items:center;gap:calc(3.9956 * var(--dp));height:calc(36.0045 * var(--dp));padding:0;border:0;background:none;font:400 calc(13.9956 * var(--dp)) Roboto,sans-serif;color:#999}
+.yt5-likes img{width:calc(31.9978 * var(--dp));height:calc(31.9978 * var(--dp))}
+.screen .yt5-likes button.on{color:#1b7fcc}
+.screen .yt5-row{display:flex;width:100%;padding:0 0 calc(10 * var(--dp)) calc(13.9956 * var(--dp));border:0;border-top:calc(1.0045 * var(--dp)) solid #e1e1e1;background:none;text-align:left;cursor:pointer}
+.screen .yt5-row.first{border-top:0}
+.yt5-row-thumb{flex:3;margin-top:calc(10 * var(--dp))}
+.yt5-row-meta{flex:2;min-width:0;display:flex;flex-direction:column;margin:calc(10 * var(--dp)) calc(10 * var(--dp)) 0}
+.yt5-row-meta b{font:400 calc(13.9956 * var(--dp))/1.3 Roboto,sans-serif;color:#333;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.yt5-row-meta small{font:400 calc(11.9978 * var(--dp)) Roboto,sans-serif;color:#999}
+.screen .yt5-more{display:flex;align-items:center;width:100%;min-height:calc(48.0023 * var(--dp));padding:0 calc(11.9978 * var(--dp));border:0;border-top:calc(1.0045 * var(--dp)) solid #e1e1e1;background:none;font:400 calc(13.9956 * var(--dp)) Roboto,sans-serif;color:#1b7fcc;text-align:left}
+.screen .yt5-scrim{position:absolute;inset:calc(48.0023 * var(--dp)) 0 0;z-index:2;border:0;background:#0006}
+.yt5-guide{position:absolute;left:0;top:calc(48.0023 * var(--dp));bottom:0;z-index:2;width:85%;overflow-y:auto;background:#434343}
+.yt5-account{display:flex;align-items:center;height:calc(48.0023 * var(--dp));padding-left:calc(11.9978 * var(--dp));border-bottom:calc(1.9978 * var(--dp)) solid #646464}
+.yt5-account img{width:calc(31.9978 * var(--dp));height:calc(31.9978 * var(--dp));margin-right:calc(8.0023 * var(--dp))}
+.yt5-account span{display:flex;flex-direction:column;font:400 calc(11.9978 * var(--dp)) Roboto,sans-serif;color:#999}
+.screen .yt5-entry{display:flex;align-items:center;width:100%;height:calc(48.0023 * var(--dp));padding:0 calc(13.9956 * var(--dp));border:0;box-shadow:inset 0 calc(-1.0045 * var(--dp)) #333,inset calc(13.9956 * var(--dp)) 0 #434343,inset calc(-13.9956 * var(--dp)) 0 #434343,inset 0 calc(-1.9978 * var(--dp)) #444;background:none;text-align:left;cursor:pointer}
+.yt5-entry img,.yt5-entry i{flex:none;width:calc(31.9978 * var(--dp));height:calc(31.9978 * var(--dp));margin-right:calc(8.0023 * var(--dp))}
+.yt5-entry span{font:400 calc(16.0045 * var(--dp)) Roboto,sans-serif;color:#f2f2f2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.screen .yt5-entry.on,.screen .yt5-entry:active{background:#2a2a2a}
+.yt5-section{margin:0;padding:calc(11.9978 * var(--dp)) calc(13.9956 * var(--dp)) calc(6.9978 * var(--dp));border-bottom:calc(1.9978 * var(--dp)) solid #646464;font:400 calc(11.9978 * var(--dp)) Roboto,sans-serif;color:#999}
+
+/* Drive 1.2 (audit step 4) at the Nexus 5 scale: the action bar background drawn as its colours, the 16 dp drawer
+   indicator, doc_entry_row.xml (60 dp) with doclist_icon_default_background_color, #dddddd rules, the navigation panel
+   (#eeeeee, rows with a #c6c6c6 / white double line). */
+.sa-drive12{background:#fff}
+.sa-drive12 .dr-bar{background:#ddd;border-bottom:calc(3.0023 * var(--dp)) solid #d6d6d6;box-shadow:inset 0 calc(-1.0045 * var(--dp)) #c3c3c3;color:#333}
+.dr-bar .sa-up img.dr-toggle{width:calc(16.0045 * var(--dp));height:calc(16.0045 * var(--dp));margin-right:calc(1.9978 * var(--dp))}
+.dr-bar .sa-title b{color:#333}
+.dr-group{margin:0;padding:calc(6.0045 * var(--dp)) 0 calc(6.0045 * var(--dp)) calc(20 * var(--dp));border-top:calc(1.0045 * var(--dp)) solid #ddd;font:400 calc(11.9978 * var(--dp)) Roboto,sans-serif;color:#222}
+.dr-row{display:flex;height:calc(60 * var(--dp));border-bottom:calc(1.0045 * var(--dp)) solid #ddd}
+.screen .dr-main{flex:1;min-width:0;display:flex;align-items:stretch;padding:0;border:0;background:none;text-align:left;cursor:pointer}
+.dr-icon{flex:none;width:calc(60 * var(--dp));display:grid;place-items:center;margin-left:calc(1.0045 * var(--dp));background:#f0f0f0;box-shadow:calc(-1.0045 * var(--dp)) 0 #d0d0d0}
+.dr-icon img{width:calc(16.0045 * var(--dp));height:calc(16.0045 * var(--dp))}
+.dr-text{min-width:0;display:flex;flex-direction:column;padding:calc(8.0023 * var(--dp)) 0 0 calc(8.0023 * var(--dp))}
+.dr-text b{font:400 calc(16.0045 * var(--dp)) Roboto,sans-serif;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dr-text small{padding:calc(1.0045 * var(--dp)) 0 calc(1.9978 * var(--dp));font:400 calc(13.0023 * var(--dp)) Roboto,sans-serif;color:#aaa}
+.screen .dr-info{flex:none;width:calc(60 * var(--dp));padding:0;border:0;background:none;display:grid;place-items:center}
+.dr-info img{width:calc(18.0023 * var(--dp));height:calc(18.0023 * var(--dp))}
+.screen .dr-main:active,.screen .dr-info:active{background:#f90}
+.screen .dr-scrim{position:absolute;inset:calc(48.0023 * var(--dp)) 0 0;z-index:2;border:0;background:#0006}
+.dr-nav{position:absolute;left:0;top:calc(48.0023 * var(--dp));bottom:0;z-index:2;width:min(calc(300 * var(--dp)),85%);overflow-y:auto;background:#eee}
+.dr-account{display:flex;align-items:center;height:calc(48.0023 * var(--dp));padding-left:calc(3.9956 * var(--dp));margin-left:calc(23.9956 * var(--dp));font:400 calc(16.0045 * var(--dp)) Roboto,sans-serif;color:#333}
+.screen .dr-nav button{display:flex;align-items:center;width:calc(100% - calc(23.9956 * var(--dp)));height:calc(48.9956 * var(--dp));margin-left:calc(23.9956 * var(--dp));padding:0;border:0;border-top:calc(1.0045 * var(--dp)) solid #c6c6c6;box-shadow:inset 0 calc(1.0045 * var(--dp)) #fff;background:none;font:400 calc(16.0045 * var(--dp)) Roboto,sans-serif;color:#333;text-align:left;cursor:pointer}
+.dr-nav button img{width:calc(21.9978 * var(--dp));height:calc(21.9978 * var(--dp));margin:0 calc(16.0045 * var(--dp)) 0 calc(16.0045 * var(--dp))}
+.screen .dr-nav button.on{background:#0000000f}
+
+/* Google+ 4.2 (4.0's bar and compose bar, KitKat scale) (audit step 4): the light host action bar with ic_gplus_red_32, the notification count (36 dp, #dd4b39,
+   1 dp #dddddd border, 3 sp corners, 18 sp bold white), compose_bar.xml (11 sp bold labels under 30 dp icons on black,
+   a 1 dp #393939 divider above). */
+.sa-gplus .sa-bar{background:#f2f2f2}
+.screen .sa-gp-notify{flex:none;display:flex;align-items:center;justify-content:center;width:calc(56.0045 * var(--dp));height:100%;padding:0;border:0;background:none}
+.sa-gp-notify b{display:flex;align-items:center;justify-content:center;width:calc(36.0045 * var(--dp));height:calc(36.0045 * var(--dp));border:calc(.9934 * var(--dp)) solid #ddd;border-radius:calc(2.9912 * var(--dp));background:#dd4b39;color:#fff;font:700 calc(18.0023 * var(--dp)) Roboto,sans-serif}
+.sa-gplus{display:flex;flex-direction:column}
+.sa-gp-compose{flex:none;display:flex;background:#000;border-top:calc(.9934 * var(--dp)) solid #393939}
+.screen .sa-gp-compose button{flex:1;display:flex;flex-direction:column;align-items:center;gap:calc(1.9978 * var(--dp));padding:calc(6.0045 * var(--dp)) 0 calc(5 * var(--dp));border:0;background:none;font:700 calc(11.0045 * var(--dp)) Roboto,sans-serif;text-transform:uppercase;cursor:pointer}
+.sa-gp-compose img{width:calc(30 * var(--dp));height:calc(30 * var(--dp))}
+.screen .sa-gp-compose button:active{background:#33b5e566}
+.sa-post footer button img{width:calc(16.0045 * var(--dp));height:calc(16.0045 * var(--dp))}
+/* Google+ 4.2's bell: 56 dp, the 20 dp icon in 32 dp, the 18 dp count badge at its top right. */
+.screen .sa-gp-bell{position:relative;flex:none;display:grid;place-items:center;width:calc(56.0045 * var(--dp));height:100%;padding:0;border:0;background:none}
+.sa-gp-bell img{width:calc(20 * var(--dp));height:calc(20 * var(--dp));padding:calc(3.9956 * var(--dp));box-sizing:content-box}
+.sa-gp-bell b{position:absolute;left:calc(31.9978 * var(--dp));top:calc(8.0023 * var(--dp));min-width:calc(18.0023 * var(--dp));height:calc(18.0023 * var(--dp));padding:0 calc(3.0023 * var(--dp));box-sizing:border-box;border:calc(1.0045 * var(--dp)) solid #ddd;border-radius:calc(3.0023 * var(--dp));background:#dd4b39;font:400 calc(11.0045 * var(--dp))/calc(16.0045 * var(--dp)) Roboto,sans-serif;color:#fff;text-align:center}
+/* YouTube 5.2 search (audit step 5): the SearchView in the bar, results_fragment's white spinner header, the feed cards. */
+.yt-sv{flex:1;min-width:0;display:flex;align-items:center;height:calc(36.0045 * var(--dp));margin:calc(3.9956 * var(--dp)) calc(8.0023 * var(--dp));border:0 solid;border-image:url(assets/yt5-textfield_search_selected_holo_light.png) 1 12 12 fill/calc(.3312 * var(--dp)) calc(3.9956 * var(--dp)) calc(3.9956 * var(--dp)) stretch}
+.yt-sv input{flex:1;min-width:0;height:100%;padding:0 calc(8.0023 * var(--dp));border:0;background:none;outline:0;font:400 calc(18.0023 * var(--dp)) Roboto,sans-serif;color:#000}
+.yt-sv input::placeholder{color:#0000004d}
+.screen .yt-sv-clear{flex:none;display:grid;place-items:center;height:100%;padding:0 calc(8.0023 * var(--dp));border:0;background:none}
+.yt-sv-clear img{width:calc(23.9956 * var(--dp));height:calc(23.9956 * var(--dp))}
+.yt-filters{flex:none;display:flex;background:#fff;box-shadow:0 calc(3.0023 * var(--dp)) calc(3.0023 * var(--dp)) calc(-1.9978 * var(--dp)) #0003;z-index:1}
+.yt-filters span{display:flex;align-items:center;height:calc(48.0023 * var(--dp));margin-left:calc(8.0023 * var(--dp));padding:0 calc(16.0045 * var(--dp)) 0 calc(11.9978 * var(--dp));border:0 solid;border-image:url(assets/yt5-compat_spinner_default.png) 8 32 52 8 fill/calc(3.9956 * var(--dp)) calc(16.0045 * var(--dp)) calc(26.0045 * var(--dp)) calc(3.9956 * var(--dp)) stretch;font:400 calc(18.0023 * var(--dp)) Roboto,sans-serif;color:#000;box-sizing:border-box}
+/* List and picture notes (audit step 5). Cards: the photo edge to edge across the top, index_list_text_item.xml rows
+   (16 dp box, 2 dp down, 4 dp to the text; #99000000, checked #4d000000 struck through; three lines at most)
+   and the 24 dp indented "…". */
+.sa-keep .kp-text{display:block}
+.sa-keep .kp-photo{display:block;width:calc(100% + calc(16.0045 * var(--dp)));max-width:none;margin:calc(-8.0023 * var(--dp)) calc(-8.0023 * var(--dp)) calc(8.0023 * var(--dp));aspect-ratio:4/3;object-fit:cover;background:#f5f5f5}
+.sa-keep .kp-photo:last-child{margin-bottom:calc(-8.0023 * var(--dp))}
+.sa-keep .kp-li{display:flex;align-items:flex-start;margin-left:calc(-3.9956 * var(--dp));padding-top:calc(3.9956 * var(--dp));color:#00000099}
+.sa-keep .kp-li:first-child,.sa-keep .kp-photo+.kp-li{padding-top:0}
+.sa-keep .kp-li img{flex:none;width:calc(16.0045 * var(--dp));height:calc(16.0045 * var(--dp));margin:calc(1.9978 * var(--dp)) calc(3.9956 * var(--dp)) 0 0}
+.sa-keep .kp-li span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}
+.sa-keep .kp-li.on{color:#0000004d}
+.sa-keep .kp-li.on span{text-decoration:line-through}
+.sa-keep .kp-ellipse{display:block;margin-left:calc(20 * var(--dp));color:#00000099}
+/* Editor (editor_photo_layout.xml, list_text_note.xml, editor_list_footer.xml): the photo with the 32 dp ic_delete_light
+   button, rows with the Holo check box 28 dp in, 18 sp text 12 dp after it (48 dp kept at the end), the 32 dp
+   ic_delete_dark while the row is edited; the footer's disabled box and "List item" hint. */
+.sa-keep2 .sa-keep-edit{flex:1;display:flex;flex-direction:column;margin:calc(56.0045 * var(--dp)) 0 0;overflow-y:auto;scrollbar-width:none}
+.sa-keep2 .sa-keep-edit textarea{flex:1 0 auto;width:100%;min-height:calc(96.0045 * var(--dp));padding:calc(16.0045 * var(--dp));border:0;background:none;font:400 calc(18.0023 * var(--dp))/1.4 RobotoICS,Roboto,sans-serif;color:#00000099;resize:none;outline:none}
+.kp-ed-photo{position:relative;flex:none}
+.kp-ed-photo>img{display:block;width:100%;aspect-ratio:1/.66;object-fit:cover;background:#f5f5f5}
+.screen .kp-ed-photo-del{position:absolute;right:0;bottom:0;width:calc(31.9978 * var(--dp));height:calc(31.9978 * var(--dp));padding:calc(3.9956 * var(--dp));border:0;background:none}
+.kp-ed-photo-del img{display:block;width:100%;height:100%}
+.screen .kp-ed-photo-del:active,.screen .kp-ed-del:active{background:#33b5e566}
+.kp-ed-list{padding:calc(8.0023 * var(--dp)) 0}
+.kp-ed-li,.kp-ed-add{position:relative;display:flex;align-items:flex-start}
+.screen .kp-ed-check{flex:none;width:calc(31.9978 * var(--dp));height:calc(31.9978 * var(--dp));margin-left:calc(28.0023 * var(--dp));padding:0;border:0;background:url('assets/btn_check_off_holo_light.png') center/contain no-repeat}
+.screen .kp-ed-li.on .kp-ed-check{background-image:url('assets/btn_check_on_holo_light.png')}
+.kp-ed-add .kp-ed-check{opacity:.5}
+.screen .kp-ed-text,.screen .kp-ed-add input{flex:1;min-width:0;padding:calc(5 * var(--dp)) calc(48.0023 * var(--dp)) calc(11.9978 * var(--dp)) calc(11.9978 * var(--dp));border:0;background:none;outline:none;font:400 calc(18.0023 * var(--dp))/1.1 RobotoICS,Roboto,sans-serif;color:#00000099}
+.kp-ed-li.on .kp-ed-text{color:#0000004d;text-decoration:line-through}
+.kp-ed-add input::placeholder{color:#0000004d}
+.screen .kp-ed-del{position:absolute;top:0;right:calc(16.0045 * var(--dp));width:calc(31.9978 * var(--dp));height:calc(31.9978 * var(--dp));padding:calc(3.9956 * var(--dp));border:0;background:none;visibility:hidden}
+.kp-ed-li:focus-within .kp-ed-del{visibility:visible}
+.kp-ed-del img{display:block;width:100%;height:100%}
+/* AlertDialog (Holo Light): the 22 sp holo blue title over its 2 dp line, the 18 sp message, the borderless button bar
+   (Cancel / negative first); the picture choice is dialog_list_item_with_icon.xml (12 dp padding, the icon, 16 sp
+   #99000000 text 12 dp after it). */
+.kp-dlg-scrim{position:absolute;inset:0;z-index:40;border:0;background:#0009}
+.kp-dlg{position:absolute;z-index:41;left:calc(16.0045 * var(--dp));right:calc(16.0045 * var(--dp));top:50%;transform:translateY(-50%);background:#f3f3f3;color:#000;box-shadow:0 calc(2.2076 * var(--dp)) calc(11.0376 * var(--dp)) #0006;font-family:RobotoICS,Roboto,sans-serif}
+.kp-dlg h3{margin:0;padding:calc(16.0045 * var(--dp));border-bottom:calc(1.9978 * var(--dp)) solid #33b5e5;color:#33b5e5;font:400 calc(21.9978 * var(--dp)) RobotoICS,Roboto,sans-serif}
+.kp-dlg p{margin:0;padding:calc(16.0045 * var(--dp));font:400 calc(18.0023 * var(--dp))/1.3 RobotoICS,Roboto,sans-serif}
+.kp-dlg-buttons{display:flex;border-top:calc(1.1038 * var(--dp)) solid #0000001a}
+.screen .kp-dlg-buttons button{flex:1;min-height:calc(48.0023 * var(--dp));border:0;background:none;color:#000!important;font:400 calc(16.0045 * var(--dp)) RobotoICS,Roboto,sans-serif}
+.kp-dlg-buttons button+button{border-left:calc(1.1038 * var(--dp)) solid #0000001a}
+.screen .kp-dlg-item{display:flex;align-items:center;gap:calc(11.9978 * var(--dp));width:100%;padding:calc(11.9978 * var(--dp));border:0;background:none;text-align:left;font:400 calc(16.0045 * var(--dp)) RobotoICS,Roboto,sans-serif;color:#00000099}
+.kp-dlg-item img{width:calc(31.9978 * var(--dp));height:calc(31.9978 * var(--dp))}
+.screen .kp-dlg button:active{background:#33b5e566}
+/* News & Weather 1.3.11's Preferences / LocationPreferences on the Holo dark theme (1 dp = 0.906 px): 64 dp rows, 18 sp
+   titles, 14 sp #bebebe summaries, btn_check_holo_dark, list separators; the EditText / ListPreference dialogs; the
+   story page (a light web page). */
+.nwp{display:flex;flex-direction:column;background:#000;color:#fff;font-family:Roboto,sans-serif}
+.nwp-list{flex:1;min-height:0;overflow-y:auto}
+.screen .nwp-row{display:flex;align-items:center;width:100%;min-height:calc(63.9956 * var(--dp));padding:calc(8.0023 * var(--dp)) calc(16.0045 * var(--dp));border:0;border-bottom:calc(1.0045 * var(--dp)) solid #ffffff1f;background:none;text-align:left;color:#fff}
+.screen .nwp-row:active{background:#33b5e566}
+.nwp-row span{flex:1;min-width:0;display:flex;flex-direction:column}
+.nwp-row b{font:400 calc(18.0023 * var(--dp)) Roboto,sans-serif}
+.nwp-row small{margin-top:calc(1.9978 * var(--dp));font:400 calc(13.9956 * var(--dp)) Roboto,sans-serif;color:#bebebe;white-space:pre-line}
+.nwp-row.disabled b,.nwp-row.disabled small{opacity:.5}
+.nwp-check{flex:none;width:calc(31.9978 * var(--dp));height:calc(31.9978 * var(--dp));margin-left:calc(8.0023 * var(--dp));background:url('assets/btn_check_off_holo_dark.png') center/contain no-repeat}
+.nwp-check.on{background-image:url('assets/btn_check_on_holo_dark.png')}
+.nwp-category{margin:0;padding:calc(16.0045 * var(--dp)) calc(16.0045 * var(--dp)) calc(3.9956 * var(--dp));border-bottom:calc(1.9978 * var(--dp)) solid #ffffff4d;font:700 calc(13.9956 * var(--dp)) Roboto,sans-serif;color:#bebebe;text-transform:uppercase}
+.nwp-scrim{position:absolute;inset:0;z-index:30;border:0;background:#0009}
+.nwp-dialog{position:absolute;z-index:31;left:calc(16.0045 * var(--dp));right:calc(16.0045 * var(--dp));top:50%;transform:translateY(-50%);background:#282828;color:#fff;box-shadow:0 calc(3.9956 * var(--dp)) calc(16.0045 * var(--dp)) #000a}
+.nwp-dialog h3{margin:0;padding:calc(16.0045 * var(--dp)) calc(16.0045 * var(--dp)) calc(11.9978 * var(--dp));border-bottom:calc(1.9978 * var(--dp)) solid #33b5e5;font:400 calc(21.9978 * var(--dp)) Roboto,sans-serif;color:#33b5e5}
+.nwp-dialog p{margin:0;padding:calc(11.9978 * var(--dp)) calc(16.0045 * var(--dp)) 0;font:400 calc(16.0045 * var(--dp)) Roboto,sans-serif;color:#bebebe}
+.nwp-dialog input{display:block;width:calc(100% - calc(32.0089 * var(--dp)));margin:calc(8.0023 * var(--dp)) calc(16.0045 * var(--dp)) calc(16.0045 * var(--dp));padding:calc(3.9956 * var(--dp)) 0;border:0;border-bottom:calc(1.9978 * var(--dp)) solid #33b5e5;background:none;color:#fff;font:400 calc(18.0023 * var(--dp)) Roboto,sans-serif;outline:none}
+.nwp-choices{max-height:calc(331.1259 * var(--dp));overflow-y:auto}
+.screen .nwp-choices button{display:flex;align-items:center;width:100%;min-height:calc(48.0023 * var(--dp));padding:0 calc(16.0045 * var(--dp));border:0;border-bottom:calc(1.0045 * var(--dp)) solid #ffffff1f;background:none;color:#fff;font:400 calc(18.0023 * var(--dp)) Roboto,sans-serif;text-align:left}
+.nwp-choices span{flex:1}
+.nwp-radio{width:calc(31.9978 * var(--dp));height:calc(31.9978 * var(--dp));background:url('assets/btn_radio_off_holo_dark.png') center/contain no-repeat}
+.nwp-radio.on{background-image:url('assets/btn_radio_on_holo_dark.png')}
+.nwp-buttons{display:flex;border-top:calc(1.0045 * var(--dp)) solid #ffffff1f}
+.screen .nwp-buttons button{flex:1;min-height:calc(48.0023 * var(--dp));border:0;background:none;color:#fff;font:400 calc(16.0045 * var(--dp)) Roboto,sans-serif}
+.screen .nwp-buttons button+button{border-left:calc(1.0045 * var(--dp)) solid #ffffff1f}
+.screen .nwp-buttons button:active,.screen .nwp-choices button:active{background:#33b5e566}
+.nw-unavailable{margin:0;padding:calc(31.9978 * var(--dp)) calc(16.0045 * var(--dp));text-align:center;font:400 calc(16.0045 * var(--dp)) Roboto,sans-serif;color:#bfbfbf}
+.nw-story-view .sa-scroll{background:#fff}
+.nwp-story{padding:calc(16.0045 * var(--dp));color:#222;font-family:Roboto,sans-serif}
+.nwp-story h2{margin:0 0 calc(6.0045 * var(--dp));font:700 calc(21.9978 * var(--dp)) Roboto,sans-serif;color:#000}
+.nwp-story small{display:block;margin-bottom:calc(11.9978 * var(--dp));font:400 calc(13.9956 * var(--dp)) Roboto,sans-serif;color:#888}
+.nwp-story p{margin:calc(11.9978 * var(--dp)) 0 0;font:400 calc(16.0045 * var(--dp))/1.5 Roboto,sans-serif}
+.nwp-picture{display:block;width:100%;aspect-ratio:16/9;overflow:hidden;background:#ddd}
+.nwp-picture>*{width:100%;height:100%;object-fit:cover}
+/* Maps' settings screens (maps-prefs.js): Theme.Holo.Light preference rows (64 dip, 18 sp title, 14 sp summary), the
+   Holo Light check box and the ListPreference / edit / delete dialogs. */
+.mps{display:flex;flex-direction:column;background:#f3f3f3;color:#000}
+.mps-list{flex:1;min-height:0;overflow-y:auto}
+.screen .mps-row{display:flex;align-items:center;width:100%;min-height:calc(64 * var(--dp));padding:calc(6 * var(--dp)) calc(8 * var(--dp)) calc(6 * var(--dp)) calc(16 * var(--dp));border:0;border-bottom:calc(1 * var(--dp)) solid #0000001f;background:none;color:#000;text-align:left;font-family:RobotoICS,Roboto,sans-serif}
+.screen .mps-row:active:not(.mps-info):not(.disabled),.screen .mps-item button:active{background:#33b5e566}
+.mps-row span{flex:1;min-width:0;display:flex;flex-direction:column}
+.mps-row b{font-weight:400;font-size:calc(18 * var(--dp))}
+.mps-row small{margin-top:calc(2 * var(--dp));font-size:calc(14 * var(--dp));color:#5f5f5f;overflow-wrap:anywhere}
+.mps-row.disabled b,.mps-row.disabled small{color:#00000059}
+.screen .mps-item{padding:0}
+.screen .mps-item .mps-main{flex:1;min-width:0;display:flex;align-self:stretch;align-items:center;padding:calc(6 * var(--dp)) calc(8 * var(--dp)) calc(6 * var(--dp)) calc(16 * var(--dp));border:0;background:none;color:inherit;text-align:left;font:inherit}
+.screen .mps-del{flex:none;width:calc(48 * var(--dp));align-self:stretch;border:0;background:none;color:#5f5f5f;font-size:calc(22 * var(--dp))}
+.mps-check{flex:none;width:calc(32 * var(--dp));height:calc(32 * var(--dp));margin-left:calc(8 * var(--dp));background:url('assets/btn_check_off_holo_light.png') center/contain no-repeat}
+.mps-check.on{background-image:url('assets/btn_check_on_holo_light.png')}
+.mps-empty{margin:0;padding:calc(24 * var(--dp)) calc(16 * var(--dp));font:400 calc(16 * var(--dp)) RobotoICS,Roboto,sans-serif;color:#5f5f5f;text-align:center}
+.screen .mps-scrim{position:absolute;inset:0;z-index:30;border:0;background:#0009}
+.mps-dialog{position:absolute;z-index:31;left:calc(16 * var(--dp));right:calc(16 * var(--dp));top:50%;transform:translateY(-50%);background:#fff;color:#000;box-shadow:0 calc(4 * var(--dp)) calc(16 * var(--dp)) #0008}
+.mps-dialog h3{margin:0;padding:calc(16 * var(--dp)) calc(16 * var(--dp)) calc(12 * var(--dp));border-bottom:calc(2 * var(--dp)) solid #33b5e5;font:400 calc(22 * var(--dp)) RobotoICS,Roboto,sans-serif;color:#33b5e5}
+.mps-dialog p{margin:0;padding:calc(16 * var(--dp));font:400 calc(16 * var(--dp)) RobotoICS,Roboto,sans-serif;color:#323232}
+.mps-dialog input{display:block;width:calc(100% - calc(32 * var(--dp)));margin:calc(16 * var(--dp));padding:calc(4 * var(--dp)) 0;border:0;border-bottom:calc(2 * var(--dp)) solid #33b5e5;background:none;color:#000;font:400 calc(18 * var(--dp)) RobotoICS,Roboto,sans-serif;outline:0}
+.mps-choices{max-height:calc(330 * var(--dp));overflow-y:auto}
+.screen .mps-choices button{display:flex;align-items:center;width:100%;min-height:calc(48 * var(--dp));padding:0 calc(8 * var(--dp)) 0 calc(16 * var(--dp));border:0;border-bottom:calc(1 * var(--dp)) solid #0000001f;background:none;color:#000;font:400 calc(18 * var(--dp)) RobotoICS,Roboto,sans-serif;text-align:left}
+.mps-choices span{flex:1}
+.mps-radio{width:calc(32 * var(--dp));height:calc(32 * var(--dp));background:url('assets/btn_radio_off_holo_light.png') center/contain no-repeat}
+.mps-radio.on{background-image:url('assets/btn_radio_on_holo_light.png')}
+.mps-buttons{display:flex;border-top:calc(1 * var(--dp)) solid #0000001f}
+.screen .mps-buttons button{flex:1;min-height:calc(48 * var(--dp));border:0;background:none;color:#000;font:400 calc(16 * var(--dp)) RobotoICS,Roboto,sans-serif}
+.screen .mps-buttons button+button{border-left:calc(1 * var(--dp)) solid #0000001f}
+.screen .mps-buttons button:active,.screen .mps-choices button:active{background:#33b5e566}
+/* Maps 7.5's rows are preference_multiline_internal.xml: 8 dip in (no icon), textAppearanceLarge title and
+   textAppearanceMedium summary in textColorSecondary, 6 dip above and below. */
+.screen .mps .mps-row,.screen .mps .mps-item .mps-main{padding-left:calc(8 * var(--dp))}
+.mps .mps-row b{font-size:calc(22 * var(--dp))}
+.mps .mps-row small{font-size:calc(18 * var(--dp))}
+/* With a place's card at the bottom, the views tab (views_entry_point) sits above it rather than under it. */
+.sa-maps7:has(.sa-maps-card) .mp7-tab{bottom:calc(126 * var(--dp))}
+/* kk-drive.js: the pinned mark, the Refresh spinner, the Holo Light dialogs (Add new, Filter by, Sort by, the held
+   item's menu, Rename, Remove, Send), Move to's pick_entry_dialog_header.xml (the up affordance, the #33b5e5 title, the
+   new-folder button over a 2 dp #33b5e5 line) and its 54 dp folder rows, the detail panel (detail_fragment.xml: #eee,
+   24 dp padding, the 16 dp type icon and 14 sp #333 title, the 190 dp thumbnail, the section titles over a thick
+   rule) and Settings. */
+.drv-pin{flex:none;align-self:center;width:calc(8 * var(--dp));height:calc(8 * var(--dp));margin-right:calc(6 * var(--dp));border-radius:50%;background:#33b5e5}
+.drv-spinner{flex:none;width:calc(20 * var(--dp));height:calc(20 * var(--dp));margin:0 calc(10 * var(--dp));border:calc(2.5 * var(--dp)) solid #33b5e533;border-top-color:#33b5e5;border-radius:50%;animation:drv-spin .8s linear infinite}
+@keyframes drv-spin{to{transform:rotate(360deg)}}
+.drv-scrim,.drv-detail-scrim{position:absolute;inset:0;z-index:30;border:0;background:#0009}
+.drv-detail-scrim{background:#0006}
+.drv-dialog{position:absolute;z-index:31;left:calc(16 * var(--dp));right:calc(16 * var(--dp));top:50%;transform:translateY(-50%);max-height:80%;display:flex;flex-direction:column;background:#fff;box-shadow:0 calc(2 * var(--dp)) calc(11 * var(--dp)) #0006}
+.drv-dialog h3{flex:none;margin:0;padding:calc(16 * var(--dp));border-bottom:calc(2 * var(--dp)) solid #33b5e5;font:400 calc(22 * var(--dp)) Roboto,sans-serif;color:#33b5e5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.screen .drv-item{display:flex;align-items:center;flex:none;width:100%;min-height:calc(48 * var(--dp));padding:0 calc(8 * var(--dp)) 0 calc(16 * var(--dp));border:0;border-top:calc(1 * var(--dp)) solid #e3e3e3;background:none;text-align:left;font:400 calc(18 * var(--dp)) Roboto,sans-serif;color:#000}
+.drv-item:first-of-type{border-top:0}
+.drv-item span{flex:1}
+.drv-app img{width:calc(32 * var(--dp));height:calc(32 * var(--dp));margin-right:calc(16 * var(--dp))}
+.drv-radio,.drv-check{flex:none;width:calc(32 * var(--dp));height:calc(32 * var(--dp));background:url('assets/btn_radio_off_holo_light.png') center/contain no-repeat}
+.drv-radio.on{background-image:url('assets/btn_radio_on_holo_light.png')}
+.drv-check{background-image:url('assets/btn_check_off_holo_light.png')}
+.drv-check.on{background-image:url('assets/btn_check_on_holo_light.png')}
+.drv-msg{margin:0;padding:calc(16 * var(--dp));font:400 calc(16 * var(--dp))/1.4 Roboto,sans-serif;color:#333}
+.screen .drv-edit{display:block;width:calc(100% - calc(32 * var(--dp)));margin:calc(16 * var(--dp));padding:calc(6 * var(--dp)) calc(4 * var(--dp));border:0;border-bottom:calc(2 * var(--dp)) solid #33b5e5;font:400 calc(18 * var(--dp)) Roboto,sans-serif;outline:0}
+.drv-buttons{flex:none;display:flex;border-top:calc(1 * var(--dp)) solid #0000001a}
+.screen .drv-buttons button{flex:1;min-height:calc(48 * var(--dp));border:0;background:none;font:400 calc(16 * var(--dp)) Roboto,sans-serif;color:#000}
+.drv-buttons button+button{border-left:calc(1 * var(--dp)) solid #0000001a}
+.drv-buttons button:disabled{color:#0000004d}
+.drv-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:calc(4 * var(--dp));padding:calc(8 * var(--dp));overflow-y:auto}
+.screen .drv-photos button{aspect-ratio:1;padding:0;border:0;background:#eee;overflow:hidden}
+.drv-photos button>*{width:100%;height:100%}
+.drv-pick-head{flex:none;display:flex;align-items:center;min-height:calc(56 * var(--dp));border-bottom:calc(2 * var(--dp)) solid #33b5e5}
+.drv-pick-head b{flex:1;min-width:0;padding:0 calc(16 * var(--dp));font:400 calc(22 * var(--dp)) Roboto,sans-serif;color:#33b5e5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.screen .drv-pick-head button{flex:none;width:calc(48 * var(--dp));height:calc(56 * var(--dp));padding:0;border:0;background:none;display:grid;place-items:center}
+.drv-pick-head button img{width:calc(32 * var(--dp));height:calc(32 * var(--dp))}
+.drv-pick-head button:first-child img{width:calc(16 * var(--dp));height:calc(16 * var(--dp))}
+.drv-pick-list{flex:1;min-height:calc(54 * var(--dp));overflow-y:auto}
+.screen .drv-pick{display:flex;align-items:center;width:100%;height:calc(54 * var(--dp));padding:0 calc(16 * var(--dp));border:0;border-bottom:calc(1 * var(--dp)) solid #e3e3e3;background:none;text-align:left;font:400 calc(18 * var(--dp)) Roboto,sans-serif;color:#000}
+.drv-pick img{width:calc(16 * var(--dp));height:calc(16 * var(--dp));margin-right:calc(16 * var(--dp))}
+.drv-detail{position:absolute;z-index:31;top:calc(48 * var(--dp));right:0;bottom:0;width:min(calc(320 * var(--dp)),88%);overflow-y:auto;scrollbar-width:none;background:#eee;box-shadow:calc(-2 * var(--dp)) 0 calc(8 * var(--dp)) #0003}
+.screen .drv-close{position:absolute;right:0;top:0;padding:calc(29 * var(--dp)) calc(24 * var(--dp)) calc(8 * var(--dp)) calc(8 * var(--dp));border:0;background:none}
+.drv-close img{display:block;width:calc(21 * var(--dp));height:calc(21 * var(--dp))}
+.drv-detail-in{padding:calc(24 * var(--dp))}
+.drv-title{display:flex;align-items:center;padding:calc(5 * var(--dp)) calc(40 * var(--dp)) calc(5 * var(--dp)) 0;font:400 calc(14 * var(--dp)) Roboto,sans-serif;color:#333}
+.screen .drv-star{flex:none;padding:0;margin-right:calc(7 * var(--dp));border:0;background:none}
+.drv-star img{display:block;width:calc(22 * var(--dp));height:calc(22 * var(--dp))}
+.drv-doc-icon{flex:none;width:calc(16 * var(--dp));height:calc(16 * var(--dp));margin-right:calc(7 * var(--dp))}
+.drv-title span{min-width:0;overflow-wrap:anywhere}
+.drv-thumb{height:calc(190 * var(--dp));margin:calc(8 * var(--dp)) 0 calc(15 * var(--dp));display:grid;place-items:center;overflow:hidden;background:#fff;border:calc(1 * var(--dp)) solid #ddd}
+.drv-thumb>*:not(.drv-thumb-icon){width:100%;height:100%}
+.drv-thumb-icon{width:calc(48 * var(--dp));height:calc(48 * var(--dp))}
+.drv-thumb-page{box-sizing:border-box;padding:calc(12 * var(--dp));font:400 calc(9 * var(--dp))/1.4 Roboto,sans-serif;color:#555;text-align:left;align-self:start}
+.drv-thumb-page p{margin:0 0 calc(4 * var(--dp))}
+.drv-sec{margin:calc(12 * var(--dp)) 0 0;padding:0 0 calc(4 * var(--dp)) calc(8 * var(--dp));border-bottom:calc(2 * var(--dp)) solid #ccc;font:700 calc(14 * var(--dp)) Roboto,sans-serif;color:#555;text-transform:uppercase}
+.screen .drv-pin-row{display:flex;align-items:center;width:100%;padding:calc(4 * var(--dp)) 0 calc(4 * var(--dp)) calc(4 * var(--dp));border:0;background:none;text-align:left;font:400 calc(14 * var(--dp)) Roboto,sans-serif;color:#333}
+.drv-pin-row span{flex:1;margin-left:calc(4 * var(--dp))}
+.drv-pin-row small{color:#888;margin-right:calc(4 * var(--dp))}
+.drv-line{display:flex;justify-content:space-between;gap:calc(8 * var(--dp));margin:0;padding:calc(10 * var(--dp)) 0 0 calc(8 * var(--dp));font:400 calc(14 * var(--dp)) Roboto,sans-serif;color:#333;overflow-wrap:anywhere}
+.drv-line small{color:#888}
+.drv-settings{background:#fff}
+.drv-cat{margin:calc(16 * var(--dp)) calc(16 * var(--dp)) 0;padding:0 calc(8 * var(--dp)) calc(4 * var(--dp));border-bottom:calc(2 * var(--dp)) solid #cfcfcf;font:700 calc(14 * var(--dp)) Roboto,sans-serif;color:#8f8f8f;text-transform:uppercase}
+.screen .drv-row{display:flex;align-items:center;width:100%;min-height:calc(64 * var(--dp));padding:calc(8 * var(--dp)) calc(16 * var(--dp));border:0;background:none;text-align:left}
+.drv-row+.drv-row{border-top:calc(1 * var(--dp)) solid #e3e3e3}
+.drv-row span{flex:1;min-width:0;display:flex;flex-direction:column}
+.drv-row b{font:400 calc(18 * var(--dp)) Roboto,sans-serif;color:#000}
+.drv-row small{margin-top:calc(2 * var(--dp));font:400 calc(14 * var(--dp))/1.3 Roboto,sans-serif;color:#727272}
+.screen .drv-item:active,.screen .drv-row:active,.screen .drv-pick:active,.screen .drv-buttons button:active,.screen .drv-pin-row:active,.screen .drv-pick-head button:active{background:#33b5e566}
+
+/* Earth (earth-app.js): the globe canvas, and Settings with no theme of its own: Holo dark PreferenceActivity rows,
+   PreferenceCategory headers (14 sp bold caps over list_section_divider) and Holo dark dialogs for Settings, Layers and Share. */
+.sa-earth-canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}
+.mps-cat{padding:calc(16 * var(--dp)) calc(16 * var(--dp)) calc(4 * var(--dp));border-bottom:calc(2 * var(--dp)) solid #ffffff40;font:700 calc(14 * var(--dp)) RobotoICS,Roboto,sans-serif;text-transform:uppercase;color:#bebebe}
+.mps-dark{background:#000}
+.screen .mps-dark .mps-row{border-bottom-color:#ffffff1f;color:#fff}
+.mps-dark .mps-row small{color:#bebebe}
+.mps-dark .mps-row.disabled b,.mps-dark .mps-row.disabled small{color:#ffffff4d}
+.mps-dark .mps-check,.sa-earth .mps-check{background-image:url('assets/btn_check_off_holo_dark.png')}
+.mps-dark .mps-check.on,.sa-earth .mps-check.on{background-image:url('assets/btn_check_on_holo_dark.png')}
+.mps-dark .mps-radio{background-image:url('assets/btn_radio_off_holo_dark.png')}
+.mps-dark .mps-radio.on{background-image:url('assets/btn_radio_on_holo_dark.png')}
+.mps-dark .mps-dialog,.sa-earth .mps-dialog{background:#282828;color:#fff}
+.mps-dark .mps-dialog p{color:#fff}
+.screen .mps-dark .mps-choices button,.screen .sa-earth .mps-choices button,.screen .mps-dark .mps-buttons button,.screen .sa-earth .mps-buttons button{color:#fff;border-color:#ffffff1f}
+.mps-dark .mps-buttons,.sa-earth .mps-buttons{border-top-color:#ffffff1f}
+.sa-earth .mps-choices img{width:calc(32 * var(--dp));height:calc(32 * var(--dp));margin-right:calc(16 * var(--dp))}
+
+/* Google+ New post (plus-post.js: post_fragment on compose_panel_bg #e5e5e5, white compose items, 18 sp text with the
+   #bababa hint, the post button in the action bar), own posts' place and Delete, and Settings on the light rows. */
+.gpp{display:flex;flex-direction:column;background:#e5e5e5}
+.gpp-body{flex:1;min-height:0;overflow-y:auto}
+.gpp-audience{padding:calc(12 * var(--dp)) calc(16 * var(--dp));background:#fff;border-bottom:1px solid #d6d6d6}
+.gpp-audience span{font:500 calc(14 * var(--dp)) Roboto,sans-serif;color:#427fed}
+.gpp-text textarea{display:block;width:100%;box-sizing:border-box;min-height:calc(120 * var(--dp));padding:calc(12 * var(--dp)) calc(16 * var(--dp));border:0;background:#fff;color:#404040;font:400 calc(18 * var(--dp)) Roboto,sans-serif;resize:none;outline:0}
+.gpp-text textarea::placeholder{color:#bababa}
+.gpp-row{display:flex;align-items:center;min-height:calc(56 * var(--dp));margin-top:1px;padding:0 calc(4 * var(--dp)) 0 calc(16 * var(--dp));background:#fff}
+.screen .gpp-add{flex:1;padding:calc(16 * var(--dp)) 0;border:0;background:none;color:#bababa;font:400 calc(18 * var(--dp)) Roboto,sans-serif;text-align:left}
+.gpp-loc{flex:1;color:#404040;font:400 calc(18 * var(--dp)) Roboto,sans-serif}
+.gpp-photo{flex:1;padding:calc(8 * var(--dp)) 0}
+.gpp-photo svg{display:block;width:100%;height:auto}
+.screen .gpp-x{flex:none;width:calc(48 * var(--dp));height:calc(48 * var(--dp));border:0;background:none;color:#888;font-size:calc(24 * var(--dp))}
+.gpp-pick{display:grid;grid-template-columns:1fr 1fr;gap:calc(4 * var(--dp));padding:calc(8 * var(--dp));background:#fff}
+.screen .gpp-pick button{padding:0;border:0;background:none}
+.gpp-pick svg{display:block;width:100%;height:auto}
+.screen .gpp-share{flex:none;align-self:stretch;padding:0 calc(16 * var(--dp));border:0;background:none;color:#427fed;font:700 calc(14 * var(--dp)) Roboto,sans-serif;text-transform:uppercase}
+.screen .gpp-share:disabled{opacity:.4}
+.gpp-place{display:block;margin-top:calc(4 * var(--dp));color:#888;font:400 calc(13 * var(--dp)) Roboto,sans-serif}
+.screen .gpp-del{margin-left:auto;padding:calc(4 * var(--dp)) calc(8 * var(--dp));border:0;background:none;color:#888;font:400 calc(13 * var(--dp)) Roboto,sans-serif}
+.gpp-prefs{display:flex;flex-direction:column;background:#fff}
+.gpp-prefs .mps-cat{color:#808080;border-bottom-color:#00000026}
+.ga-gp-photo svg{display:block;width:100%;height:auto;margin-top:calc(8 * var(--dp))}
