@@ -80,6 +80,7 @@ public class MainActivity extends Activity {
 
     private static final int CAMERA_REQUEST = 7;
     private static final int CALL_REQUEST = 9;
+    private static final int WIFI_SCAN_REQUEST = 11;
     // A number waiting for Android's call permission prompt.
     private String pendingCall;
 
@@ -209,6 +210,11 @@ public class MainActivity extends Activity {
                 if (Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction())) {
                     readBattery(intent);
                     if (web != null) web.evaluateJavascript("window.gbRealBattery && window.gbRealBattery(" + batteryLevel + "," + batteryCharging + ")", null);
+                } else if (WifiManager.SCAN_RESULTS_AVAILABLE_ACTION.equals(intent.getAction())
+                        || WifiManager.NETWORK_STATE_CHANGED_ACTION.equals(intent.getAction())
+                        || WifiManager.WIFI_STATE_CHANGED_ACTION.equals(intent.getAction())) {
+                    tellPageWifiList(); // new scan results, or the phone joined, left or switched Wi-Fi
+                    tellPagePhone();
                 } else if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) {
                     // The screen went off: lock the Gingerbread phone so its lock screen shows when it comes back on.
                     if (web != null) web.evaluateJavascript("window.gbLockNow && window.gbLockNow()", null);
@@ -224,6 +230,9 @@ public class MainActivity extends Activity {
         filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
         filter.addAction(Intent.ACTION_SCREEN_OFF);
         filter.addAction(WifiManager.RSSI_CHANGED_ACTION);
+        filter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
+        filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+        filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
         filter.addAction(AudioManager.RINGER_MODE_CHANGED_ACTION);
         filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
         filter.addAction(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED);
@@ -533,6 +542,149 @@ public class MainActivity extends Activity {
         }
     }
 
+    // ---- The Gingerbread Wi-Fi settings: the networks the phone really sees -------------------------------------------
+
+    private WifiManager wifi() {
+        return (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+    }
+
+    private boolean locationAllowed() {
+        return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void tellPageWifiList() {
+        runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.gbRealWifiNetworks && window.gbRealWifiNetworks()", null); });
+    }
+
+    // Starts a scan; the results arrive with SCAN_RESULTS_AVAILABLE_ACTION. Asks for location access the first time.
+    @SuppressWarnings("deprecation")
+    private String wifiScan() {
+        if (!locationAllowed()) {
+            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, WIFI_SCAN_REQUEST);
+            return "asking";
+        }
+        LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        boolean locationOn = lm == null || Build.VERSION.SDK_INT < 28 || lm.isLocationEnabled();
+        WifiManager wm = wifi();
+        try { if (wm != null) wm.startScan(); } catch (Exception ignored) { }
+        return locationOn ? "ok" : "location-off";
+    }
+
+    private static String security(String capabilities) {
+        if (capabilities == null) return "Open";
+        if (capabilities.contains("WPA2") || capabilities.contains("RSN") || capabilities.contains("SAE")) return "WPA2";
+        if (capabilities.contains("WPA")) return "WPA";
+        if (capabilities.contains("WEP")) return "WEP";
+        return "Open";
+    }
+
+    // The scan results, one row per network name (the strongest access point), strongest first.
+    @SuppressWarnings("deprecation")
+    private String wifiNetworksJson() {
+        JSONArray list = new JSONArray();
+        WifiManager wm = wifi();
+        if (wm == null || !locationAllowed()) return list.toString();
+        java.util.Map<String, android.net.wifi.ScanResult> best = new java.util.LinkedHashMap<>();
+        try {
+            for (android.net.wifi.ScanResult result : wm.getScanResults()) {
+                if (result.SSID == null || result.SSID.isEmpty()) continue;
+                android.net.wifi.ScanResult seen = best.get(result.SSID);
+                if (seen == null || result.level > seen.level) best.put(result.SSID, result);
+            }
+        } catch (SecurityException e) {
+            return list.toString();
+        }
+        java.util.List<android.net.wifi.ScanResult> sorted = new java.util.ArrayList<>(best.values());
+        sorted.sort((a, b) -> b.level - a.level);
+        for (android.net.wifi.ScanResult result : sorted) {
+            try {
+                JSONObject row = new JSONObject();
+                row.put("name", result.SSID);
+                row.put("security", security(result.capabilities));
+                row.put("strength", Math.max(0, Math.min(4, WifiManager.calculateSignalLevel(result.level, 5))));
+                list.put(row);
+            } catch (Exception ignored) { }
+        }
+        return list.toString();
+    }
+
+    @SuppressWarnings("deprecation")
+    private String wifiCurrent() {
+        if (!wifiConnected()) return "";
+        try {
+            WifiManager wm = wifi();
+            String ssid = wm == null || wm.getConnectionInfo() == null ? "" : wm.getConnectionInfo().getSSID();
+            if (ssid == null || ssid.equals("<unknown ssid>")) return "";
+            if (ssid.length() >= 2 && ssid.startsWith("\"") && ssid.endsWith("\"")) ssid = ssid.substring(1, ssid.length() - 1);
+            return ssid;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private android.net.wifi.WifiConfiguration configured(WifiManager wm, String name) {
+        try {
+            java.util.List<android.net.wifi.WifiConfiguration> list = wm.getConfiguredNetworks();
+            if (list != null) for (android.net.wifi.WifiConfiguration conf : list) if (("\"" + name + "\"").equals(conf.SSID)) return conf;
+        } catch (SecurityException ignored) { }
+        return null;
+    }
+
+    /* Android 9 and older: joins the network with the password typed in the Gingerbread dialog. Android 10+ keeps
+       joining networks for its own Wi-Fi panel, which opens instead. */
+    @SuppressWarnings("deprecation")
+    private String wifiConnect(String name, String password) {
+        WifiManager wm = wifi();
+        if (wm == null || name == null || name.isEmpty()) return "no";
+        if (Build.VERSION.SDK_INT >= 29) return openSettings(Settings.Panel.ACTION_WIFI);
+        try {
+            if (!wm.isWifiEnabled()) wm.setWifiEnabled(true);
+            String type = "Open";
+            for (android.net.wifi.ScanResult result : wm.getScanResults()) if (name.equals(result.SSID)) { type = security(result.capabilities); break; }
+            android.net.wifi.WifiConfiguration conf = new android.net.wifi.WifiConfiguration();
+            conf.SSID = "\"" + name + "\"";
+            if ("Open".equals(type)) {
+                conf.allowedKeyManagement.set(android.net.wifi.WifiConfiguration.KeyMgmt.NONE);
+            } else if ("WEP".equals(type)) {
+                conf.allowedKeyManagement.set(android.net.wifi.WifiConfiguration.KeyMgmt.NONE);
+                conf.allowedAuthAlgorithms.set(android.net.wifi.WifiConfiguration.AuthAlgorithm.OPEN);
+                conf.allowedAuthAlgorithms.set(android.net.wifi.WifiConfiguration.AuthAlgorithm.SHARED);
+                conf.wepKeys[0] = password.matches("[0-9A-Fa-f]{10}|[0-9A-Fa-f]{26}") ? password : "\"" + password + "\"";
+                conf.wepTxKeyIndex = 0;
+            } else {
+                conf.preSharedKey = "\"" + password + "\"";
+            }
+            int id = wm.addNetwork(conf);
+            if (id == -1) {
+                // Saved earlier by the phone itself: rejoin it as it is.
+                android.net.wifi.WifiConfiguration saved = configured(wm, name);
+                if (saved == null) return openSettings(Settings.ACTION_WIFI_SETTINGS);
+                id = saved.networkId;
+            }
+            wm.disconnect();
+            boolean ok = wm.enableNetwork(id, true);
+            wm.reconnect();
+            return ok ? "ok" : "no";
+        } catch (Exception e) {
+            return openSettings(Settings.ACTION_WIFI_SETTINGS);
+        }
+    }
+
+    // Forgets a network this launcher added; one the phone saved itself can only be forgotten in its own Wi-Fi page.
+    @SuppressWarnings("deprecation")
+    private String wifiForget(String name) {
+        WifiManager wm = wifi();
+        if (wm == null || name == null) return "no";
+        if (Build.VERSION.SDK_INT < 29) {
+            android.net.wifi.WifiConfiguration saved = configured(wm, name);
+            try {
+                if (saved != null && wm.removeNetwork(saved.networkId)) { wm.saveConfiguration(); return "ok"; }
+            } catch (Exception ignored) { }
+        }
+        return openSettings(Build.VERSION.SDK_INT >= 29 ? Settings.Panel.ACTION_WIFI : Settings.ACTION_WIFI_SETTINGS);
+    }
+
     private boolean wifiConnected() {
         return !wifiNetworks.isEmpty();
     }
@@ -602,6 +754,11 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
+        if (requestCode == WIFI_SCAN_REQUEST) {
+            if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) wifiScan();
+            tellPageWifiList();
+            return;
+        }
         if (requestCode == CALL_REQUEST) {
             String number = pendingCall;
             pendingCall = null;
@@ -896,6 +1053,43 @@ public class MainActivity extends Activity {
             } catch (IllegalArgumentException e) {
                 return false;
             }
+        }
+
+        @JavascriptInterface
+        public String wifiScan() {
+            final String[] result = {"no"};
+            final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+            runOnUiThread(() -> { try { result[0] = MainActivity.this.wifiScan(); } catch (Exception e) { result[0] = "no"; } done.countDown(); });
+            try { done.await(3, java.util.concurrent.TimeUnit.SECONDS); } catch (InterruptedException ignored) { }
+            return result[0];
+        }
+
+        @JavascriptInterface
+        public String wifiNetworks() {
+            return wifiNetworksJson();
+        }
+
+        @JavascriptInterface
+        public String wifiCurrent() {
+            return MainActivity.this.wifiCurrent();
+        }
+
+        @JavascriptInterface
+        public String wifiConnect(String name, String password) {
+            return onUi(() -> MainActivity.this.wifiConnect(name, password));
+        }
+
+        @JavascriptInterface
+        public String wifiForget(String name) {
+            return onUi(() -> MainActivity.this.wifiForget(name));
+        }
+
+        private String onUi(java.util.concurrent.Callable<String> work) {
+            final String[] result = {"no"};
+            final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+            runOnUiThread(() -> { try { result[0] = work.call(); } catch (Exception e) { result[0] = "no"; } done.countDown(); });
+            try { done.await(5, java.util.concurrent.TimeUnit.SECONDS); } catch (InterruptedException ignored) { }
+            return result[0];
         }
 
         @JavascriptInterface

@@ -16,6 +16,9 @@ An Android home screen app that runs the Android 2.3.6 Gingerbread simulator fro
   brightness, screen timeout, auto-rotate, haptic feedback, touch sounds and dial pad tones. Airplane mode, mobile
   data, location, NFC, the hotspot and developer options open the phone's own settings page, since Android keeps
   those for itself.
+- The Gingerbread Wi-Fi settings list the networks the phone really sees (after Android asks once for location
+  access, which it requires for Wi-Fi scans), show the one it is on, and connect with the password typed there
+  (Android 9 and older; newer phones open their own Wi-Fi panel).
 - The Market leaves out Orbit Hopper, Pixel Blocks, Lunar Golf and Pocket Planner.
 - The app drawer scrolls (and flings) under your finger.
 - Check boxes and radio buttons show as perfect squares and turn Gingerbread orange while pressed; touching a button

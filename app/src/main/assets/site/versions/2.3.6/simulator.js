@@ -218,6 +218,8 @@
   window.gbLockNow = () => { if (ui.power || ui.locked || ui.view === 'lock' || data.settings.screenLock === 'none') return; ui.overlay = ''; lockScreen(); };
   // Launcher APK: the status bar's Wi-Fi, signal, data, battery and alarm icons follow the real phone.
   window.addEventListener('gb-real-wifi', () => renderStatus());
+  // A new Wi-Fi scan or connection: redraw the Wi-Fi settings while they are open (not under a dialog being typed in).
+  window.addEventListener('gb-real-wifi-list', () => { if (ui.view === 'settings' && !ui.overlay) render(); });
   window.gbOnResume = () => { if (ui.view === 'camera' || ui.view === 'settings') render(); };
   function syncFloatBar() {
     if (!floatRoot) { floatRoot = document.createElement('div'); floatRoot.id = 'gbx-float'; screen.insertBefore(floatRoot, overlayRoot); }
@@ -437,6 +439,7 @@
     if (ui.view !== 'home') ui.gbxEdit = false;
     // Launcher APK: the Settings app shows the phone's real settings.
     if (ui.view === 'settings' && GBRealSettings.active) GBRealSettings.sync(data.settings);
+    if (ui.view === 'settings' && GBRealWifi.active) data.settings.wifiNetwork = GBRealWifi.current();
     if (ui.view === 'lock') { viewport.innerHTML = renderLock(); attachGBLock(); }
     else if (ui.view === 'home') { viewport.innerHTML = renderHome(); restoreWidgetScroll(); }
     else if (ui.view === 'drawer') viewport.innerHTML = renderDrawer();
@@ -1028,7 +1031,8 @@
   }
   window.addEventListener('resize',()=>{if(ui.overlay==='folder')positionFolder();});
 
-  const allWifiNetworks = () => [...wifiNetworks, ...(data.savedWifiNetworks || [])];
+  // Launcher APK: the networks the phone really sees (gb-real-wifi.js) replace the demo list.
+  const allWifiNetworks = () => GBRealWifi.active ? GBRealWifi.networks() : [...wifiNetworks, ...(data.savedWifiNetworks || [])];
   // ZoneList rows and the Date & time summary: timezones.xml's names with their current "GMT+01:00" offsets.
   function gbOffset(zone) { const p = new Intl.DateTimeFormat('en-US', {timeZone: zone, timeZoneName: 'longOffset'}).formatToParts(new Date()).find(x => x.type === 'timeZoneName')?.value || 'GMT'; const m = p.match(/([+-])(\d+):?(\d*)/); const minutes = m ? (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3] || 0)) : 0; return {minutes, text: `GMT${minutes < 0 ? '-' : '+'}${String(Math.floor(Math.abs(minutes) / 60)).padStart(2, '0')}:${String(Math.abs(minutes) % 60).padStart(2, '0')}`}; }
   function gbZones() { const col = {en: 1, hu: 2, de: 3, fr: 4, es: 5}[i18n.language] || 1; const list = (window.GBTimeZones || []).map(z => ({id: z[0], name: z[col], ...gbOffset(z[0])})).map(z => ({...z, offset: z.text})); return ui.gbZoneSort === 'name' ? list.sort((a, b) => a.name.localeCompare(b.name, i18n.locale())) : list.sort((a, b) => a.minutes - b.minutes); }
@@ -1677,7 +1681,7 @@
       case 'gb-notifications': ui.overlay = 'shade'; renderOverlay(); break;
       case 'gb-menu-more': ui.overlay = 'gb-menu-more'; renderOverlay(); break;
       case 'settings-open': ui.overlay = ''; ui.view = 'settings'; ui.sub = id; ui.gbSettingsStack = id ? [''] : []; render(); break;
-      case 'gbset-go': if (id === 'brightness') { ui.overlay = 'gb-dialog-brightness'; ui.brightnessDraft = data.settings.brightness; renderOverlay(); break; } (ui.gbSettingsStack ||= []).push(ui.sub); ui.sub = id; render(); break;
+      case 'gbset-go': if (id === 'wifi' && GBRealWifi.active && GBRealWifi.scan() === 'location-off') toast('Turn on Location to see Wi-Fi networks'); if (id === 'brightness') { ui.overlay = 'gb-dialog-brightness'; ui.brightnessDraft = data.settings.brightness; renderOverlay(); break; } (ui.gbSettingsStack ||= []).push(ui.sub); ui.sub = id; render(); break;
       case 'gbset-check': if (GBRealSettings.toggle(id, data.settings)) { save(); render(); setTimeout(() => { if (ui.view === 'settings') render(); }, 1500); break; } if (id === 'usbDebug' && !data.settings.usbDebug) { ui.overlay = 'gb-dialog-set'; ui.gbSetDialog = 'adb'; renderOverlay(); break; } { const current = data.settings[id] ?? GBSettings.DEFAULTS[id] ?? (id === 'patternVisible'); data.settings[id] = !current;
         // DateTimeSettings 2.3: one Automatic box covers the network time and zone; turning it off keeps the current zone.
         if (id === 'autoTime') { data.settings.timeOffset = 0; data.settings.autoZone = !!data.settings.autoTime; if (!data.settings.autoTime) data.settings.timeZone = ICSSystemSettings.zone({settings: {...data.settings, autoZone: true}}); }
@@ -1698,10 +1702,10 @@
       case 'gbset-zone': data.settings.timeZone = id; data.settings.autoZone = false; ui.sub = (ui.gbSettingsStack || []).pop() || 'date'; save(); render(); break;
       case 'gbset-zone-sort': ui.gbZoneSort = id; ui.overlay = ''; renderOverlay(); render(); break;
       case 'gbset-ap': ui.overlay = 'gb-dialog-set'; ui.gbSetDialog = `ap:${id}`; renderOverlay(); break;
-      case 'gbset-wifi-connect': { const network = allWifiNetworks().find(item => item.name === id), password = overlayRoot.querySelector('[data-wifi-password]')?.value || ''; if (network && network.security !== 'Open' && password.length < 8) { toast('Password must have at least 8 characters'); break; } data.settings.wifiNetwork = id; ui.overlay = ''; save(); render(); break; }
-      case 'gbset-wifi-forget': data.settings.wifiNetwork = ''; ui.overlay = ''; save(); render(); break;
+      case 'gbset-wifi-connect': { const network = allWifiNetworks().find(item => item.name === id), password = overlayRoot.querySelector('[data-wifi-password]')?.value || ''; if (network && network.security !== 'Open' && network.security !== 'WEP' && password.length < 8) { toast('Password must have at least 8 characters'); break; } if (GBRealWifi.active) { const result = GBRealWifi.connect(id, password); ui.overlay = ''; render(); if (result === 'ok') toast('Connecting…'); else if (result === 'no') toast('Couldn’t connect to the network'); break; } data.settings.wifiNetwork = id; ui.overlay = ''; save(); render(); break; }
+      case 'gbset-wifi-forget': if (GBRealWifi.active) { GBRealWifi.forget(ui.wifiTarget || data.settings.wifiNetwork); ui.overlay = ''; render(); break; } data.settings.wifiNetwork = ''; ui.overlay = ''; save(); render(); break;
       case 'gbset-wifi-save': { const ssid = overlayRoot.querySelector('[data-wifi-ssid]')?.value.trim(); if (ssid && !allWifiNetworks().some(item => item.name === ssid)) data.savedWifiNetworks = [...(data.savedWifiNetworks || []), {name: ssid.slice(0, 32), security: 'Open', strength: 2}]; ui.overlay = ''; save(); render(); break; }
-      case 'gbset-wifi-scan': ui.overlay = ''; render(); toast('Scanning…'); break;
+      case 'gbset-wifi-scan': ui.overlay = ''; if (GBRealWifi.active) GBRealWifi.scan(); render(); toast('Scanning…'); break;
       case 'gbset-bt-scan': ui.btScanning = true; render(); setTimeout(() => { ui.btScanning = false; ui.btFound = [{name: 'Headset', kind: 'headset_hfp'}, {name: 'Car kit', kind: 'headphones_a2dp'}, {name: "Sam's laptop", kind: 'laptop'}]; if (ui.view === 'settings') render(); }, 1500); break;
       case 'gbset-bt-device': if (data.settings.pairedDevice === id) { toast('Connected'); break; } data.settings.pairedDevice = id; save(); render(); break;
       case 'gbset-bt-name-ok': { const name = overlayRoot.querySelector('[data-bt-name]')?.value.trim(); if (name) data.settings.bluetoothName = name.slice(0, 40); ui.overlay = ''; save(); render(); break; }

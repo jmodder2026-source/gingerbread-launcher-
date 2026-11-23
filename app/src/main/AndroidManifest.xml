@@ -11,6 +11,9 @@
     <!-- The Gingerbread Settings app changes the real settings: Wi-Fi and Bluetooth switches (Android 9 and older let
          apps do this), the ringer and Do Not Disturb, and system settings such as brightness once allowed. -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <!-- Android shows apps the nearby Wi-Fi networks only with location access. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
