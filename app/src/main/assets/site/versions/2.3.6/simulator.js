@@ -2760,6 +2760,7 @@
     setHomePage(ui.page + Math.sign(delta));
   }, {passive:false});
   screen.addEventListener('dragstart', event => event.preventDefault());
+  // Launcher2's Workspace long click on an empty cell: the "Add to Home screen" dialog (Shortcuts, Widgets, Folders, Wallpapers).
   let homeLongPressTimer = null, calculatorClearTimer = null, messageHoldTimer = null;
   screen.addEventListener('contextmenu', event => {
     if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
@@ -2778,7 +2779,7 @@
     if (net && !ui.overlay) GBNetwork.hold(net.dataset.gbnetHold, gbNetContext());
     const alarm = event.target.closest('.gbdc-alarm-body');
     if (alarm && !ui.overlay) { ui.dcContext = Number(alarm.dataset.id); ui.overlay = 'clock-context'; renderOverlay(); }
-    if (!dragState && ui.view === 'home' && !ui.overlay && event.button === 2 && event.target.closest('.home-slot') && !event.target.closest('.launcher-icon')) { ui.overlay = 'wallpaper-source'; renderOverlay(); }
+    if (!dragState && ui.view === 'home' && !ui.overlay && event.button === 2 && event.target.closest('.home-slot') && !event.target.closest('.launcher-icon')) { ui.overlay = 'gb-dialog-add'; renderOverlay(); }
   });
   // Older WebKit versions may still start page rubber-banding during a custom
   // gesture. Cancel only gestures owned by the simulator; lists scroll natively.
@@ -2831,7 +2832,7 @@
     const scrollTarget = widgetList || drawerGrid || (event.pointerType === 'mouse' && !ui.overlay && !event.target.closest('input, select, textarea, .wallpaper-choice')
       ? (ui.view === 'settings' && event.target.closest('.settings-app .app-content') ? event.target.closest('.settings-app') : event.target.closest('.play-content,.mms-scroll,.people-scroll,.browser-page,.web-tabs,.web-library,.gbdc-alarms,.gallery-scroll,.cal-scroll,.music-library-scroll,.email-scroll')) : null);
     pointerStart = { x: event.clientX, y: event.clientY, target: event.target, source: dragSource(event.target), pointerType: event.pointerType, pointerId: event.pointerId, downTime: performance.now(), scrollTarget, scrollTop: scrollTarget?.scrollTop || 0, lockDrag: ui.view === 'lock' && !!event.target.closest('.lock-handle'), shadeDragEligible: !ui.overlay && !ui.locked && !!event.target.closest('#status-bar'), shadeCloseEligible: ui.overlay === 'shade' && !!event.target.closest('.gbsh-close'), pageSwipeEligible: ui.view === 'home' && !ui.overlay && !!event.target.closest('.home-view') && !event.target.closest('.dock, .page-indicators, .home-search'), drawerSwipeEligible: ui.view === 'drawer' && !!event.target.closest('.drawer-page') };
-    if (ui.view === 'home' && !ui.overlay && event.target.closest('.home-slot') && !pointerStart.source) homeLongPressTimer = setTimeout(() => { ui.overlay = 'wallpaper-source'; renderOverlay(); pointerStart = null; suppressReleaseClick(); }, 550);
+    if (ui.view === 'home' && !ui.overlay && event.target.closest('.home-slot') && !pointerStart.source) homeLongPressTimer = setTimeout(() => { ui.overlay = 'gb-dialog-add'; renderOverlay(); pointerStart = null; suppressReleaseClick(); }, 550);
     const message = event.target.closest('.mms-message');
     if (message && !ui.overlay) messageHoldTimer = setTimeout(() => { ui.mmsMessage = message.dataset.id; suppressReleaseClick(); gbMmsDialog('message'); }, 550);
     const heldGallery = event.target.closest('[data-gbg-hold]');
