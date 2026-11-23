@@ -17,10 +17,9 @@
     const slots = [];
     if (state.bluetooth) slots.push(state.bluetoothConnected ? 'gb-stat_sys_data_bluetooth_connected.png' : 'gb-stat_sys_data_bluetooth.png');
     if (state.ringer) slots.push(`gb-stat_sys_ringer_${state.ringer}.png`);
-    if (!state.airplane && state.wifi) slots.push(state.wifiLevel === 0 ? 'gb-stat_sys_wifi_signal_0.png' : `gb-stat_sys_wifi_signal_${state.wifiLevel ?? 4}_fully.png`);
-    // While data moves, 3G and H show their in-and-out arrows (Gingerbread has no such frames for G and E).
-    else if (!state.airplane && state.data) slots.push(`gb-stat_sys_data_fully_${state.dataActive && (state.data === '3g' || state.data === 'h') ? 'inandout' : 'connected'}_${state.data}.png`);
-    slots.push(state.airplane ? 'gb-stat_sys_signal_flightmode.png' : state.noSim ? 'gb-stat_sys_no_sim.png' : `gb-stat_sys_signal_${state.signal ?? 4}_fully.png`);
+    if (!state.airplane && state.wifi) slots.push(`gb-stat_sys_wifi_signal_${state.wifiLevel ?? 4}_fully.png`);
+    else if (!state.airplane && state.data) slots.push(`gb-stat_sys_data_fully_connected_${state.data}.png`);
+    slots.push(state.airplane ? 'gb-stat_sys_signal_flightmode.png' : `gb-stat_sys_signal_${state.signal ?? 4}_fully.png`);
     slots.push(batteryIcon(state.battery ?? 100, state.charging));
     if (state.alarm) slots.push('gb-stat_notify_alarm.png');
     return slots.map(src => `<span class="gbsb-icon"><img src="assets/${src}" alt=""></span>`).join('');

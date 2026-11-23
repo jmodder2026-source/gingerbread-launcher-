@@ -83,8 +83,6 @@
   const HANGING_UP = 600, ENDED = 400;
   function callState(call, now = Date.now()) {
     if (call.endedAt) return now < call.endedAt + HANGING_UP ? 'hanging' : 'ended';
-    // A real call (launcher APK) follows the phone's call state; 'incoming' is a ringing call not yet answered.
-    if (call.real) return call.state === 'ringing' ? 'incoming' : call.state === 'dialing' || call.state === 'select-account' ? 'dialing' : call.state === 'holding' || call.hold ? 'holding' : 'active';
     if (now < call.connected) return 'dialing';
     return call.hold ? 'holding' : 'active';
   }
@@ -93,14 +91,14 @@
     if (state === 'ended') return 'ended';
     if (state === 'holding') return 'on_hold';
     if (call.bluetooth) return 'bluetooth';
-    return state === 'dialing' || state === 'incoming' || call.endedAt < call.connected ? 'unidentified' : 'connected';
+    return state === 'dialing' || call.endedAt < call.connected ? 'unidentified' : 'connected';
   }
   // CallCard.updateCardTitleWidgets: the upper title for DIALING and DISCONNECTING/DISCONNECTED, the elapsed time
   // in green (blue with Bluetooth) while ACTIVE, red after the call ended and "On hold" in orange while HOLDING.
   function card(call, state, ctx) {
     const P = key => phoneText(ctx.lang, key), person = ctx.person;
-    const title = {dialing: P('card_title_dialing'), incoming: P('card_title_incoming_call'), hanging: P('card_title_hanging_up'), ended: P('card_title_call_ended')}[state] || '';
-    const elapsed = state === 'holding' ? P('card_title_on_hold') : state === 'dialing' || state === 'incoming' || call.endedAt < call.connected ? '' : elapsedText(call, ctx.now);
+    const title = {dialing: P('card_title_dialing'), hanging: P('card_title_hanging_up'), ended: P('card_title_call_ended')}[state] || '';
+    const elapsed = state === 'holding' ? P('card_title_on_hold') : state === 'dialing' || call.endedAt < call.connected ? '' : elapsedText(call, ctx.now);
     return `<div class="gbic-card"><div class="gbic-title">${e(title)}</div><div class="gbic-photo-row"><img class="gbic-photo" src="${window.GBContactPhoto?.(person) || 'assets/gb-p-picture_unknown.png'}" alt="${e(P('contactPhoto'))}"><span class="gbic-elapsed">${e(elapsed)}</span></div><div class="gbic-name">${e(person?.name || call.number)}</div>${person ? `<div class="gbic-number"><span>${e(ctx.t('Mobile'))}</span><span>${e(call.number)}</span></div>` : ''}</div>`;
   }
   function inCall(call, ctx) {
@@ -114,12 +112,7 @@
     const pad = keypad ? `<div class="gbic-dtmf"><output>${e(call.digits)}</output><div class="gbic-pad">${KEYS.map(([key, art]) => `<button class="gbic-key" data-action="incall-digit" data-id="${e(key)}" aria-label="${e(key)}" style="--wht:url('assets/gb-c-${art}_wht.png');--blk:url('assets/gb-c-${art}_blk.png')"></button>`).join('')}</div></div>` : '';
     const row1 = button('gbp-add-call', '', P('onscreenAddCallText'), 'ic_in_call_touch_add_call', connected) + button('hangup', '', P('onscreenEndCallText'), 'ic_in_call_touch_end', state !== 'hanging', ' gbic-end') + button('incall-toggle', 'keypad', P(keypad ? 'onscreenHideDialpadText' : 'onscreenShowDialpadText'), keypad ? 'ic_in_call_touch_dialpad_close' : 'ic_in_call_touch_dialpad', state === 'active');
     const row2 = toggle('bluetooth', P('onscreenBluetoothText'), !!ctx.bluetoothAvailable) + toggle('mute', P('onscreenMuteText'), state !== 'holding') + toggle('speaker', P('onscreenSpeakerText'), true);
-    // IncomingCallWidget: the SlidingTab with the green Answer tab on the left and the red Decline tab on the right.
-    const incoming = `<div class="gbkg-tabs gbic-incoming" data-gb-tabs>
-        <div class="gbkg-slider gbkg-left" data-side="left"><img class="gbkg-target" src="assets/gb-jog_tab_target_green.png" alt=""><span class="gbkg-bar"><span>${e(P('slide_to_answer_hint'))}</span></span><button class="gbkg-tab" data-gb-tab="left" aria-label="${e(P('slide_to_answer_hint'))}"><img src="assets/gb-ic_jog_dial_answer.png" alt=""></button></div>
-        <div class="gbkg-slider gbkg-right" data-side="right" data-confirm="red"><img class="gbkg-target" src="assets/gb-jog_tab_target_red.png" alt=""><span class="gbkg-bar"><span>${e(P('slide_to_decline_hint'))}</span></span><button class="gbkg-tab" data-gb-tab="right" aria-label="${e(P('slide_to_decline_hint'))}"><img src="assets/gb-ic_jog_dial_decline.png" alt=""></button></div>
-      </div>`;
-    const controls = state === 'incoming' ? incoming : live ? `<div class="gbic-touch">${hold}${pad}<div class="gbic-bottom"><div class="gbic-row">${row1}</div><div class="gbic-row">${row2}</div></div></div>` : '';
+    const controls = live ? `<div class="gbic-touch">${hold}${pad}<div class="gbic-bottom"><div class="gbic-row">${row1}</div><div class="gbic-row">${row2}</div></div></div>` : '';
     return `<div class="app-view gbic gbic-${background(call, state)}" data-no-translate data-state="${state}">${keypad ? '' : card(call, state, {...ctx, now})}${controls}</div>`;
   }
 
