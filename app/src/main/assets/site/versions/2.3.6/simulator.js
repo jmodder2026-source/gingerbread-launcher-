@@ -1198,9 +1198,11 @@
   }
   function saveBrowserState() { syncBrowserState(); data.browserSession = clone(ui.browserSession); save(); }
   function navigateBrowser(url) {
-    const normalized = normalizeAddress(url);
-    // Real web (APK): an address outside the simulator's own pages opens in the phone's real browser.
-    if (window.RealWeb?.browserOn()) { const real = RealWeb.webUrl(normalized); if (real) { RealWeb.open(real); return; } }
+    let normalized = normalizeAddress(url);
+    // Real web (APK): an address outside the simulator's own pages loads for real inside this Browser's page area
+    // (real-frame.js lays the phone's web view over the placeholder renderWebsite() leaves for it).
+    if (window.RealWeb?.browserOn() && window.RealFrame) { const real = RealWeb.webUrl(normalized); if (real) normalized = real; }
+    else if (window.RealWeb?.browserOn()) { const real = RealWeb.webUrl(normalized); if (real) { RealWeb.open(real); return; } }
     ICSBrowserSession.navigate(ui.browserSession,normalized);
     data.browserHistory = [...data.browserHistory,normalized].slice(-50);
     ui.sub = ''; ui.overlay = ''; ui.browserFind = undefined; ui.gbBrEdit = false; browserLoading(); saveBrowserState(); render();
@@ -1209,6 +1211,7 @@
   function browserForward() { ICSBrowserSession.move(ui.browserSession,1); ui.overlay = ''; browserLoading(); saveBrowserState(); render(); }
   function browserLink(url, title, subtitle = '') { return `<div class="web-result"><a href="#" data-action="browser-link" data-url="${safe(url)}"><strong>${safe(title)}</strong></a><small>${safe(url)}</small><p>${safe(subtitle)}</p></div>`; }
   function renderWebsite(url) {
+    if (/^https?:\/\//i.test(url) && window.RealFrame) return `<div class="rf-embed" data-url="${safe(url)}"></div>`;
     if (url === 'www.google.com') return `<div class="google-logo"><span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span></div><form class="search-form" data-form="web-search"><input name="query" aria-label="Search the web" placeholder="Search the web" required><button type="submit">Search</button></form><div class="browser-tiles">${[['www.android.com','Android'],['en.wikipedia.org/wiki/Android','Wikipedia'],['news.example','News'],['retro.example','2011 Web']].map(item => `<button data-action="browser-link" data-url="${item[0]}">${item[1]}</button>`).join('')}</div><p style="font-size:calc(12.7537 * var(--dp));color:#888;margin-top:calc(27.8261 * var(--dp))">Offline demo pages · 2011</p>`;
     if (url.startsWith('search:')) {
       const term = url.slice(7);
@@ -1234,6 +1237,8 @@
     return {lang: i18n.language, t, sub: ui.sub === 'saved' ? 'bookmarks' : ui.sub, url: browserAddress(ui.browserUrl), title: gbBrowserTitle(ui.browserUrl), loading: Date.now() < (ui.gbBrLoadingUntil || 0), editing: !!ui.gbBrEdit, editValue: ui.gbBrEditValue ?? '', find: ui.browserFind, bookmarks: data.bookmarks, history: data.browserHistory, titleOf: gbBrowserTitle, thumbnail: url => renderWebsite(url), tabs: ui.browserTabs, active: ui.browserTab, canForward: ui.browserIndex < ui.browserHistory.length - 1, listView: !!ui.gbBrList, target: ui.gbBrTarget, ok: GBSettings.text(i18n.language, 'fw_ok'), cancel: GBSettings.text(i18n.language, 'fw_cancel')};
   }
   const gbBrowserTitle = url => data.bookmarkTitles?.[url] || browserTitle(url);
+  // Real web: open an address in this Browser (Voice Search results, links from other apps).
+  window.gbRealBrowse = url => { openApp('browser'); navigateBrowser(url); };
   function renderBrowser() { return GBBrowser.render(gbBrowserContext(), renderWebsite(ui.browserUrl)); }
   // Tab.onPageStarted / onPageFinished: the progress bar and the stop button for a moment after each load.
   function browserLoading() {

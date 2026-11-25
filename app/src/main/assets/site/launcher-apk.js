@@ -425,7 +425,7 @@
   const flag = name => !!bridge && read()[name] !== false;
   const enc = encodeURIComponent;
   const open = url => {
-    if (window.RealFrame) { window.RealFrame.open(url); return; }
+    if (window.RealFrame) { if (!/google\.[a-z.]+\/maps|maps\.google\./i.test(url) && window.gbRealBrowse) window.gbRealBrowse(url); else window.RealFrame.open(url); return; }
     if (!bridge) { try { window.open(url, '_blank', 'noopener'); } catch (error) { /* blocked */ } return; }
     const a = document.createElement('a');
     a.href = url; a.target = '_self'; a.rel = 'noopener'; a.style.display = 'none';

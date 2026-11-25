@@ -49,7 +49,9 @@
   function load(c, target, push = true) {
     if (!target) return;
     // Real web (APK): an address outside the simulator's own pages opens in the phone's real browser.
-    if (window.RealWeb?.browserOn()) { const real = RealWeb.webUrl(target); if (real) { RealWeb.open(real); return; } }
+    // Real web (APK): the real page loads inside this Browser's page area (real-frame.js).
+    if (window.RealWeb?.browserOn() && window.RealFrame) { const real = RealWeb.webUrl(target); if (real) target = real; }
+    else if (window.RealWeb?.browserOn()) { const real = RealWeb.webUrl(target); if (real) { RealWeb.open(real); return; } }
     const s = st(c), t = tab(c);
     if (push) { t.history = t.history.slice(0, t.index + 1); t.history.push(target); t.history = t.history.slice(-50); t.index = t.history.length - 1; }
     s.visits[target] = (s.visits[target] || 0) + 1;
@@ -68,12 +70,14 @@
         <button type="button" class="ecbr-rt" data-action="${busy ? 'ecbr-stop' : 'ecbr-bookmarks'}"><i class="ec-bg np-fw-btn_search_dialog_voice_default"></i><i class="ec-bg ec-pressed np-fw-btn_search_dialog_voice_pressed"></i><img src="assets/br-${busy ? 'ic_btn_stop_v2' : 'ic_btn_bookmarks'}.png" alt=""></button></div></div>`;
   }
   function pageInner(c) {
+    if (/^https?:\/\//i.test(url(c)) && window.RealFrame && window.RealWeb?.browserOn()) return `<div class="rf-embed" data-url="${esc(url(c))}"></div>`;
     if (loading) return '';
     const own = EC.browserPages?.page(url(c));
     if (own) return own.html;
     return AndroidStrings.format(EC.webErrorPage[c.lang] || EC.webErrorPage.en, esc(url(c)), esc(url(c)));
   }
   const page = c => `<div class="ecbr-page">${pageInner(c)}</div>`;
+  window.gbRealBrowse = target => { const c = c0(); c.open('browser'); load(c, target); };
   // CombinedBookmarkHistoryActivity
   function combined(c) {
     const which = c.ui.browserTab || 'bookmarks', s = st(c);

@@ -28,3 +28,10 @@
 #real-frame .rf-menu button:disabled{color:#777}
 /* 2.1 Eclair's browser bar is a little darker. */
 #real-frame.rf-v21 .rf-bar{background:linear-gradient(#e6e6e6,#bdbdbd)}
+/* Embedded mode: the simulated Browser's page area while the phone's web view sits over it. */
+.rf-embed{position:absolute;inset:0;background:#fff}
+.browser-page:has(>.rf-embed),.ecbr-page:has(>.rf-embed){position:relative;overflow:hidden}
+/* 2.1: the title bar scrolls with the page, so the page area takes the rest of the scroll area's height. */
+.ecbr-scroll:has(.rf-embed){display:flex;flex-direction:column}
+.ecbr-scroll:has(.rf-embed)>*{flex:none}
+.ecbr-scroll:has(.rf-embed)>.ecbr-page{flex:1 1 auto;min-height:0}

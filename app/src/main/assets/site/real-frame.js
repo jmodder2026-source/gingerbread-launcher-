@@ -3,8 +3,8 @@
    the frame around it (a title bar with the address, a progress line, a row of buttons on the Menu key) and keeps the
    native view exactly over its placeholder. Whenever anything of the simulator covers the placeholder (the
    notification shade, a menu, a dialog, the lock screen) the native view hides, since it would otherwise sit on top.
-   The Browser and Maps icons open the frame while RealWeb's switches are on; their Menu has "Simulated browser" /
-   "Simulated map" to go back to the simulator's own app. Without the APK's web view this file does nothing. */
+   The Browser keeps its own look: a real address shows the real page inside the simulated Browser's page area
+   (embedded mode below). The Maps icon opens the frame while Real Google Maps is on; its Menu has "Simulated map". Without the APK's web view this file does nothing. */
 (() => {
   'use strict';
   const bridge = window.AndroidLauncher || null;
@@ -135,13 +135,53 @@
   // The APK reports the page: address, title, progress (0-100) and whether Back / Forward can go anywhere.
   window.gbRealWebState = s => {
     state = {...state, ...(typeof s === 'string' ? JSON.parse(s) : s)};
+    if (embedUrl) { titleEmbed(); return; }
     if (kind === 'browser' && isMaps(state.url)) kind = 'maps';
     paint();
   };
 
+  /* Embedded mode (the Browser): the simulated Browser keeps its own title bar, menus and bookmarks; for a real
+     address it leaves <div class="rf-embed" data-url> as its page, and the phone's web view sits exactly over it. */
+  let embedUrl = '', embedPlaced = '';
+  const embedVisible = () => embedUrl && embedPlaced && embedPlaced !== 'hidden';
+  function titleEmbed() {
+    const label = state.progress < 100 ? (state.url || embedUrl) : (state.title || host(state.url));
+    const span = document.querySelector('#viewport .gbbr-title > span:not(.gbbr-fav), #viewport .ecbr-field > span');
+    if (span && label && embedVisible()) span.textContent = label;
+  }
+  function syncEmbed() {
+    if (root && !root.hidden) return;                      // the Maps frame has the web view
+    const holder = document.querySelector('#viewport .rf-embed');
+    if (!holder) {
+      if (embedPlaced !== 'hidden' && embedPlaced) { bridge.webPlace(0, 0, 1, 1, false); embedPlaced = 'hidden'; }
+      return;
+    }
+    const url = holder.dataset.url || '';
+    if (url && url !== embedUrl) { embedUrl = url; state = {url, title: '', progress: 10, back: false, forward: false}; bridge.webLoad(url); }
+    const r = holder.getBoundingClientRect();
+    let visible = r.width > 0 && r.height > 0;
+    if (visible) {
+      for (const [fx, fy] of [[0.5, 0.5], [0.5, 0.04], [0.06, 0.96], [0.94, 0.96], [0.06, 0.3], [0.94, 0.3]]) {
+        const hit = document.elementFromPoint(r.left + r.width * fx, r.top + r.height * fy);
+        if (hit !== holder) { visible = false; break; }
+      }
+    }
+    const key = visible ? [r.left, r.top, r.width, r.height].map(n => Math.round(n * 10) / 10).join(',') : 'hidden';
+    if (key === embedPlaced) return;
+    embedPlaced = key;
+    bridge.webPlace(r.left, r.top, r.width, r.height, visible);
+    if (visible) titleEmbed();
+  }
+  setInterval(syncEmbed, 150);
+
   // The phone's keys: Back goes back in the page (then closes the frame), Menu shows the frame's buttons, Home closes.
   const ownKey = window.launcherKey;
   window.launcherKey = name => {
+    if (name === 'back' && embedVisible() && (!root || root.hidden)) {
+      let went = false;
+      try { went = !!bridge.webBack?.(); } catch (error) { went = false; }
+      if (went) return true;
+    }
     if (root && !root.hidden) {
       if (name === 'back') {
         if (!root.querySelector('.rf-edit').hidden) { editing(false); return true; }
@@ -158,6 +198,12 @@
   };
   // The simulator's own Back / Menu / Home buttons (2.1's soft keys, the 2.3.6 key row) behave the same.
   document.addEventListener('click', event => {
+    if (event.target.closest?.('#nav-bar [data-action="back"], .touch-key[data-action="back"]') && embedVisible() && (!root || root.hidden)) {
+      let went = false;
+      try { went = !!bridge.webBack?.(); } catch (error) { went = false; }
+      if (went) { event.preventDefault(); event.stopImmediatePropagation(); }
+      return;
+    }
     if (!root || root.hidden) return;
     const key = event.target.closest?.('#nav-bar [data-action], .touch-key[data-action]');
     if (!key) return;
@@ -171,7 +217,7 @@
 
   // The Browser and Maps icons open the real page while their switches are on.
   document.addEventListener('click', event => {
-    const icon = event.target.closest?.('[data-app="browser"], [data-app="maps"]');
+    const icon = event.target.closest?.('[data-app="maps"]');
     if (!icon || icon.dataset.rfPass || icon.closest('#real-frame')) return;
     if (icon.closest('.recent-item')) return;
     const app = icon.dataset.app;
