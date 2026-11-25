@@ -161,3 +161,9 @@
 /* The Google widget's other two parts light up orange too: the G corpus button and the voice (mic) button. */
 .gbqsb-corpus:active,.gbqsb-corpus.gb-orange{border-image-source:url('assets/gb-qsb-corpus_indicator_bg_pressed.png')!important;filter:none!important}
 .gbqsb-voice:active,.gbqsb-voice.gb-orange{border-image-source:url('assets/gb-qsb-btn_search_dialog_voice_pressed.png')!important;filter:none!important}
+
+/* Search options (CorpusSelectionDialog): a cell is orange only while it is touched, not because it is the current
+   one, and the settings (edit) button does not light up. */
+.screen .gbqs-cell.current{background:none}
+.screen .gbqs-cell:active,.screen .gbqs-cell.gb-orange{background:url('assets/gb-qsb-corpus_grid_item_bg_pressed.png') 0 0/100% 100%}
+.screen .gbqs-sel-edit:active{background:none}

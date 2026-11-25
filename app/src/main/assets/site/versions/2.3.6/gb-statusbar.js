@@ -137,4 +137,16 @@
     if (!bar || bar.tagName === 'INPUT') return;
     bar.classList.add('gb-orange'); setTimeout(() => bar.classList.remove('gb-orange'), 450);
   }, true);
+  /* The Google search widget's parts and the search-options cells: the screen used to change on the same tap, so the
+     orange press never showed on the phone. The tap now lights the part orange first and acts 160 ms later. */
+  const HOLD = '.gbqsb-field, .gbqsb-corpus, .gbqsb-voice, .gbqs-cell';
+  document.addEventListener('click', event => {
+    const el = event.target.closest?.(HOLD);
+    if (!el) return;
+    if (el.dataset.pressPass) { delete el.dataset.pressPass; return; }
+    event.preventDefault(); event.stopImmediatePropagation();
+    el.classList.add('gb-orange');
+    setTimeout(() => { el.dataset.pressPass = '1'; el.click(); }, 160);
+    setTimeout(() => el.classList.remove('gb-orange'), 450);
+  }, true);
 })();

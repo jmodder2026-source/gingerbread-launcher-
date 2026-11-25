@@ -80,3 +80,8 @@ a,input,select,textarea,label,[data-action],[role="button"],[role="option"],[rol
 .apk-launcher .gbcam-frame{top:0}
 .apk-launcher .screen .gbcam-preview{border-image:none;border:0;padding:0;background:none;height:calc(100% - 40 * var(--dp))}
 .apk-launcher .gbcam-scene{inset:0}
+
+/* Launcher APK: the app drawer only scrolls, natively, under the finger. */
+.apk-launcher #viewport>.drawer-view{touch-action:pan-y}
+.apk-launcher .gbl-allapps-grid{overflow-y:auto!important;touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.apk-launcher .gbl-allapps-grid::-webkit-scrollbar{display:none}

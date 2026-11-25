@@ -320,11 +320,22 @@
      "Speak now" window), then the words go into the version's search box and are searched. */
   function voiceSearch() {
     const MIC = ['voice-search', 'eclh-voice', 'mmh-voice', 'ngh-voice', 'mmgg-voice', 'ga-voice-listen', 'voice-listen', 'gbw-voice-open'];
-    let pending = null;
+    let pending = null, realListening = false;
+    // Nothing heard (or an error): the version's own screen shows "No speech heard" on its own after a few seconds.
+    window.apkVoiceEnded = () => { realListening = false; };
     document.addEventListener('click', event => {
       const mic = event.target.closest?.('[data-action]');
       if (!mic || !MIC.includes(mic.dataset.action) || !bridge.listen) return;
       if (mic.dataset.apkVoice === 'pass') { delete mic.dataset.apkVoice; return; }
+      // 2.3.6 and 2.1: the version's own "Speak now" screen opens as usual, and the phone listens behind it.
+      const ownScreen = /versions\/(2\.3\.6|2\.1)\//.test(location.pathname) && typeof bridge.recognize === 'function';
+      if (ownScreen) {
+        pending = mic;
+        let ok = false;
+        try { ok = !!bridge.recognize((navigator.language || 'en').slice(0, 5)); } catch (error) { ok = false; }
+        realListening = ok;
+        return;
+      }
       event.preventDefault(); event.stopImmediatePropagation();
       pending = mic;
       let ok = false;
@@ -349,6 +360,16 @@
       const mic = pending; pending = null;
       text = String(text || '').trim();
       if (!text) return;
+      // Heard behind the version's own Voice Search screen: Google's results for the words, as Voice Search did.
+      if (realListening) {
+        realListening = false;
+        if (window.RealFrame && window.RealWeb) {
+          // Leave the Voice Search screen (the simulator's Home key), then show the results.
+          const home = document.createElement('button'); home.hidden = true; home.dataset.action = 'home';
+          document.querySelector('#screen')?.append(home); home.click(); home.remove();
+          window.RealFrame.open(window.RealWeb.search(text), 'browser'); return;
+        }
+      }
       // A search box already on screen (the Google app): fill it in. Otherwise open the bar's search screen first.
       let el = field();
       if (el) { type(el, text); return; }
@@ -363,6 +384,8 @@
 
   window.RealLauncher = {
     active: !!bridge,
+    // Android's own "Uninstall this app?" prompt for the launcher itself.
+    uninstall: () => { try { bridge?.uninstallSelf?.(); } catch (error) { /* no bridge */ } },
     VERSIONS,
     all: () => all,
     shown: () => { const ids = shownIds(); return all.filter(app => ids.includes(app.id)); },
@@ -402,6 +425,7 @@
   const flag = name => !!bridge && read()[name] !== false;
   const enc = encodeURIComponent;
   const open = url => {
+    if (window.RealFrame) { window.RealFrame.open(url); return; }
     if (!bridge) { try { window.open(url, '_blank', 'noopener'); } catch (error) { /* blocked */ } return; }
     const a = document.createElement('a');
     a.href = url; a.target = '_self'; a.rel = 'noopener'; a.style.display = 'none';
@@ -443,5 +467,24 @@
       navigate: to => open(`${MAPS}/dir/?api=1&destination=${enc(to)}&travelmode=driving&dir_action=navigate`),
       here: () => open(`${MAPS}/@?api=1&map_action=map`)
     }
+  };
+})();
+
+/* The phone's own SMS and email notifications (AndroidLauncher.notifications, kept up to date by the APK's notification
+   listener through window.gbRealNotes) for the 2.3.6 and 2.1 status bars and shades. Each is {key, kind: 'sms' |
+   'email', app, title, text, when}. Opening one runs its own action (the real Messages / Gmail); Clear dismisses them. */
+(() => {
+  'use strict';
+  const bridge = window.AndroidLauncher || null;
+  let list = [];
+  const read = value => { try { const v = typeof value === 'string' ? JSON.parse(value || '[]') : value; return Array.isArray(v) ? v.filter(n => n && n.key) : []; } catch (error) { return []; } };
+  try { list = read(bridge?.notifications?.()); } catch (error) { list = []; }
+  window.gbRealNotes = value => { list = read(value); window.dispatchEvent(new Event('gb-real-notes')); };
+  window.GBRealNotes = {
+    list: () => list,
+    open: key => { list = list.filter(n => n.key !== key); try { bridge?.openNotification?.(String(key)); } catch (error) { /* gone */ } window.dispatchEvent(new Event('gb-real-notes')); },
+    clear: () => { list = []; try { bridge?.clearNotifications?.(); } catch (error) { /* no listener */ } window.dispatchEvent(new Event('gb-real-notes')); },
+    allowed: () => { try { return !!bridge?.notificationAccess?.(); } catch (error) { return false; } },
+    allow: () => { try { bridge?.askNotificationAccess?.(); } catch (error) { /* no bridge */ } }
   };
 })();

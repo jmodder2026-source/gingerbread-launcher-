@@ -1,0 +1,30 @@
+/* real-frame.js: the frame around the phone's real web view (Browser and Maps), styled after the 2.3.6 / 2.1 Browser
+   title bar: a light grey bar with the site icon and the address, a thin progress line, then the page. */
+#real-frame{position:absolute;left:0;right:0;top:var(--rf-top,28px);bottom:0;z-index:6;display:flex;flex-direction:column;background:#fff;font-family:DroidSans,Arial,sans-serif}
+#real-frame[hidden]{display:none}
+#real-frame .rf-bar{flex:none;display:flex;align-items:center;gap:6px;height:44px;padding:0 6px;box-sizing:border-box;background:linear-gradient(#f4f4f4,#d6d6d6);border-bottom:1px solid #9a9a9a}
+#real-frame .rf-icon{width:28px;height:28px;flex:none;object-fit:contain}
+#real-frame .rf-address{flex:1;min-width:0;height:34px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:0 8px;margin:0;border:1px solid #a8a8a8;border-radius:3px;background:linear-gradient(#fff,#f2f2f2);color:#000;text-align:left;font:inherit;cursor:text}
+#real-frame .rf-address[hidden]{display:none}
+#real-frame .rf-title{max-width:100%;font-size:14px;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#000}
+#real-frame .rf-url{max-width:100%;font-size:11px;line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#555}
+#real-frame .rf-edit{flex:1;min-width:0;margin:0}
+#real-frame .rf-edit[hidden]{display:none}
+#real-frame .rf-edit input{width:100%;height:34px;box-sizing:border-box;padding:0 8px;border:2px solid #ff9a00;border-radius:3px;font:15px DroidSans,Arial,sans-serif;outline:0;background:#fff;color:#000}
+#real-frame .rf-reload{flex:none;width:34px;height:34px;margin:0;padding:0;border:1px solid #a8a8a8;border-radius:3px;background:linear-gradient(#fff,#e2e2e2);position:relative;cursor:pointer}
+#real-frame .rf-reload::before{content:"";position:absolute;inset:8px;border:2.5px solid #4a4a4a;border-top-color:transparent;border-radius:50%}
+#real-frame .rf-reload::after{content:"";position:absolute;right:7px;top:7px;border:5px solid transparent;border-left-color:#4a4a4a;transform:rotate(-45deg)}
+#real-frame .rf-reload.stop::before{inset:15px 8px;border:0;border-top:2.5px solid #4a4a4a;border-radius:0;transform:rotate(45deg)}
+#real-frame .rf-reload.stop::after{inset:15px 8px;right:auto;top:auto;width:auto;height:0;border:0;border-top:2.5px solid #4a4a4a;transform:rotate(-45deg)}
+#real-frame .rf-reload:active,#real-frame .rf-address:active{background:#ffb84a}
+#real-frame .rf-progress{flex:none;height:3px;background:#d6d6d6}
+#real-frame .rf-progress i{display:block;height:100%;width:4%;background:linear-gradient(#ffd24a,#f39c12);transition:width .2s}
+#real-frame .rf-progress.done{visibility:hidden}
+#real-frame .rf-page{flex:1;min-height:0;background:#fff}
+#real-frame .rf-menu{position:absolute;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(3,1fr);background:#2b2b2b;border-top:1px solid #666;box-shadow:0 -4px 10px #0008}
+#real-frame .rf-menu[hidden]{display:none}
+#real-frame .rf-menu button{height:56px;margin:0;border:0;border-right:1px solid #444;border-bottom:1px solid #444;background:linear-gradient(#3c3c3c,#262626);color:#fff;font:14px DroidSans,Arial,sans-serif}
+#real-frame .rf-menu button:active{background:#ff9a00;color:#000}
+#real-frame .rf-menu button:disabled{color:#777}
+/* 2.1 Eclair's browser bar is a little darker. */
+#real-frame.rf-v21 .rf-bar{background:linear-gradient(#e6e6e6,#bdbdbd)}

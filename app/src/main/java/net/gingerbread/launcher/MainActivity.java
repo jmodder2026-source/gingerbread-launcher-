@@ -97,6 +97,18 @@ public class MainActivity extends Activity {
 
     private static final int CAMERA_REQUEST = 7;
     private static final int CALL_REQUEST = 9;
+    private static final int VOICE_PERMISSION_REQUEST = 19;
+    private static final int GEO_PERMISSION_REQUEST = 21;
+    // The simulator page and, laid over it where the page asks, the real web view of the Browser and Maps (real-frame.js).
+    private android.widget.FrameLayout stage;
+    private WebView realWeb;
+    private volatile boolean realBack, realForward;
+    private int realProgress = 100;
+    private android.webkit.GeolocationPermissions.Callback pendingGeo;
+    private String pendingGeoOrigin;
+    // Voice Search: the phone's speech recognition behind the simulator's own "Speak now" screen.
+    private android.speech.SpeechRecognizer recognizer;
+    private String pendingVoiceLanguage;
     private static final int WIFI_SCAN_REQUEST = 11;
     // A number waiting for Android's call permission prompt.
     private String pendingCall;
@@ -204,7 +216,10 @@ public class MainActivity extends Activity {
                 if (request == pendingCamera) pendingCamera = null;
             }
         });
-        setContentView(web);
+        stage = new android.widget.FrameLayout(this);
+        stage.addView(web, new android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+        setContentView(stage);
+        NotifyService.sink = json -> runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.gbRealNotes && window.gbRealNotes(" + JSONObject.quote(json) + ")", null); });
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
         else web.loadUrl(startUrl());
 
@@ -1003,6 +1018,19 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
+        if (requestCode == VOICE_PERMISSION_REQUEST) {
+            String language = pendingVoiceLanguage;
+            pendingVoiceLanguage = null;
+            if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) startRecognizer(language);
+            else voiceEnded();
+            return;
+        }
+        if (requestCode == GEO_PERMISSION_REQUEST) {
+            boolean ok = results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED;
+            if (pendingGeo != null) pendingGeo.invoke(pendingGeoOrigin, ok, false);
+            pendingGeo = null; pendingGeoOrigin = null;
+            return;
+        }
         if (requestCode == WIFI_SCAN_REQUEST) {
             if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) wifiScan();
             tellPageWifiList();
@@ -1032,6 +1060,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         keys.removeCallbacks(trafficCheck);
+        if (recognizer != null) recognizer.cancel();
+        if (realWeb != null) realWeb.onPause();
         if (web != null) web.evaluateJavascript("window.gbOnPause && window.gbOnPause()", null);
         super.onPause();
     }
@@ -1040,7 +1070,11 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         if (web != null) web.evaluateJavascript("window.gbOnResume && window.gbOnResume()", null);
+        if (realWeb != null) realWeb.onResume();
         offerDefaults();
+        offerNotificationAccess();
+        NotifyService current = NotifyService.current;
+        if (current != null && NotifyService.sink != null) NotifyService.sink.notes(current.json());
         tellPageWifi();
         tellPagePhone();
         lastMobileBytes = -1;
@@ -1098,7 +1132,9 @@ public class MainActivity extends Activity {
                 c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
             }
         } else {
-            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN);
+            // Sticky immersive: a swipe from the top shows Android's bar see-through for a moment instead of pulling
+            // its notification shade down over the launcher.
+            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         }
     }
 
@@ -1210,6 +1246,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         if (CallService.sink != null) CallService.sink = null;
+        NotifyService.sink = null;
+        if (recognizer != null) { recognizer.destroy(); recognizer = null; }
+        if (realWeb != null) { realWeb.destroy(); realWeb = null; }
         if (proximityLock != null && proximityLock.isHeld()) proximityLock.release();
         if (packageReceiver != null) unregisterReceiver(packageReceiver);
         if (statusReceiver != null) unregisterReceiver(statusReceiver);
@@ -1227,6 +1266,163 @@ public class MainActivity extends Activity {
         }
         if (web != null) web.destroy();
         super.onDestroy();
+    }
+
+    // ---- Real web (Browser and Maps) -----------------------------------------------------------------------------------
+    @SuppressLint("SetJavaScriptEnabled")
+    private void ensureRealWeb() {
+        if (realWeb != null) return;
+        realWeb = new WebView(this);
+        realWeb.setBackgroundColor(Color.WHITE);
+        WebSettings s = realWeb.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        s.setDatabaseEnabled(true);
+        s.setGeolocationEnabled(true);
+        s.setLoadWithOverviewMode(true);
+        s.setUseWideViewPort(true);
+        s.setBuiltInZoomControls(true);
+        s.setDisplayZoomControls(false);
+        s.setAllowFileAccess(false);
+        s.setAllowContentAccess(false);
+        s.setMediaPlaybackRequiresUserGesture(true);
+        android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(realWeb, true);
+        realWeb.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                Uri url = request.getUrl();
+                String scheme = url.getScheme() == null ? "" : url.getScheme().toLowerCase(Locale.ROOT);
+                if (scheme.equals("http") || scheme.equals("https")) return false;
+                if (scheme.equals("intent")) {
+                    try {
+                        Intent intent = Intent.parseUri(url.toString(), Intent.URI_INTENT_SCHEME);
+                        intent.addCategory(Intent.CATEGORY_BROWSABLE);
+                        intent.setComponent(null);
+                        intent.setSelector(null);
+                        if (intent.resolveActivity(getPackageManager()) != null) { startActivity(intent); return true; }
+                        String fallback = intent.getStringExtra("browser_fallback_url");
+                        if (fallback != null && fallback.startsWith("http")) view.loadUrl(fallback);
+                    } catch (Exception ignored) { }
+                    return true;
+                }
+                startSafely(new Intent(Intent.ACTION_VIEW, url));
+                return true;
+            }
+
+            @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) { realProgress = 10; tellPageWeb(); }
+
+            @Override
+            public void onPageFinished(WebView view, String url) { realProgress = 100; tellPageWeb(); }
+
+            @Override
+            public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) { tellPageWeb(); }
+        });
+        realWeb.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onProgressChanged(WebView view, int progress) { realProgress = progress; tellPageWeb(); }
+
+            @Override
+            public void onReceivedTitle(WebView view, String title) { tellPageWeb(); }
+
+            @Override
+            public void onGeolocationPermissionsShowPrompt(String origin, android.webkit.GeolocationPermissions.Callback callback) {
+                if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                        || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                    callback.invoke(origin, true, false);
+                    return;
+                }
+                pendingGeo = callback; pendingGeoOrigin = origin;
+                requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, GEO_PERMISSION_REQUEST);
+            }
+        });
+        realWeb.setDownloadListener((url, agent, disposition, mime, length) -> startSafely(new Intent(Intent.ACTION_VIEW, Uri.parse(url))));
+        realWeb.setVisibility(View.INVISIBLE);
+        stage.addView(realWeb, new android.widget.FrameLayout.LayoutParams(1, 1));
+    }
+
+    private void tellPageWeb() {
+        if (realWeb == null || web == null) return;
+        realBack = realWeb.canGoBack();
+        realForward = realWeb.canGoForward();
+        try {
+            JSONObject state = new JSONObject().put("url", realWeb.getUrl() == null ? "" : realWeb.getUrl())
+                    .put("title", realWeb.getTitle() == null ? "" : realWeb.getTitle()).put("progress", realProgress)
+                    .put("back", realBack).put("forward", realForward);
+            web.evaluateJavascript("window.gbRealWebState && window.gbRealWebState(" + state + ")", null);
+        } catch (Exception ignored) { }
+    }
+
+    // x, y, width and height are CSS pixels of the simulator page; the page is laid out at the screen's density.
+    private void placeRealWeb(double x, double y, double width, double height, boolean visible) {
+        if (realWeb == null) return;
+        float density = getResources().getDisplayMetrics().density;
+        android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(
+                Math.max(1, (int) Math.round(width * density)), Math.max(1, (int) Math.round(height * density)));
+        lp.leftMargin = (int) Math.round(x * density);
+        lp.topMargin = (int) Math.round(y * density);
+        realWeb.setLayoutParams(lp);
+        realWeb.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
+        if (!visible && realWeb.hasFocus()) web.requestFocus();
+    }
+
+    // ---- Voice Search -------------------------------------------------------------------------------------------------
+    private void startRecognizer(String language) {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            pendingVoiceLanguage = language == null ? "" : language;
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, VOICE_PERMISSION_REQUEST);
+            return;
+        }
+        try {
+            if (recognizer == null) {
+                recognizer = android.speech.SpeechRecognizer.createSpeechRecognizer(this);
+                recognizer.setRecognitionListener(new android.speech.RecognitionListener() {
+                    @Override public void onReadyForSpeech(Bundle params) { }
+                    @Override public void onBeginningOfSpeech() { }
+                    @Override public void onRmsChanged(float rmsdB) { }
+                    @Override public void onBufferReceived(byte[] buffer) { }
+                    @Override public void onEndOfSpeech() { }
+                    @Override public void onPartialResults(Bundle partialResults) { }
+                    @Override public void onEvent(int eventType, Bundle params) { }
+                    @Override public void onError(int error) { voiceEnded(); }
+                    @Override public void onResults(Bundle results) {
+                        java.util.ArrayList<String> words = results.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION);
+                        String heard = words == null || words.isEmpty() ? "" : words.get(0);
+                        if (web != null && !heard.isEmpty()) web.evaluateJavascript("window.apkHeard && window.apkHeard(" + JSONObject.quote(heard) + ")", null);
+                        else voiceEnded();
+                    }
+                });
+            } else {
+                recognizer.cancel();
+            }
+            Intent ask = new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                    .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH)
+                    .putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+                    .putExtra(android.speech.RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
+            if (language != null && !language.isEmpty()) ask.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, language);
+            recognizer.startListening(ask);
+        } catch (Exception e) {
+            voiceEnded();
+        }
+    }
+
+    private void voiceEnded() {
+        if (web != null) web.evaluateJavascript("window.apkVoiceEnded && window.apkVoiceEnded()", null);
+    }
+
+    // ---- Messages and email in the simulator's shade --------------------------------------------------------------------
+    // Asks once, after the default Home app question, for Notification access (Android's own settings screen).
+    private void offerNotificationAccess() {
+        if (NotifyService.allowed(this) || !isDefaultHome()) return;
+        android.content.SharedPreferences prefs = getSharedPreferences("launcher", MODE_PRIVATE);
+        if (prefs.getBoolean("askedNotifyAccess", false)) return;
+        prefs.edit().putBoolean("askedNotifyAccess", true).apply();
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("Messages and email")
+                .setMessage("Let Gingerbread Launcher show your text messages and emails in its status bar and notification shade? On the next screen, turn on Notification access for Gingerbread Launcher.")
+                .setPositiveButton("Allow", (d, w) -> startSafely(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)))
+                .setNegativeButton("Not now", null)
+                .show();
     }
 
     private void startSafely(Intent intent) {
@@ -1507,6 +1703,91 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void openDialer() {
             runOnUiThread(() -> startSafely(new Intent(Intent.ACTION_DIAL)));
+        }
+
+        @JavascriptInterface
+        public void webLoad(String url) {
+            runOnUiThread(() -> { ensureRealWeb(); realProgress = 10; realWeb.loadUrl(url); });
+        }
+
+        @JavascriptInterface
+        public void webPlace(double x, double y, double width, double height, boolean visible) {
+            runOnUiThread(() -> placeRealWeb(x, y, width, height, visible));
+        }
+
+        @JavascriptInterface
+        public boolean webBack() {
+            boolean can = realBack;
+            if (can) runOnUiThread(() -> { if (realWeb != null && realWeb.canGoBack()) realWeb.goBack(); });
+            return can;
+        }
+
+        @JavascriptInterface
+        public void webForward() {
+            runOnUiThread(() -> { if (realWeb != null && realWeb.canGoForward()) realWeb.goForward(); });
+        }
+
+        @JavascriptInterface
+        public void webReload() {
+            runOnUiThread(() -> { if (realWeb != null) realWeb.reload(); });
+        }
+
+        @JavascriptInterface
+        public void webStop() {
+            runOnUiThread(() -> { if (realWeb != null) { realWeb.stopLoading(); realProgress = 100; tellPageWeb(); } });
+        }
+
+        @JavascriptInterface
+        public void webClose() {
+            runOnUiThread(() -> {
+                if (realWeb == null) return;
+                realWeb.setVisibility(View.INVISIBLE);
+                realWeb.stopLoading();
+                realWeb.loadUrl("about:blank");
+                realWeb.clearHistory();
+                realBack = false; realForward = false;
+                web.requestFocus();
+            });
+        }
+
+        @JavascriptInterface
+        public boolean recognize(String language) {
+            if (!android.speech.SpeechRecognizer.isRecognitionAvailable(MainActivity.this)) return false;
+            runOnUiThread(() -> startRecognizer(language));
+            return true;
+        }
+
+        @JavascriptInterface
+        public String notifications() {
+            NotifyService current = NotifyService.current;
+            return current == null ? "[]" : current.json();
+        }
+
+        @JavascriptInterface
+        public void openNotification(String key) {
+            NotifyService current = NotifyService.current;
+            if (current != null) runOnUiThread(() -> current.open(key));
+        }
+
+        @JavascriptInterface
+        public void clearNotifications() {
+            NotifyService current = NotifyService.current;
+            if (current != null) runOnUiThread(current::clearShown);
+        }
+
+        @JavascriptInterface
+        public boolean notificationAccess() {
+            return NotifyService.allowed(MainActivity.this);
+        }
+
+        @JavascriptInterface
+        public void askNotificationAccess() {
+            runOnUiThread(() -> startSafely(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
+        }
+
+        @JavascriptInterface
+        public void uninstallSelf() {
+            runOnUiThread(() -> startSafely(new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + getPackageName()))));
         }
 
         @JavascriptInterface

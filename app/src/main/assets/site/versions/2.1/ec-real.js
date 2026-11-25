@@ -116,21 +116,20 @@
     version: {en: 'Android version', hu: 'Android-verzió', de: 'Android-Version', fr: 'Version d’Android', es: 'Versión de Android'},
     home: {en: 'Default Home app', hu: 'Alapértelmezett kezdőalkalmazás', de: 'Standard-Startbildschirm-App', fr: 'Application d’accueil par défaut', es: 'Aplicación de inicio predeterminada'},
     phone: {en: 'Default phone app', hu: 'Alapértelmezett telefonalkalmazás', de: 'Standard-Telefon-App', fr: 'Application Téléphone par défaut', es: 'Aplicación de teléfono predeterminada'},
+    uninstall: {en: 'Uninstall launcher', hu: 'Indító eltávolítása', de: 'Launcher deinstallieren', fr: 'Désinstaller le lanceur', es: 'Desinstalar el launcher'},
     ok: {en: 'OK', hu: 'OK', de: 'OK', fr: 'OK', es: 'Aceptar'}
   };
   function launcherSettings() {
-    const d = L.defaults(), mark = on => (on ? ' ✓' : '');
     const version = L.version();
     // Each row with its menu icon, as Eclair's own settings lists show them.
     c.dialog({title: tr(T.title), icon: 'fw-ic_dialog_menu_generic.png', rows: 'iconlist', items: [
       {label: tr(T.apps), icon: 'fw-ic_menu_manage.png'},
       {label: `${tr(T.version)}: ${version}`, icon: 'fw-ic_menu_info_details.png'},
-      {label: tr(T.home) + mark(d.home), icon: 'am-menu_home.png'},
-      {label: tr(T.phone) + mark(d.phone), icon: 'fw-ic_menu_call.png'}],
+      {label: tr(T.uninstall), icon: 'fw-ic_menu_delete.png'}],
     onItem(index) {
       if (index === 0) appsDialog();
       else if (index === 1) versionDialog();
-      else { c.closeOverlay(); L.makeDefault(index === 2 ? 'home' : 'phone'); }
+      else { c.closeOverlay(); L.uninstall?.(); }
     }});
   }
   function appsDialog() {

@@ -35,15 +35,12 @@
     // The launcher APK: Launcher settings, with the real apps, the Android version and the default apps.
     const L = window.RealLauncher;
     if (fixedBar && L?.active) {
-      const d = L.defaults(), yes = on => t(on ? 'Yes' : 'No – touch to set');
       const version = (L.VERSIONS.find(([v]) => v === L.version()) || L.VERSIONS[0])[1];
       return {title: t('Launcher settings'), icon: 'ic_menu_preferences', items: [
         {action: 'gbx-apps', title: t('Apps in the drawer'), summary: `${L.shown().length} / ${L.all().length}`, icon: 'ic_menu_view'},
         {action: 'gbx-version', title: t('Android version'), summary: version, icon: 'ic_menu_info_details'},
-        {action: 'gbx-default', id: 'home', title: t('Default Home app'), summary: yes(d.home), icon: 'ic_menu_home'},
-        {action: 'gbx-default', id: 'phone', title: t('Default phone app'), summary: yes(d.phone), icon: 'ic_menu_call'},
-        {action: 'gbx-edit', title: t('Remove items'), summary: t('Show a delete button on apps and widgets'), icon: 'ic_menu_delete'},
-        {action: 'gbx-lock', title: t('Lock screen'), summary: t('Lock the phone now'), icon: 'ic_lock_lock'}
+        // Default Home / phone app, Remove items and Lock screen left Launcher settings (they still work elsewhere).
+        {action: 'gbx-uninstall', title: t('Uninstall launcher'), summary: t('Remove Gingerbread Launcher from the phone'), icon: 'ic_menu_delete'}
       ]};
     }
     return {title: t('Home screen'), icon: 'ic_menu_preferences', items: [

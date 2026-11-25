@@ -43,7 +43,7 @@
     const s = c.data.settings, out = [];
     // GPS: plain dish = "GPS is on" (stat_sys_gps_acquiring); dish with waves = "Receiving location data from GPS" (stat_sys_gps_on),
     // shown while Maps is open.
-    if (s.gps) out.push(icon(c.ui.view === 'maps' ? 'fw-stat_sys_gps_on.png' : 'fw-stat_sys_gps_acquiring.png'));
+    // The GPS icon is not shown in the launcher.
     if (s.bluetooth) out.push(icon('fw-stat_sys_data_bluetooth.png'));
     if (!s.airplane && s.wifi && s.wifiConnected) out.push(icon('fw-stat_sys_wifi_signal_4.png'));
     // speakerphone: while a call is on the speaker (ec-incall.js / ec-real.js set EC.callAudio).
@@ -211,6 +211,19 @@
         return row;
       };
       c.expandShade = () => expand(c);
+      // The phone's own SMS and email notifications (launcher-apk.js, GBRealNotes) as Eclair rows, newest first.
+      const syncReal = () => {
+        const real = window.GBRealNotes?.list() || [];
+        const before = new Set((c.data.notifications || []).filter(n => n.realKey).map(n => n.id));
+        const rows = real.map(n => ({id: `real:${n.key}`, realKey: n.key, when: n.when || Date.now(), title: n.title, text: n.text,
+          icon: n.kind === 'email' ? (n.app === 'com.google.android.gm' ? 'rl-stat_notify_gmail.png' : 'rl-stat_notify_email.png') : 'mm-stat_notify_sms.png'}));
+        c.data.notifications = [...rows, ...(c.data.notifications || []).filter(n => !n.realKey)];
+        c.render();
+        const fresh = rows.find(row => !before.has(row.id));
+        if (fresh && c.ui.overlay !== 'shade') startTicker(c, {...fresh, ticker: fresh.title});
+      };
+      window.addEventListener('gb-real-notes', syncReal);
+      if (window.GBRealNotes?.list().length || (c.data.notifications || []).some(n => n.realKey)) setTimeout(syncReal);
       c.cancelNotification = id => { c.data.notifications = (c.data.notifications || []).filter(n => n.id !== id); c.save(); c.render(); };
       c.el.status.addEventListener('pointerdown', event => startDrag(c, event, false));
       c.el.overlay.addEventListener('pointerdown', event => { if (event.target.closest('.ecsh-close')) startDrag(c, event, true); });
@@ -232,10 +245,11 @@
     action(name, el, event, c) {
       if ((c.suppressClick || 0) > Date.now()) return true;
       if (name === 'ecsh-close') { collapse(c); return true; }
-      if (name === 'ecsh-clear') { c.data.notifications = c.data.notifications.filter(n => n.ongoing); c.save(); c.render(); collapse(c); return true; }
+      if (name === 'ecsh-clear') { window.GBRealNotes?.clear(); c.data.notifications = c.data.notifications.filter(n => n.ongoing); c.save(); c.render(); collapse(c); return true; }
       if (name === 'ecsh-open') {
         const n = c.data.notifications.find(x => String(x.id) === el.dataset.id);
         if (!n) return true;
+        if (n.realKey) { c.data.notifications = c.data.notifications.filter(x => x !== n); c.ui.overlay = ''; panelY = 0; c.render(); window.GBRealNotes?.open(n.realKey); return true; }
         if (!n.ongoing) c.data.notifications = c.data.notifications.filter(x => x !== n);
         c.save(); c.ui.overlay = ''; panelY = 0;
         if (n.ui) Object.assign(c.ui, n.ui);
