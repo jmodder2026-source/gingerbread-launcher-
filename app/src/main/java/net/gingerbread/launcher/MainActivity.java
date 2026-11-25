@@ -124,6 +124,8 @@ public class MainActivity extends Activity {
     private ConnectivityManager.NetworkCallback cellCallback;
     private PhoneStateListener signalListener;
     private volatile int signalLevel = 4;
+    // Out of service / emergency calls only: the status bar shows "No signal" (bars with an x).
+    private volatile boolean noService;
     private final android.os.Handler keys = new android.os.Handler(android.os.Looper.getMainLooper());
     // Mobile data moving (bytes in or out during the last second), checked while the launcher is on screen.
     private volatile boolean dataActive;
@@ -370,7 +372,7 @@ public class MainActivity extends Activity {
 
     private String phoneJson() {
         boolean[] bt = bluetooth();
-        return "{\"signal\":" + signalLevel + ",\"data\":\"" + dataType() + "\",\"dataActive\":" + dataActive + ",\"noSim\":" + noSim()
+        return "{\"signal\":" + (noService ? -1 : signalLevel) + ",\"data\":\"" + dataType() + "\",\"dataActive\":" + dataActive + ",\"noSim\":" + noSim()
                 + ",\"airplane\":" + airplaneMode() + ",\"wifiLevel\":" + wifiLevel() + ",\"ringer\":\"" + ringer() + "\",\"bluetooth\":" + bt[0]
                 + ",\"bluetoothConnected\":" + bt[1] + ",\"roaming\":" + roaming() + ",\"headset\":" + headset()
                 + ",\"usb\":" + usbPlugged + ",\"adb\":" + (usbPlugged && adbOn()) + "}";
@@ -415,9 +417,16 @@ public class MainActivity extends Activity {
                 public void onDataConnectionStateChanged(int state, int networkType) {
                     tellPagePhone();
                 }
+
+                @Override
+                public void onServiceStateChanged(android.telephony.ServiceState state) {
+                    int s = state == null ? android.telephony.ServiceState.STATE_IN_SERVICE : state.getState();
+                    noService = s == android.telephony.ServiceState.STATE_OUT_OF_SERVICE || s == android.telephony.ServiceState.STATE_EMERGENCY_ONLY;
+                    tellPagePhone();
+                }
             };
             try {
-                tm.listen(signalListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS | PhoneStateListener.LISTEN_DATA_CONNECTION_STATE);
+                tm.listen(signalListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS | PhoneStateListener.LISTEN_DATA_CONNECTION_STATE | PhoneStateListener.LISTEN_SERVICE_STATE);
             } catch (SecurityException e) {
                 try { tm.listen(signalListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS); } catch (SecurityException ignored) { signalListener = null; }
             }

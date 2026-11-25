@@ -18,13 +18,13 @@
     if (state.bluetooth) slots.push(state.bluetoothConnected ? 'gb-stat_sys_data_bluetooth_connected.png' : 'gb-stat_sys_data_bluetooth.png');
     // GPS tray icon removed
     if (state.headset) slots.push('gb-stat_sys_headset.png');
-    if (state.speaker) slots.push('gb-stat_sys_speakerphone.png');
-    if (state.micMute) slots.push('gb-stat_sys_mic_mute.png');
+    if (state.speaker) slots.push('gb-stat_sys_speakerphone_pic.png');
+    if (state.micMute) slots.push('gb-stat_sys_mic_mute_pic.png');
     if (state.ringer) slots.push(`gb-stat_sys_ringer_${state.ringer}.png`);
     if (!state.airplane && state.wifi) slots.push(state.wifiLevel === 0 ? 'gb-stat_sys_wifi_signal_0.png' : `gb-stat_sys_wifi_signal_${state.wifiLevel ?? 4}_fully.png`);
     // GPRS (G), EDGE (E), 3G and H: grey arrows while connected, green arrows while data is in use.
     if (!state.airplane && state.data) slots.push(`gb-stat_sys_data_fully_${state.dataActive && ['3g', 'h', 'g', 'e'].includes(state.data) ? 'inandout' : 'connected'}_${state.data}.png`);
-    slots.push(state.airplane ? 'gb-stat_sys_signal_flightmode.png' : state.noSim ? 'gb-stat_sys_no_sim.png' : state.signal === null || state.signal === -1 ? 'gb-stat_sys_signal_null.png' : state.roaming ? 'gb-stat_sys_signal_roaming.png' : `gb-stat_sys_signal_${state.signal ?? 4}_fully.png`);
+    slots.push(state.airplane ? 'gb-stat_sys_signal_flightmode_pic.png' : state.noSim ? 'gb-stat_sys_no_sim.png' : state.signal === null || state.signal === -1 ? 'gb-stat_sys_signal_null_pic.png' : state.roaming ? 'gb-stat_sys_signal_roaming.png' : `gb-stat_sys_signal_${state.signal ?? 4}_fully.png`);
     slots.push(batteryIcon(state.battery ?? 100, state.charging));
     if (state.alarm) slots.push('gb-stat_notify_alarm.png');
     return slots.map(src => `<span class="gbsb-icon"><img src="assets/${src}" alt=""></span>`).join('');
