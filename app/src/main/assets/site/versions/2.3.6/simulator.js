@@ -319,6 +319,8 @@
   // Clock.java: twelve_hour_time_format h:mm a with AM_PM_STYLE_GONE, or H:mm.
   const gbClock = () => { const now = deviceDate(), h = now.getHours(), m = String(now.getMinutes()).padStart(2, '0'); return `${data.settings.hour24 ? h : h % 12 || 12}:${m}`; };
   let seenNotes = null, stopTicker = null;
+  GBStatusBar.drain.on(() => renderStatus());
+  GBStatusBar.net.on(() => renderStatus());
   function renderStatus() {
     const icons = data.notifications.map(noteIcon);
     icons.unshift(...GBNetwork.statusIcons(gbNetContext()));
@@ -326,7 +328,7 @@
     GBStatusBar.bar(statusRoot, {
       label: i18n.t('Open notifications'), notifications: icons, clock: gbClock(), expanded: ui.overlay === 'shade',
       date: deviceDate().toLocaleDateString(i18n.locale(), {year: 'numeric', month: 'long', day: 'numeric'}),
-      state: {...(GBRealApps.active ? {bluetooth: GBRealApps.phone().bluetooth, bluetoothConnected: GBRealApps.phone().bluetoothConnected, ringer: GBRealApps.phone().ringer, wifiLevel: GBRealApps.phone().wifiLevel, dataActive: GBRealApps.phone().dataActive} : {bluetooth: data.settings.bluetooth, ringer: data.settings.silent ? (data.settings.silentMode === 'vibrate' ? 'vibrate' : 'silent') : ''}), airplane: GBRealApps.active ? GBRealApps.phone().airplane : data.settings.airplane, noSim: GBRealApps.active && GBRealApps.phone().noSim, signal: GBRealApps.active ? GBRealApps.phone().signal : 4, wifi: GBRealApps.active ? GBRealApps.wifi() : data.settings.wifi && !!data.settings.wifiNetwork, data: GBRealApps.active ? GBRealApps.phone().data : data.settings.mobileData === false || data.settings.dataEnabled === false ? '' : '3g', battery: GBRealApps.active ? GBRealApps.battery().level : 78, charging: GBRealApps.active && GBRealApps.battery().charging, alarm: GBRealApps.active && GBRealApps.alarm() || data.alarms.some(alarm => alarm.enabled)}
+      state: {...(GBRealApps.active ? {bluetooth: GBRealApps.phone().bluetooth, bluetoothConnected: GBRealApps.phone().bluetoothConnected, ringer: data.settings.silent ? (data.settings.silentMode === 'vibrate' ? 'vibrate' : 'silent') : '', wifiLevel: GBRealApps.phone().wifiLevel, dataActive: GBRealApps.phone().dataActive || GBStatusBar.net.state.active} : {bluetooth: data.settings.bluetooth, ringer: data.settings.silent ? (data.settings.silentMode === 'vibrate' ? 'vibrate' : 'silent') : '', dataActive: GBStatusBar.net.state.active}), airplane: GBRealApps.active ? GBRealApps.phone().airplane : data.settings.airplane, noSim: GBRealApps.active && GBRealApps.phone().noSim, signal: GBRealApps.active ? GBRealApps.phone().signal : GBStatusBar.net.state.signal, wifi: GBRealApps.active ? GBRealApps.wifi() : data.settings.wifi && !!data.settings.wifiNetwork, data: GBRealApps.active ? (GBRealApps.phone().data || (GBRealApps.phone().noSim ? '' : '3g')) : data.settings.mobileData === false || data.settings.dataEnabled === false ? '' : GBStatusBar.net.state.type, battery: GBRealApps.active ? GBRealApps.battery().level : GBStatusBar.drain.level(), gps: (data.settings.gps !== false && data.settings.gps) || GBCamera.settings(data.cameraSettings || {}).gps === 'on' ? (ui.view === 'maps' || ui.view === 'camera' && GBCamera.settings(data.cameraSettings || {}).gps === 'on' ? 'fix' : 'on') : '', speaker: !!ui.activeCall?.speaker, micMute: !!ui.activeCall?.mute, roaming: !!data.settings.roaming, charging: GBRealApps.active && GBRealApps.battery().charging, alarm: GBRealApps.active && GBRealApps.alarm() || data.alarms.some(alarm => alarm.enabled)}
     });
     // Ticker: newly posted notifications scroll through the bar once (tickerText = the notification title).
     const ids = new Set(data.notifications.map(n => n.id));
@@ -507,7 +509,7 @@
     viewport.querySelectorAll('.home-widget .calw-list').forEach(list => { (ui.widgetScroll ||= {})[list.closest('.home-widget').dataset.widgetId] = list.scrollTop; });
     if(ui.locked)ui.view='lock';
     const outgoing = viewport.firstElementChild;
-    screen.className = `screen${activeTransition ? ' transitioning' : ''} wallpaper-${data.wallpaper}${data.settings.largeText ? ' large-text' : ''}${ui.sleeping?' sleeping':''}${ui.locked?' credential-locked':''}${(ui.view==='camera'||ui.view==='settings'&&ui.sub==='easter'||ui.view==='car-home'&&!ui.gbPrefs&&data.appPrefs?.['car-settings']?.['settings.hide_statusbar'])&&!ui.locked?' gb-fullscreen':''}`;
+    screen.className = `screen${activeTransition ? ' transitioning' : ''} wallpaper-${data.wallpaper}${data.settings.largeText ? ' large-text' : ''}${ui.sleeping?' sleeping':''}${ui.locked?' credential-locked':''}${(ui.view==='camera'&&!ui.locked?' gb-cam-overlay':'')}${(ui.view==='settings'&&ui.sub==='easter'||ui.view==='car-home'&&!ui.gbPrefs&&data.appPrefs?.['car-settings']?.['settings.hide_statusbar'])&&!ui.locked?' gb-fullscreen':''}`;
     screen.style.background = data.wallpaper === 99 && data.customWallpaperPhoto ? `#080d14 url('${ICSMedia.image(data.customWallpaperPhoto)}') center / cover no-repeat` : data.wallpaper === 99 && data.customWallpaper ? `linear-gradient(160deg, ${data.customWallpaper[0]}, ${data.customWallpaper[1]} 53%, ${data.customWallpaper[2]})` : `#000 url('assets/gb-wallpaper_${wallpaperFiles[data.wallpaper] || 'street_lights'}.jpg') ${ui.page * 25}% center / auto 100% no-repeat`;
     screen.style.filter = GBRealSettings.active ? '' : `brightness(${.5 + data.settings.brightness / 135})`; // the APK dims the real screen
     renderStatus(); renderNav(); syncLiveWallpaper();
@@ -1185,6 +1187,8 @@
   function saveBrowserState() { syncBrowserState(); data.browserSession = clone(ui.browserSession); save(); }
   function navigateBrowser(url) {
     const normalized = normalizeAddress(url);
+    // Real web (APK): an address outside the simulator's own pages opens in the phone's real browser.
+    if (window.RealWeb?.browserOn()) { const real = RealWeb.webUrl(normalized); if (real) { RealWeb.open(real); return; } }
     ICSBrowserSession.navigate(ui.browserSession,normalized);
     data.browserHistory = [...data.browserHistory,normalized].slice(-50);
     ui.sub = ''; ui.overlay = ''; ui.browserFind = undefined; ui.gbBrEdit = false; browserLoading(); saveBrowserState(); render();
@@ -1956,6 +1960,8 @@
       case 'browser-save-page': data.savedPages ||= []; if(!data.savedPages.includes(ui.browserUrl))data.savedPages.push(ui.browserUrl); save(); ui.overlay=''; renderOverlay(); toast('Page saved'); break;
       case 'browser-close-tab': ICSBrowserSession.close(ui.browserSession,Number(id)); saveBrowserState(); render(); break;
       case 'browser-refresh': ui.overlay=''; browserLoading(); render(); break;
+      case 'gbreal-browser': RealWeb.setBrowser(!RealWeb.browserOn()); ui.overlay=''; toast(`Real browser ${RealWeb.browserOn() ? 'on: addresses open in the phone\u2019s browser' : 'off: simulated pages only'}`); render(); break;
+      case 'gbreal-browser-open': ui.overlay=''; RealWeb.browser(); render(); break;
       case 'gbbr-stop': ui.gbBrLoadingUntil = 0; ui.overlay = ''; render(); break;
       case 'gbbr-edit': ui.gbBrEdit = true; ui.gbBrEditValue = browserAddress(ui.browserUrl); ui.overlay = ''; render(); { const input = viewport.querySelector('.gbbr-search input'); input?.focus(); input?.select(); } break;
       case 'gbbr-edit-cancel': ui.gbBrEdit = false; render(); break;
@@ -2851,7 +2857,7 @@
     if (drawerGrid) stopFling();
     const scrollTarget = widgetList || drawerGrid || (event.pointerType === 'mouse' && !ui.overlay && !event.target.closest('input, select, textarea, .wallpaper-choice')
       ? (ui.view === 'settings' && event.target.closest('.settings-app .app-content') ? event.target.closest('.settings-app') : event.target.closest('.play-content,.mms-scroll,.people-scroll,.browser-page,.web-tabs,.web-library,.gbdc-alarms,.gallery-scroll,.cal-scroll,.music-library-scroll,.email-scroll')) : null);
-    pointerStart = { x: event.clientX, y: event.clientY, target: event.target, source: dragSource(event.target), pointerType: event.pointerType, pointerId: event.pointerId, downTime: performance.now(), scrollTarget, scrollTop: scrollTarget?.scrollTop || 0, lockDrag: ui.view === 'lock' && !!event.target.closest('.lock-handle'), shadeDragEligible: !ui.overlay && !ui.locked && !!event.target.closest('#status-bar'), shadeCloseEligible: ui.overlay === 'shade' && !!event.target.closest('.gbsh-close'), pageSwipeEligible: ui.view === 'home' && !ui.overlay && !!event.target.closest('.home-view') && !event.target.closest('.dock, .page-indicators, .home-search'), drawerSwipeEligible: ui.view === 'drawer' && !!event.target.closest('.drawer-page') };
+    pointerStart = { x: event.clientX, y: event.clientY, target: event.target, source: dragSource(event.target), pointerType: event.pointerType, pointerId: event.pointerId, downTime: performance.now(), scrollTarget, scrollTop: scrollTarget?.scrollTop || 0, lockDrag: ui.view === 'lock' && !!event.target.closest('.lock-handle'), shadeDragEligible: !ui.overlay && !ui.locked && !!event.target.closest('#status-bar'), shadeCloseEligible: ui.overlay === 'shade' && !!event.target.closest('.gbsh-close'), pageSwipeEligible: ui.view === 'home' && !ui.overlay && !!event.target.closest('.home-view') && !event.target.closest('.dock, .page-indicators, .home-search'), drawerSwipeEligible: false };
     if (ui.view === 'home' && !ui.overlay && event.target.closest('.home-slot') && !pointerStart.source) homeLongPressTimer = setTimeout(() => { ui.overlay = 'gb-dialog-wallpaper'; renderOverlay(); pointerStart = null; suppressReleaseClick(); }, 550);
     const message = event.target.closest('.mms-message');
     if (message && !ui.overlay) messageHoldTimer = setTimeout(() => { ui.mmsMessage = message.dataset.id; suppressReleaseClick(); gbMmsDialog('message'); }, 550);
@@ -3154,7 +3160,7 @@
   }
   function showVolume(stream) {
     volumeLayer.innerHTML = VolumePanel.render(data.settings, stream, key => i18n.t(key), i18n.language);
-    VolumePanel.bindSeek(volumeLayer, VolumePanel.STREAMS[stream].max, value => { VolumePanel.setIndex(data.settings, stream, value); save(); VolumePanel.update(volumeLayer, data.settings, stream); resetVolumeTimeout(); });
+    VolumePanel.bindSeek(volumeLayer, VolumePanel.STREAMS[stream].max, value => { VolumePanel.setIndex(data.settings, stream, value); save(); renderStatus(); VolumePanel.update(volumeLayer, data.settings, stream); resetVolumeTimeout(); });
     resetVolumeTimeout();
   }
   function resetVolumeTimeout() { clearTimeout(volumeTimer); volumeTimer = setTimeout(hideVolume, VolumePanel.TIMEOUT); }

@@ -358,7 +358,7 @@
     if (view === 'latitude') return [{action: 'mp-friends-map', title: T(lang, 'Map'), icon: 'mp-ic_menu_see_map.png'}, {action: 'mp-refresh', title: t('Refresh'), icon: 'mp-ic_menu_refresh.png'}, {action: 'mp-addfriend', title: t('Add friends'), icon: 'ic_menu_add'}, {action: 'mp-checkin', title: t('Check in'), icon: 'mp-ic_menu_latitude_checkin.png'}, {action: 'mp-unsupported', title: T(lang, 'Settings'), icon: 'ic_menu_preferences'}];
     if (view === 'places') return [{action: 'mp-open-maps', title: T(lang, 'Map'), icon: 'mp-ic_menu_see_map.png'}, {action: 'mp-unsupported', title: T(lang, 'Help'), icon: 'mp-ic_menu_help.png'}];
     return [{action: 'mp-focus-search', title: T(lang, 'Search'), icon: 'mp-ic_menu_search.png'}, {action: 'mp-directions', title: t('Directions'), icon: 'mp-ic_menu_directions.png'}, {action: 'mp-starred', title: T(lang, 'Starred Places'), icon: 'mp-ic_menu_star.png'}, {action: 'mp-clear', title: T(lang, 'Clear Map'), icon: 'mp-ic_menu_delete.png'}, {action: 'mp-open-latitude', title: T(lang, 'Latitude'), icon: 'mp-ic_menu_latitude.png'},
-      {action: 'gbpref-open', id: 'maps-labs', title: t('Labs'), icon: 'mp-ic_menu_labs.png'}, {action: 'gbpref-open', id: 'maps-cache', title: t('Cache settings'), icon: 'mp-ic_menu_cache_settings.png'}, {action: 'mp-unsupported', title: T(lang, 'Help'), icon: 'mp-ic_menu_help.png'}, {action: 'mp-unsupported', title: T(lang, 'Terms, Privacy & Notices'), icon: 'mp-ic_menu_terms.png'}, {action: 'mp-about', title: t('About'), icon: 'mp-ic_menu_about.png'}];
+      ...(window.RealWeb?.active ? [{action: 'mp-real-toggle', title: `Real Google Maps: ${RealWeb.mapsOn() ? 'On' : 'Off'}`}] : []), {action: 'gbpref-open', id: 'maps-labs', title: t('Labs'), icon: 'mp-ic_menu_labs.png'}, {action: 'gbpref-open', id: 'maps-cache', title: t('Cache settings'), icon: 'mp-ic_menu_cache_settings.png'}, {action: 'mp-unsupported', title: T(lang, 'Help'), icon: 'mp-ic_menu_help.png'}, {action: 'mp-unsupported', title: T(lang, 'Terms, Privacy & Notices'), icon: 'mp-ic_menu_terms.png'}, {action: 'mp-about', title: t('About'), icon: 'mp-ic_menu_about.png'}];
   }
   function dialog(kind, ctx) {
     const {ui, lang, data} = ctx, m = state(ui), t = ctx.t;
@@ -401,7 +401,7 @@
         close(); ctx.save(); ctx.render(); break;
       case 'mp-select': m.selected = m.selected === id ? '' : id; ctx.render(); break;
       case 'mp-friend': { const f = FRIENDS.find(x => x.id === id); if (!f) break; m.friends = true; m.selected = id; Object.assign(m, {cx: f.fx, cy: f.fy}); if (ctx.view !== 'maps') { ctx.openApp('maps'); } else ctx.render(); break; }
-      case 'mp-me': Object.assign(m, {cx: ME.fx, cy: ME.fy, selected: ''}); ctx.openApp('maps'); break;
+      case 'mp-me': if (window.RealWeb?.mapsOn()) { RealWeb.maps.here(); break; } Object.assign(m, {cx: ME.fx, cy: ME.fy, selected: ''}); ctx.openApp('maps'); break;
       case 'mp-friends-map': m.friends = true; ctx.openApp('maps'); break;
       case 'mp-page': { if (FRIENDS.some(f => f.id === id)) break; close(); m.page = id; ctx.render(); break; }
       case 'mp-show': { const p = poi(id) || m.custom; m.page = ''; if (p) { if (!m.results.includes(p.id) && poi(p.id)) m.results = [p.id]; Object.assign(m, {cx: p.fx, cy: p.fy, selected: p.id}); } if (ctx.view !== 'maps') ctx.openApp('maps'); else ctx.render(); break; }
@@ -409,13 +409,14 @@
       case 'mp-call': { const p = poi(id); if (p?.phone) ctx.call?.(p.phone); break; }
       case 'mp-directions': { const p = poi(id) || (id === 'q' ? m.custom : null); close(); m.page = ''; m.dirOpen = true; m.dirTo = p ? p.name : ''; m.dirMode ||= 'drive'; if (ctx.view !== 'maps') ctx.openApp('maps'); else ctx.render(); break; }
       case 'mp-mode': m.dirMode = id; m.dirTo = ctx.root.querySelector('.mp-dir [name=to]')?.value ?? m.dirTo; ctx.render(); break;
-      case 'mp-navigate': { const p = poi(id) || (id === 'q' ? m.custom : null); if (p) startNav(ctx, p, p.id === 'q' ? p : undefined); break; }
+      case 'mp-navigate': { const p = poi(id) || (id === 'q' ? m.custom : null); if (p && window.RealWeb?.mapsOn()) { RealWeb.maps.navigate([p.name, p.address].filter(Boolean).join(', ')); break; } if (p) startNav(ctx, p, p.id === 'q' ? p : undefined); break; }
       case 'mp-clear': close(); Object.assign(m, {results: [], selected: '', route: null, query: '', custom: null, dirOpen: false, friends: false, transit: false, bike: false, wiki: false, measure: []}); ctx.render(); break;
       case 'mp-focus-search': close(); ctx.focus('.mp-search input'); break;
       case 'mp-starred': ctx.dialog('starred'); break;
       case 'mp-open-latitude': close(); ctx.openApp('latitude'); break;
       case 'mp-open-maps': close(); ctx.openApp('maps'); break;
       case 'mp-about': ctx.dialog('about'); break;
+      case 'mp-real-toggle': RealWeb.setMaps(!RealWeb.mapsOn()); close(); ctx.toast(`Real Google Maps ${RealWeb.mapsOn() ? 'on: searches, directions and navigation open in the phone\u2019s Google Maps' : 'off: simulated map'}`); break;
       case 'mp-cat': if (id === 'add') { ctx.dialog('add'); ctx.focus('.gbdlg [name=q]'); break; } ui.mpCat = id; ctx.render(); break;
       case 'mp-add-ok': document.querySelector('.gbdlg form[data-form="mp-add"]')?.requestSubmit(); break;
       case 'mp-wiki-open': { const p = WIKI.find(x => x.id === id); if (p) ctx.browse(`http://en.m.wikipedia.org/wiki/${p.article}`); break; }
@@ -447,6 +448,7 @@
     const {ui} = ctx, m = state(ui);
     if (form === 'mp-search' || form === 'mp-psearch') {
       const q = String(values.get('q') || '').trim(); if (!q) return true;
+      if (window.RealWeb?.mapsOn()) { RealWeb.maps.search(q); return true; }
       const ids = search(q);
       m.query = q; m.page = ''; m.route = null; m.dirOpen = false;
       if (ids.length) { m.results = ids; m.custom = null; const first = poi(ids[0]); Object.assign(m, {selected: ids[0], cx: first.fx, cy: first.fy}); }
@@ -456,6 +458,7 @@
     }
     if (form === 'mp-dir') {
       const q = String(values.get('to') || '').trim(); if (!q) { ctx.toast(T(ctx.lang, 'Destination')); return true; }
+      if (window.RealWeb?.mapsOn()) { RealWeb.maps.directions('', q, m.dirMode || 'drive'); return true; }
       const ids = search(q), to = ids.length ? poi(ids[0]) : (m.custom?.name === q ? m.custom : geocode(q));
       if (to.id === 'q') m.custom = to;
       m.route = route(to, m.dirMode || 'drive'); m.dirOpen = false; m.selected = ''; m.results = ids.length ? [to.id] : []; Object.assign(m, {cx: (ME.fx + to.fx) / 2, cy: (ME.fy + to.fy) / 2});
@@ -467,6 +470,7 @@
     }
     if (form === 'mp-type') {
       const q = String(values.get('q') || '').trim(); if (!q) return true;
+      if (window.RealWeb?.mapsOn()) { RealWeb.maps.navigate(q); return true; }
       const ids = search(q), to = ids.length ? poi(ids[0]) : geocode(q);
       startNav(ctx, to, to.id === 'q' ? to : undefined); return true;
     }

@@ -139,3 +139,25 @@
 .folder-drop-target[data-folder-id] .app-icon img{content:url(assets/gb-l2-ic_launcher_folder_open.png)}
 .launcher-folder-closing{pointer-events:none}
 .screen.dragging .launcher-folder{animation:none}
+
+/* Orange search-field highlight (Gingerbread textfield_search_*): pressed = solid orange, focused/selected = orange outline. */
+.gbqsb-field:active{border-image-source:url('assets/gb-qsb-textfield_search_empty_pressed.png')!important;border-image-slice:32 16 32 16!important;border-image-width:calc(21.3334 * var(--dp)) calc(10.6667 * var(--dp)) calc(21.3334 * var(--dp)) calc(10.6667 * var(--dp))!important;filter:none!important}
+.gbqsb-field:focus,.gbqsb-field:focus-within,.gbqsb-field.gb-selected{border-image-source:url('assets/gb-qsb-textfield_search_empty_selected.png')!important;border-image-slice:32 16 32 16!important;border-image-width:calc(21.3334 * var(--dp)) calc(10.6667 * var(--dp)) calc(21.3334 * var(--dp)) calc(10.6667 * var(--dp))!important;outline:0}
+/* Google Search app: white until the box is clicked, then the orange outline (and solid orange while pressed). */
+.screen .gbqs-field input{border-image-source:url('assets/gb-qsb-textfield_search_default.png')}
+.screen .gbqs-plate.empty .gbqs-field input{border-image-source:url('assets/gb-qsb-textfield_search_empty_default.png')}
+.screen .gbqs-field input:focus{border-image-source:url('assets/gb-qsb-textfield_search_selected.png')}
+.screen .gbqs-plate.empty .gbqs-field input:focus{border-image-source:url('assets/gb-qsb-textfield_search_empty_selected.png')}
+.screen .gbqs-field input:active{border-image-source:url('assets/gb-qsb-textfield_search_pressed.png')}
+.screen .gbqs-plate.empty .gbqs-field input:active{border-image-source:url('assets/gb-qsb-textfield_search_empty_pressed.png')}
+/* Every other search box (Market, Gmail, Maps, YouTube, Talk, Contacts, ...): the orange line when clicked. */
+.screen input[type="search"]:focus,.screen input[class*="search" i]:focus,.screen [class*="search" i] input:focus,.screen [class*="find" i] input:focus,.screen [class*="srch" i] input:focus{outline:calc(2.3189 * var(--dp)) solid #ff9d00;outline-offset:calc(-2.3189 * var(--dp));box-shadow:0 0 calc(4 * var(--dp)) #ffb400aa}
+.screen .gbqs-field input:focus,.screen .gbbr-search input:focus,.screen .gbdlg-field input:focus,.screen .gbqs-plate input:focus{outline:0;box-shadow:none}
+
+/* Orange line on every search bar: the whole bar lights up when its field is focused, and for a moment when it is tapped. */
+.gbqsb-field.gb-orange{border-image-source:url('assets/gb-qsb-textfield_search_empty_pressed.png')!important;border-image-slice:32 16 32 16!important;border-image-width:calc(21.3334 * var(--dp)) calc(10.6667 * var(--dp)) calc(21.3334 * var(--dp)) calc(10.6667 * var(--dp))!important;filter:none!important}
+.screen [class*="search" i]:has(input:focus):not(.gbqs-plate):not(.gbbr-search):not(.gbqsb),.screen [class*="find" i]:has(input:focus),.screen [class*="search" i].gb-orange:not(.gbqsb-field):not(.gbqsb),.screen [class*="qsb" i].gb-orange:not(.gbqsb-field):not(.gbqsb):not(.gbqsb-corpus):not(.gbqsb-voice){outline:calc(2.3189 * var(--dp)) solid #ff9d00;outline-offset:calc(-2.3189 * var(--dp));box-shadow:0 0 calc(4 * var(--dp)) #ffb400aa}
+
+/* The Google widget's other two parts light up orange too: the G corpus button and the voice (mic) button. */
+.gbqsb-corpus:active,.gbqsb-corpus.gb-orange{border-image-source:url('assets/gb-qsb-corpus_indicator_bg_pressed.png')!important;filter:none!important}
+.gbqsb-voice:active,.gbqsb-voice.gb-orange{border-image-source:url('assets/gb-qsb-btn_search_dialog_voice_pressed.png')!important;filter:none!important}

@@ -78,3 +78,6 @@
 .eche-gicon img{display:block;width:calc(48 * var(--dp));height:calc(48 * var(--dp))}
 .eche-gbar{flex:none;display:flex;justify-content:center;padding-top:calc(5 * var(--dp));background:url('assets/fw-bottom_bar.png') 0 0/100% 100%}
 .eche-gbar .ecui-button{flex:0 0 50%}
+
+/* Tap flash: the orange pressed plate of the search widget also shows for a moment after a quick tap. */
+.eclh-search-text.gb-orange .eclh-pressed,.eclh-search-voice.gb-orange .eclh-pressed{opacity:1}

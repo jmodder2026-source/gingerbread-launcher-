@@ -59,6 +59,8 @@
     const s = c.data?.settings; if (!s) return;
     Object.assign(s, {wifi: state.wifi, wifiConnected: state.wifi, bluetooth: !!state.phone.bluetooth, airplane: !!state.phone.airplane,
       ringer: state.phone.ringer || '', battery: Math.round(state.battery.level), charging: !!state.battery.charging});
+    // The phone's real GPS switch (AndroidLauncher.settings()) drives the GPS tray icon.
+    try { const real = JSON.parse(bridge.settings?.() || '{}'); if (real && real.gps !== undefined) s.gps = !!real.gps; } catch (error) { /* keep */ }
   }
   const statusRoot = document.querySelector('#status-bar');
   // Then the icons the module always draws the same way: signal, data, Wi-Fi bars, Bluetooth connected, the real alarm.
@@ -70,7 +72,7 @@
     const set = (img, file) => { const src = `assets/${file}`; if (img.getAttribute('src') !== src) img.setAttribute('src', src); };
     for (const img of statusRoot.querySelectorAll('img')) {
       const drawn = img.dataset.ecDrawn || (img.dataset.ecDrawn = (img.getAttribute('src') || '').replace(/^.*\//, ''));
-      if (drawn === 'fw-stat_sys_signal_4.png') set(img, p.noSim ? 'fw-stat_sys_no_sim.png' : `fw-stat_sys_signal_${Math.max(0, Math.min(4, p.signal))}.png`);
+      if (drawn === 'fw-stat_sys_signal_4.png') set(img, p.noSim ? 'fw-stat_sys_no_sim.png' : p.signal < 0 ? 'fw-stat_sys_signal_null.png' : `fw-stat_sys_signal_${Math.max(0, Math.min(4, p.signal))}.png`);
       else if (drawn === 'fw-stat_sys_data_connected_3g.png') {
         if (!p.data) { (img.closest('.ecsb-icon') || img).remove(); continue; }
         const type = p.data === 'h' ? '3g' : p.data;   // 2.1 has no H icon
@@ -104,7 +106,7 @@
   // Turning the phone's screen off locks the Eclair phone; its lock screen is up when the screen comes back on.
   window.gbLockNow = () => { if (realCall || c.ui.power || c.ui.view === 'lock') return; c.lock(); c.wake(); };
   window.gbOnPause = () => {};
-  window.gbOnResume = () => { if (c.ui.view === 'settings') c.render(); };
+  window.gbOnResume = () => { if (c.ui.view === 'settings') c.render(); else refresh(); };
 
   // ---- Launcher settings (Menu on the home screen) -------------------------------------------------------------------
   const T = {
@@ -293,7 +295,8 @@
       calls.set(report.id, call);
     }
     if (report.number) call.number = report.number;
-    if (report.state === 'disconnected' || report.state === 'disconnecting') { end(call); return; }
+    if (report.state === 'disconnected' || report.state === 'disconnecting') { EC.callAudio = null; end(call); return; }
+    EC.callAudio = {speaker: !!report.speaker};
     Object.assign(call, {state: report.state, mute: !!report.mute, speaker: !!report.speaker, bluetooth: !!report.bluetooth, bluetoothAvailable: !!report.bluetoothAvailable});
     if (report.state === 'active' || report.state === 'holding') call.answered = true;
     if (report.connectTime > 0) call.connected = report.connectTime; else if (call.answered && !call.connected) call.connected = Date.now();

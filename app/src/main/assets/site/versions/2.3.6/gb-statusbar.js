@@ -16,11 +16,14 @@
   function statusIcons(state) {
     const slots = [];
     if (state.bluetooth) slots.push(state.bluetoothConnected ? 'gb-stat_sys_data_bluetooth_connected.png' : 'gb-stat_sys_data_bluetooth.png');
+    // GPS tray icon removed
+    if (state.speaker) slots.push('gb-stat_sys_speakerphone.png');
+    if (state.micMute) slots.push('gb-stat_sys_mic_mute.png');
     if (state.ringer) slots.push(`gb-stat_sys_ringer_${state.ringer}.png`);
     if (!state.airplane && state.wifi) slots.push(state.wifiLevel === 0 ? 'gb-stat_sys_wifi_signal_0.png' : `gb-stat_sys_wifi_signal_${state.wifiLevel ?? 4}_fully.png`);
-    // While data moves, 3G and H show their in-and-out arrows (Gingerbread has no such frames for G and E).
-    else if (!state.airplane && state.data) slots.push(`gb-stat_sys_data_fully_${state.dataActive && (state.data === '3g' || state.data === 'h') ? 'inandout' : 'connected'}_${state.data}.png`);
-    slots.push(state.airplane ? 'gb-stat_sys_signal_flightmode.png' : state.noSim ? 'gb-stat_sys_no_sim.png' : `gb-stat_sys_signal_${state.signal ?? 4}_fully.png`);
+    // GPRS (G), EDGE (E), 3G and H: grey arrows while connected, green arrows while data is in use.
+    if (!state.airplane && state.data) slots.push(`gb-stat_sys_data_fully_${state.dataActive && ['3g', 'h', 'g', 'e'].includes(state.data) ? 'inandout' : 'connected'}_${state.data}.png`);
+    slots.push(state.airplane ? 'gb-stat_sys_signal_flightmode.png' : state.noSim ? 'gb-stat_sys_no_sim.png' : state.signal === null || state.signal === -1 ? 'gb-stat_sys_signal_null.png' : state.roaming ? 'gb-stat_sys_signal_roaming.png' : `gb-stat_sys_signal_${state.signal ?? 4}_fully.png`);
     slots.push(batteryIcon(state.battery ?? 100, state.charging));
     if (state.alarm) slots.push('gb-stat_notify_alarm.png');
     return slots.map(src => `<span class="gbsb-icon"><img src="assets/${src}" alt=""></span>`).join('');
@@ -101,5 +104,37 @@
     return v > 200 || (yy > h / 2 && v > -200);
   }
 
-  window.GBStatusBar = {PX, ACCEL, batteryIcon, statusIcons, bar, ticker, shade, slide, place, flingDirection};
+  // Draining battery: the legend's very low (red) / low (orange) / partially drained / full icons follow a level that
+  // falls 1 % a minute from 78 %. Plugging in is not simulated; at 0 % it stays on the empty icon.
+  const drain = (() => {
+    let level = 78, timer = 0;
+    const listeners = new Set();
+    const start = () => { if (timer) return; timer = setInterval(() => { if (level > 0) { level -= 1; listeners.forEach(fn => fn(level)); } }, 60000); };
+    return {level: () => level, on: fn => { listeners.add(fn); start(); }, set: v => { level = Math.max(0, Math.min(100, Number(v))); listeners.forEach(fn => fn(level)); }};
+  })();
+
+  // Simulated coverage (the phone's real network is used in the APK): the network steps 3G -> EDGE -> GPRS -> 3G -> H every
+  // ~24 s with matching signal bars, and the data arrows light up for ~3 s out of every 6 s.
+  const net = (() => {
+    const types = ['3g', 'e', 'g', '3g', 'h'], bars = [4, 3, 2, 3, 4], listeners = new Set();
+    let step = 0, tick = 0, timer = 0;
+    const state = {type: types[0], signal: bars[0], active: false};
+    const start = () => { if (timer) return; timer = setInterval(() => {
+      tick++; state.active = tick % 4 === 1 || tick % 4 === 2;
+      if (tick % 16 === 0) { step = (step + 1) % types.length; state.type = types[step]; state.signal = bars[step]; }
+      listeners.forEach(fn => fn(state));
+    }, 1500); };
+    return {state, on: fn => { listeners.add(fn); start(); }, set: (type, signal) => { state.type = type; if (signal != null) state.signal = signal; listeners.forEach(fn => fn(state)); }};
+  })();
+
+  window.GBStatusBar = {net, drain, PX, ACCEL, batteryIcon, statusIcons, bar, ticker, shade, slide, place, flingDirection};
+})();
+
+/* Tapping a search bar or the Google search widget lights it orange for a moment (the screen changes right after the tap). */
+(() => {
+  document.addEventListener('pointerdown', event => {
+    const bar = event.target.closest?.('.gbqsb-field, [class*="search" i], [class*="qsb" i]');
+    if (!bar || bar.tagName === 'INPUT') return;
+    bar.classList.add('gb-orange'); setTimeout(() => bar.classList.remove('gb-orange'), 450);
+  }, true);
 })();

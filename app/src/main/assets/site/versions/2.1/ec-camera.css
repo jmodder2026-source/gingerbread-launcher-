@@ -43,3 +43,7 @@
 .eccm-attach>.eccm-review{margin-bottom:0}
 .eccm-review-icon{position:relative;display:flex;align-items:center;justify-content:center;width:calc(66 * var(--dp));height:calc(46.6667 * var(--dp))}
 .eccm-review-icon img{position:relative;z-index:1;width:calc(36 * var(--dp));height:calc(36 * var(--dp))}
+/* Slider fix: the shared ".ec-bg ~ :not(.ec-bg){position:relative}" rule was beating .eccm-knob, so the knob sat in the flow
+   (mid-track, and past the end in video mode). Pin it to the track again: camera = one end, video = the other. */
+.eccm-switch>img.eccm-knob{position:absolute;left:0;bottom:0;top:auto}
+.eccm-switch>img.eccm-knob.up{bottom:calc(32 * var(--dp))}

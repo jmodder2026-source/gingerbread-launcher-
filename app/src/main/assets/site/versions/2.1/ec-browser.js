@@ -48,6 +48,8 @@
   const c0 = () => EC.context;
   function load(c, target, push = true) {
     if (!target) return;
+    // Real web (APK): an address outside the simulator's own pages opens in the phone's real browser.
+    if (window.RealWeb?.browserOn()) { const real = RealWeb.webUrl(target); if (real) { RealWeb.open(real); return; } }
     const s = st(c), t = tab(c);
     if (push) { t.history = t.history.slice(0, t.index + 1); t.history.push(target); t.history = t.history.slice(-50); t.index = t.history.length - 1; }
     s.visits[target] = (s.visits[target] || 0) + 1;
@@ -242,6 +244,7 @@
         {label: B().t('page_info'), action: () => c.dialog({title: B().t('page_info'), icon: null, message: `${errorTitle(c)}\n\n${url(c)}`, buttons: [{label: EC.text('framework').t('ok')}]})},
         {label: B().t('share_page'), action: () => { c.ui.composeTo = null; c.ui.smsDraft = url(c); c.ui.smsThread = null; c.open('messaging', 'compose'); }},
         {label: B().t('menu_view_download'), action: () => c.open('browser-downloads')},
+        ...(window.RealWeb?.active ? [{label: `Real browser: ${RealWeb.browserOn() ? 'On' : 'Off'}`, action: () => { RealWeb.setBrowser(!RealWeb.browserOn()); c.toast(`Real browser ${RealWeb.browserOn() ? 'on: addresses open in the phone\u2019s browser' : 'off: simulated pages only'}`); }}, {label: 'Open phone browser', action: () => RealWeb.browser()}] : []),
         {label: B().t('menu_preferences'), action: () => c.open('browser-settings')}]);
       void s;
       return true;

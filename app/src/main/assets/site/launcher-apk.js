@@ -7,7 +7,7 @@
   const bridge = window.AndroidLauncher || null;
   const KEY = 'gingerbread-launcher-v1';
   // The versions the launcher offers (Launcher settings > Android version).
-  const VERSIONS = [['2.1', 'Android 2.1 Eclair'], ['2.3.6', 'Android 2.3.6 Gingerbread'], ['4.0.4', 'Android 4.0.4 Ice Cream Sandwich']];
+  const VERSIONS = [['2.1', 'Android 2.1 Eclair'], ['2.3.6', 'Android 2.3.6 Gingerbread']];
   // The site root (where this file is), so icon addresses work from any page depth.
   const ROOT = (() => { try { return new URL('.', document.currentScript?.src || location.href).href; } catch (error) { return '/'; } })();
   // This launcher's own icon, for the Launcher settings entry of the app drawer.
@@ -152,7 +152,7 @@
     document.head.append(style);
 
     // 4.0.4 and 4.3 borrow the KitKat keyboard (its script, stylesheet and key art from ../4.4.4/).
-    const BORROW = ['4.0.4', '4.3'].includes(version);
+    const BORROW = ['4.3'].includes(version);
     if (BORROW) {
       const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '../4.4.4/kk-ime.css'; document.head.append(css);
       const js = document.createElement('script'); js.src = '../4.4.4/kk-ime.js'; document.head.append(js);
@@ -385,5 +385,63 @@
     setVersion: version => { try { bridge?.setVersion?.(version); } catch (error) { /* not in the APK */ } },
     defaults: () => { try { return JSON.parse(bridge?.defaults?.() || '{}'); } catch (error) { return {}; } },
     makeDefault: which => { try { bridge?.makeDefault?.(which); } catch (error) { /* not in the APK */ } }
+  };
+})();
+
+/* Real web: the launcher's native shell hands every address outside its own pages (any host but
+   appassets.androidplatform.net) to Android as a "view this link" request, so a link opened from here lands in the
+   phone's real browser, and a Google Maps link in the real Google Maps app. The simulated Browser and Maps apps use
+   this for typed addresses, searches, directions and navigation. Both switches default on inside the APK and are kept
+   in localStorage; in an ordinary browser window nothing is handed over. */
+(() => {
+  'use strict';
+  const bridge = window.AndroidLauncher || null;
+  const KEY = 'gingerbread-real-web';
+  const read = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (error) { return {}; } };
+  const write = patch => { try { localStorage.setItem(KEY, JSON.stringify({...read(), ...patch})); } catch (error) { /* storage blocked */ } };
+  const flag = name => !!bridge && read()[name] !== false;
+  const enc = encodeURIComponent;
+  const open = url => {
+    if (!bridge) { try { window.open(url, '_blank', 'noopener'); } catch (error) { /* blocked */ } return; }
+    const a = document.createElement('a');
+    a.href = url; a.target = '_self'; a.rel = 'noopener'; a.style.display = 'none';
+    (document.body || document.documentElement).append(a); a.click(); a.remove();
+  };
+  const search = q => `https://www.google.com/search?q=${enc(q)}`;
+  // A simulator address (with or without a scheme, or "search:words") → the real address, or null to keep it in the simulator.
+  function webUrl(address) {
+    const a = String(address ?? '').trim();
+    if (!a) return null;
+    if (a.startsWith('search:')) return a.length > 7 ? search(a.slice(7)) : null;
+    if (/^(mailto|tel|sms|smsto|geo|market|intent|javascript|data|file|content):/i.test(a)) return null;
+    let u;
+    try { u = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(a) ? a : `https://${a}`); } catch (error) { return null; }
+    if (!/^https?:$/.test(u.protocol)) return null;
+    const host = u.hostname.toLowerCase();
+    if (host.endsWith('.example')) return null;                       // the simulator's own made-up sites
+    if (/^(www\.)?google\.[a-z.]+$/.test(host)) {
+      const q = u.searchParams.get('q');
+      if (q) return search(q);
+      if (u.pathname === '/' || u.pathname === '/m') return null;     // the simulated Google start page
+    }
+    return u.href;
+  }
+  const MODES = {drive: 'driving', driving: 'driving', car: 'driving', walk: 'walking', walking: 'walking', bike: 'bicycling', bicycling: 'bicycling', biking: 'bicycling', transit: 'transit'};
+  const MAPS = 'https://www.google.com/maps';
+  window.RealWeb = {
+    active: !!bridge,
+    browserOn: () => flag('browser'),
+    mapsOn: () => flag('maps'),
+    setBrowser: on => write({browser: !!on}),
+    setMaps: on => write({maps: !!on}),
+    open, webUrl, search,
+    // The phone's own browser app (its home page).
+    browser: () => { try { bridge?.openBrowser?.(); } catch (error) { /* not in the APK */ } },
+    maps: {
+      search: q => open(`${MAPS}/search/?api=1&query=${enc(q)}`),
+      directions: (from, to, mode) => open(`${MAPS}/dir/?api=1${from ? `&origin=${enc(from)}` : ''}&destination=${enc(to)}&travelmode=${MODES[String(mode || '').toLowerCase()] || 'driving'}`),
+      navigate: to => open(`${MAPS}/dir/?api=1&destination=${enc(to)}&travelmode=driving&dir_action=navigate`),
+      here: () => open(`${MAPS}/@?api=1&map_action=map`)
+    }
   };
 })();

@@ -88,6 +88,7 @@
       {action: 'gbbr-page-info', title: T('page_info')},
       {action: 'gbbr-share', title: T('share_page')},
       {action: 'open-app', id: 'downloads', title: T('menu_view_download')},
+      ...(window.RealWeb?.active ? [{action: 'gbreal-browser', title: `Real browser: ${RealWeb.browserOn() ? 'On' : 'Off'}`}, {action: 'gbreal-browser-open', title: 'Open phone browser'}] : []),
       {action: 'gbpref-open', id: 'browser', title: T('menu_preferences')}
     ];
   }

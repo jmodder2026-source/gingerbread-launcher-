@@ -41,9 +41,13 @@
   // Left to right: the order array read from its end (index 0, the clock, is rightmost).
   function statusIcons(c) {
     const s = c.data.settings, out = [];
-    if (s.gps) out.push(icon('fw-stat_sys_gps_on.png'));
+    // GPS: plain dish = "GPS is on" (stat_sys_gps_acquiring); dish with waves = "Receiving location data from GPS" (stat_sys_gps_on),
+    // shown while Maps is open.
+    if (s.gps) out.push(icon(c.ui.view === 'maps' ? 'fw-stat_sys_gps_on.png' : 'fw-stat_sys_gps_acquiring.png'));
     if (s.bluetooth) out.push(icon('fw-stat_sys_data_bluetooth.png'));
     if (!s.airplane && s.wifi && s.wifiConnected) out.push(icon('fw-stat_sys_wifi_signal_4.png'));
+    // speakerphone: while a call is on the speaker (ec-incall.js / ec-real.js set EC.callAudio).
+    if (EC.callAudio?.speaker) out.push(icon('fw-stat_sys_speakerphone.png'));
     if (s.ringer) out.push(icon(`fw-stat_sys_ringer_${s.ringer}.png`));
     if (!s.airplane && !(s.wifi && s.wifiConnected)) out.push(icon('fw-stat_sys_data_connected_3g.png'));
     out.push(icon(s.airplane ? 'fw-stat_sys_signal_flightmode.png' : 'fw-stat_sys_signal_4.png'));

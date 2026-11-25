@@ -388,3 +388,9 @@
   }
   document.addEventListener('DOMContentLoaded', start);
 })();
+
+/* Quick taps on the Google search widget keep the orange highlight for a moment. */
+document.addEventListener('pointerdown', event => {
+  const bar = event.target.closest?.('.eclh-search-text, .eclh-search-voice');
+  if (bar) { bar.classList.add('gb-orange'); setTimeout(() => bar.classList.remove('gb-orange'), 450); }
+}, true);

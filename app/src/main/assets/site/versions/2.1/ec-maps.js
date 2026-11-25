@@ -595,6 +595,8 @@
     q = q.trim();
     if (!q) return;
     const s = st(c), u = ui(c);
+    // Real Google Maps (APK): the search goes to the phone's Google Maps.
+    if (window.RealWeb?.mapsOn()) { s.history = [q, ...s.history.filter(h => h.toLocaleLowerCase() !== q.toLocaleLowerCase())].slice(0, 20); c.save(); RealWeb.maps.search(q); return; }
     s.history = [q, ...s.history.filter(h => h.toLocaleLowerCase() !== q.toLocaleLowerCase())].slice(0, 20); c.save();
     const low = q.toLocaleLowerCase();
     let hits = PLACES.filter(p => p.name.toLocaleLowerCase().includes(low) || low.includes(p.name.toLocaleLowerCase()));
@@ -636,6 +638,7 @@
       onGo: q => runSearch(c, q)});
   }
   function myLocation(c) {
+    if (window.RealWeb?.mapsOn()) { RealWeb.maps.here(); return; }
     const u = ui(c);
     u.me = true; u.bubble = {x: ME.x, y: ME.y, title: t('my_location'), sub: '', kind: 'me'};
     centerOn(c, ME.x, ME.y, Math.max(st(c).z, 15)); u.stack = []; c.render();
@@ -659,6 +662,7 @@
   }
   function getDirections(c) {
     const u = ui(c), d = u.dir;
+    if (window.RealWeb?.mapsOn() && d.to.trim()) { const mine = !d.from.trim() || d.from === t('my_location'); RealWeb.maps.directions(mine ? '' : d.from, d.to, d.mode); return; }
     const from = resolve(c, d.from, d.fromPlace), to = resolve(c, d.to, d.toPlace);
     if (!from || !to || !d.to.trim()) { c.toast(t('no_results')); return; }
     const r = d.mode === 'transit' ? transitRoute(c, from, to) || route(from, to, 'walk') : route(from, to, d.mode);
@@ -865,6 +869,7 @@
         case 'ecmp-reverse': { const r = u.route; u.dir = {from: r.to.name, fromPlace: r.to.id || (r.to.name === t('my_location') ? 'me' : ''), to: r.from.name, toPlace: r.from.id || (r.from.name === t('my_location') ? 'me' : ''), mode: r.mode === 'transit' ? 'transit' : r.mode}; getDirections(c); return true; }
         case 'ecmp-navigate': {
           const to = p.page === 'place' ? place(p.id) : u.route?.to;
+          if (window.RealWeb?.mapsOn() && to?.name) { RealWeb.maps.navigate([to.name, to.address].filter(Boolean).join(', ')); return true; }
           EC.mapsNav?.start(c, to); return true;
         }
         case 'ecmp-dclose': u.dirOpen = false; c.imeBack?.(); c.render(); return true;
@@ -914,6 +919,7 @@
         item(s.latitude ? t('latitude') : t('join_latitude'), 'mp-ic_menu_latitude.png', () => joinLatitude(c)),
         {...item(t('da_clear_layers'), 'fw-ic_menu_revert.png', () => clearMap(c)), disabled: !clearable},
         item(t('starred_items'), null, () => push(c, {page: 'starred'})),
+        ...(window.RealWeb?.active ? [item(`Real Google Maps: ${RealWeb.mapsOn() ? 'On' : 'Off'}`, null, () => { RealWeb.setMaps(!RealWeb.mapsOn()); c.toast(`Real Google Maps ${RealWeb.mapsOn() ? 'on: searches, directions and navigation open in the phone\u2019s Google Maps' : 'off: simulated map'}`); })] : []),
         item(t('da_help'), null, () => { c.ui.browserGo = 'http://www.google.com/mobile/maps/help'; c.open('browser'); }),
         item(t('da_terms_privacy_notices'), null, () => c.dialog({title: t('da_terms_privacy_notices'), icon: null, items: [t('da_terms_and_conditions'), t('da_privacy_policy'), t('da_legal_notices')],
           onItem: i => { c.ui.browserGo = ['http://m.google.com/tos', 'http://m.google.com/privacy', 'http://m.google.com/legalnotices'][i]; c.open('browser'); }}))]);

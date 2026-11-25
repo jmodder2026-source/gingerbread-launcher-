@@ -41,6 +41,7 @@
     return call.person ? call.person.name : call.number;
   }
   function end(c) {
+    EC.callAudio = null;
     if (!call || call.state === 'ended') return;
     call.end = Date.now(); call.state = 'ended';
     const row = (c.data.calls || []).find(x => x.id === call.logId);
@@ -87,7 +88,7 @@
         case 'ecic-end': end(c); return true;
         case 'ecic-dialpad': call.dialpad = !call.dialpad; refresh(c); return true;
         case 'ecic-mute': call.mute = !call.mute; refresh(c); return true;
-        case 'ecic-speaker': call.speaker = !call.speaker; refresh(c); return true;
+        case 'ecic-speaker': call.speaker = !call.speaker; EC.callAudio = {speaker: call.speaker}; c.render(); return true;
         case 'ecic-add': c.back(); return true;
         case 'ecic-key': call.dtmf += el.dataset.key; const f = c.el.viewport.querySelector('.ecic-field'); if (f) f.textContent = call.dtmf; return true;
       }
