@@ -150,8 +150,16 @@
   /* The Google search widget's parts and the search-options cells: the screen used to change on the same tap, so the
      orange press never showed on the phone. The tap now lights the part orange first and acts 240 ms later. */
   const HOLD = '.gbqsb-field, .gbqsb-corpus, .gbqsb-voice, .gbqs-cell';
+  // The search screen's own box and its search / mic buttons: orange while the finger is on them.
+  document.addEventListener('pointerdown', event => {
+    const el = event.target.closest?.('.gbqs-field input, .gbqs-go, .gbqs-voice');
+    if (!el) return;
+    el.classList.add('gb-press');
+    const off = () => { setTimeout(() => el.classList.remove('gb-press'), 120); window.removeEventListener('pointerup', off, true); window.removeEventListener('pointercancel', off, true); };
+    window.addEventListener('pointerup', off, true); window.addEventListener('pointercancel', off, true);
+  }, true);
   // Load the orange images now, so the first press is orange at once instead of after the screen has changed.
-  for (const name of ['gb-qsb-textfield_search_empty_pressed', 'gb-qsb-corpus_indicator_bg_pressed', 'gb-qsb-btn_search_dialog_voice_pressed', 'gb-qsb-corpus_grid_item_bg_pressed', 'gb-qsb-textfield_search_empty_selected']) new Image().src = `assets/${name}.png`;
+  for (const name of ['gb-qsb-textfield_search_empty_pressed', 'gb-qsb-corpus_indicator_bg_pressed', 'gb-qsb-btn_search_dialog_voice_pressed', 'gb-qsb-corpus_grid_item_bg_pressed', 'gb-qsb-textfield_search_empty_selected', 'gb-qsb-textfield_search_pressed', 'gb-btn_search_dialog_pressed']) new Image().src = `assets/${name}.png`;
   document.addEventListener('click', event => {
     const el = event.target.closest?.(HOLD);
     if (!el) return;
