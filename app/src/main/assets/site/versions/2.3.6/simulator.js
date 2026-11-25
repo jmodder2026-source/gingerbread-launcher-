@@ -2837,7 +2837,9 @@
   // gesture. Cancel only gestures owned by the simulator; lists scroll natively.
   screen.addEventListener('touchmove', event => {
     if (event.touches.length !== 1 || !pointerStart || event.target.closest('input, textarea, select')) return;
-    if (pointerStart.source || pointerStart.target.closest('#status-bar, #nav-bar, .home-view, .drawer-view, .lock-view, .shade-top, .shade-handle, .calc-pager, .easter-robot')) {
+    // Launcher APK: a finger in the app drawer's grid scrolls it natively, so its moves are left alone.
+    const nativeDrawer = GBRealApps.active && !dragState && pointerStart.target.closest('.gbl-allapps-grid');
+    if (!nativeDrawer && (pointerStart.source || pointerStart.target.closest('#status-bar, #nav-bar, .home-view, .drawer-view, .lock-view, .shade-top, .shade-handle, .calc-pager, .easter-robot'))) {
       if (event.cancelable) event.preventDefault();
     }
   }, { passive: false });
@@ -2845,8 +2847,6 @@
   function suppressReleaseClick() {
     suppressClickUntil = Infinity;
     window.addEventListener('pointerup', () => { suppressClickUntil = Date.now() + 350; }, {once: true, capture: true});
-    // The browser took the touch over for native scrolling (the drawer): no long-press drag afterwards.
-  window.addEventListener('pointercancel', () => { clearTimeout(dragTimer); if (pointerStart && !dragState) pointerStart = null; });
   window.addEventListener('pointercancel', () => { suppressClickUntil = Date.now() + 350; }, {once: true, capture: true});
   }
   // CropImage's HighlightView owns its drags: they never reach the screen's swipe and long-press handling.
@@ -3010,6 +3010,8 @@
     }
     if (pointerStart.source && event.pointerType === 'mouse' && distance > 8 && !(quickHomeIcon && horizontal)) startDrag(event.clientX, event.clientY);
   });
+  // The browser took the touch over for native scrolling (the drawer): no long-press drag afterwards.
+  window.addEventListener('pointercancel', () => { clearTimeout(dragTimer); if (pointerStart && !dragState) pointerStart = null; });
   window.addEventListener('pointerup', event => {
     if (!pointerStart || event.pointerId !== pointerStart.pointerId) return;
     clearTimeout(eggTimer); clearTimeout(dragTimer); clearTimeout(homeLongPressTimer); clearTimeout(calculatorClearTimer); clearTimeout(messageHoldTimer);

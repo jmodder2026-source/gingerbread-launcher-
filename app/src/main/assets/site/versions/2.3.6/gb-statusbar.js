@@ -148,15 +148,17 @@
     bar.classList.add('gb-orange'); setTimeout(() => bar.classList.remove('gb-orange'), 450);
   }, true);
   /* The Google search widget's parts and the search-options cells: the screen used to change on the same tap, so the
-     orange press never showed on the phone. The tap now lights the part orange first and acts 160 ms later. */
+     orange press never showed on the phone. The tap now lights the part orange first and acts 240 ms later. */
   const HOLD = '.gbqsb-field, .gbqsb-corpus, .gbqsb-voice, .gbqs-cell';
+  // Load the orange images now, so the first press is orange at once instead of after the screen has changed.
+  for (const name of ['gb-qsb-textfield_search_empty_pressed', 'gb-qsb-corpus_indicator_bg_pressed', 'gb-qsb-btn_search_dialog_voice_pressed', 'gb-qsb-corpus_grid_item_bg_pressed', 'gb-qsb-textfield_search_empty_selected']) new Image().src = `assets/${name}.png`;
   document.addEventListener('click', event => {
     const el = event.target.closest?.(HOLD);
     if (!el) return;
     if (el.dataset.pressPass) { delete el.dataset.pressPass; return; }
     event.preventDefault(); event.stopImmediatePropagation();
     el.classList.add('gb-orange');
-    setTimeout(() => { el.dataset.pressPass = '1'; el.click(); }, 160);
+    setTimeout(() => { el.dataset.pressPass = '1'; el.click(); }, 240);
     setTimeout(() => el.classList.remove('gb-orange'), 450);
   }, true);
 })();
