@@ -31,8 +31,52 @@
 @media(prefers-reduced-motion:reduce){.gbx-editing .home-slot .launcher-icon,.gbx-editing .home-widget>*,.gbx-x{animation:none}#gbx-float{transition:none}}
 
 /* Launcher APK (gb-real-apps.js adds .apk-launcher): only the phone, filling the real screen; no site header or frame. */
-.apk-launcher .site-header,.apk-launcher #header-handle,.apk-launcher .intro-panel,.apk-launcher .site-footer,.apk-launcher .earpiece,.apk-launcher .front-camera,.apk-launcher .proximity-sensor,.apk-launcher .device-chin,.apk-launcher .volume-rocker,.apk-launcher .power-key{display:none!important}
+.apk-launcher #nav-bar,.apk-launcher .site-header,.apk-launcher #header-handle,.apk-launcher .intro-panel,.apk-launcher .site-footer,.apk-launcher .earpiece,.apk-launcher .front-camera,.apk-launcher .proximity-sensor,.apk-launcher .device-chin,.apk-launcher .volume-rocker,.apk-launcher .power-key{display:none!important}
 .apk-launcher body,.apk-launcher .page-shell{margin:0;padding:0!important;min-height:0;background:#000}
 .apk-launcher .workspace{display:block!important;padding:0!important;min-height:0!important}
 .apk-launcher .device-area{display:block!important;padding:0!important}
 .apk-launcher .device{width:100vw!important;height:100vh!important;height:100dvh!important;border:0!important;border-radius:0!important;padding:0!important;margin:0!important;background:#000!important;box-shadow:none!important}
+.apk-launcher .screen{height:100%!important;flex:1 1 auto}
+/* The launcher APK has no page dots: neither the row of five nor the screen-count dots beside the dock. */
+.apk-launcher .gbx-dots,.apk-launcher .gbl-arrow{display:none!important}
+/* gb-real-camera.js: the live camera fills the viewfinder over the drawn scene. */
+.gbcam-scene .gbx-live{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;transform-origin:center}
+/* Launcher APK: the phone's own keys replace the floating bar (Back, Home; hold Back for Menu). */
+.apk-launcher #gbx-float{display:none!important}
+/* A larger home button at the foot of the app drawer. */
+.apk-launcher .gbl-allapps-grid{bottom:calc(76 * var(--dp))}
+.apk-launcher .gbl-allapps-home{width:calc(128 * var(--dp));height:calc(76 * var(--dp));margin-left:calc(-64 * var(--dp));background-size:calc(72 * var(--dp))}
+/* The trash can a dragged item is dropped on: keep it square (a shared .drop-target rule stretched it to 79 x 45). */
+.gbl .drop-target-bar.gbl-delete .drop-target{flex:none!important;width:calc(40 * var(--dp))!important;height:calc(40 * var(--dp))!important;min-width:0!important;padding:0!important;margin:0!important}
+.gbl .drop-target-bar.gbl-delete .drop-target img{object-fit:contain}
+/* Gingerbread check boxes and radio buttons: the 57 x 72 pictures hold a 46 x 46 box. Drawn into 32 dp squares they
+   were squashed; here the box itself is shown as a perfect square, 30 dp (img) or the full 32 dp (backgrounds). */
+img[src*="gb-btn_check_"]:not([src*="buttonless"]):not([src*="label"]),img[src*="gb-btn_radio_"]{width:calc(37.1739 * var(--dp))!important;height:calc(46.9565 * var(--dp))!important;margin:calc(-7.4783 * var(--dp)) calc(-2.587 * var(--dp))!important;max-width:none!important;max-height:none!important;flex:none!important;object-fit:fill!important}
+.gbsp-check,.gbcal-check,.nwp-check,.nwp-radio,.gbem-setup-default span,.tg-switch input,.gm-quoted-bar input,.gbnet-checkline input{background-size:123.913% 156.522%!important;background-position:center!important;background-repeat:no-repeat!important}
+/* No blue tap highlight or focus ring when buttons are touched (as asked for the launcher APK). */
+button {
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-focus-ring-color: transparent;
+}
+
+button:focus,
+button:active {
+    outline: none;
+    box-shadow: none;
+}
+/* The same for the other tappable parts: links, inputs and rows that act as buttons. */
+a,input,select,textarea,label,[data-action],[role="button"],[role="option"],[role="tab"]{-webkit-tap-highlight-color:transparent}
+
+/* Launcher APK: the Camera's icon strip (zoom, flash, white balance, GPS, settings) sits right on top of the shutter
+   and slider row, with the viewfinder above it; its menus pop up from it. */
+.apk-launcher .gbcam-frame{place-items:start center}
+.apk-launcher .gbcam-iconbar{bottom:0}
+.apk-launcher .gbcam-popup{bottom:calc(106.5 * var(--dp))}
+.apk-launcher .gbcam-triangle{bottom:calc(94.5 * var(--dp))}
+/* Launcher APK on a tall phone: the viewfinder reaches down to the camera's icon strip (no black band under it). */
+.apk-launcher .screen .gbcam-preview{aspect-ratio:auto;height:calc(100% - 40 * var(--dp));max-height:none}
+/* …and with no frame lines around it: the picture runs edge to edge, from the status bar to the icon strip. */
+.apk-launcher .gbcam-frame{top:0}
+.apk-launcher .screen .gbcam-preview{border-image:none;border:0;padding:0;background:none;height:calc(100% - 40 * var(--dp))}
+.apk-launcher .gbcam-scene{inset:0}

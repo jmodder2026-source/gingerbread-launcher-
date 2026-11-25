@@ -4,7 +4,7 @@
   'use strict';
   const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   // Icons are framework drawables ("ic_menu_add" -> assets/gb-ic_menu_add.png) or full asset file names.
-  const src = icon => icon.startsWith('data:') ? icon : icon.includes('.') ? `assets/${icon}` : `assets/gb-${icon}.png`;
+  const src = icon => icon.includes('.') ? `assets/${icon}` : `assets/gb-${icon}.png`;
   const attrs = item => `data-action="${e(item.action)}"${item.id != null ? ` data-id="${e(item.id)}"` : ''}${item.app ? ` data-app="${e(item.app)}"` : ''}${item.disabled ? ' disabled' : ''}`;
 
   /* icon_menu_layout.xml: rowHeight 66 dip, maxItems 6, maxRows 3, maxItemsPerRow 3. More than six items show the

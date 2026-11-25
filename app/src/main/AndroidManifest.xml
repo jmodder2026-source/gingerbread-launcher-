@@ -1,11 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- The simulator buzzes on the lock screen slider, long presses and the power menu. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- The status bar's Wi-Fi icon shows only while the phone is connected to Wi-Fi. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Wi-Fi bars and the Bluetooth icons (Android 12+ shows Bluetooth only once nearby-devices access is allowed). -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <!-- The Gingerbread Settings app changes the real settings: Wi-Fi and Bluetooth switches (Android 9 and older let
+         apps do this), the ringer and Do Not Disturb, and system settings such as brightness once allowed. -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <!-- Android shows apps the nearby Wi-Fi networks only with location access. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
+    <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <!-- The Gingerbread Camera shows the real camera; its pictures are also saved to the phone's gallery. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- The Gingerbread Phone app places real calls. -->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <!-- The screen goes dark at the ear during a call. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+
     <!-- Android 11+: lets the launcher see every app that has a home screen icon. -->
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
         </intent>
     </queries>
 
@@ -32,6 +63,31 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- A phone app: Android lets only apps that open the dial pad become the default phone app. -->
+            <intent-filter>
+                <action android:name="android.intent.action.DIAL" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.DIAL" />
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="tel" />
+            </intent-filter>
         </activity>
+
+        <!-- While Gingerbread Launcher is the default phone app, every call comes here and shows on the Gingerbread
+             call screen. Android still rings and keeps the call log. -->
+        <service
+            android:name=".CallService"
+            android:exported="true"
+            android:permission="android.permission.BIND_INCALL_SERVICE">
+            <meta-data android:name="android.telecom.IN_CALL_SERVICE_UI" android:value="true" />
+            <meta-data android:name="android.telecom.IN_CALL_SERVICE_RINGING" android:value="false" />
+            <intent-filter>
+                <action android:name="android.telecom.InCallService" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

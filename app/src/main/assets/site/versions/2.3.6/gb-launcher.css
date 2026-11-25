@@ -22,7 +22,7 @@
 .gbqsb button{border:0;padding:0;margin:0;background:none;display:grid;place-items:center;cursor:pointer}
 .gbqsb-corpus{width:calc(48 * var(--dp));flex:none;border:0 solid transparent!important;border-image:url('assets/gb-qsb-corpus_indicator_bg_normal.png') 37 24 40 24 fill / calc(24.6725 * var(--dp)) calc(16 * var(--dp)) calc(26.6667 * var(--dp)) calc(16 * var(--dp)) stretch!important}
 .gbqsb-corpus:active{border-image-source:url('assets/gb-qsb-corpus_indicator_bg_normal.png')!important;filter:brightness(1.15)}
-.gbqsb-corpus img{width:calc(35.9421 * var(--dp));height:calc(35.9421 * var(--dp))}
+.gbqsb-corpus img{width:calc(35.9421 * var(--dp));height:calc(35.9421 * var(--dp));transform:translateY(calc(-4 * var(--dp)))}
 .gbqsb-field{flex:1;min-width:0;height:calc(42.0058 * var(--dp));margin:calc(6.0058 * var(--dp)) 0!important;padding:0 calc(10.0058 * var(--dp))!important;justify-items:start!important;border:0 solid transparent!important;border-image:url('assets/gb-qsb-textfield_search_empty_default.png') 32 16 32 13 fill / calc(21.3334 * var(--dp)) calc(10.6667 * var(--dp)) calc(21.3334 * var(--dp)) calc(8.6725 * var(--dp)) stretch!important}
 .gbqsb-field:active{border-image-source:url('assets/gb-qsb-textfield_search_empty_default.png')!important;filter:brightness(.95)}
 .gbqsb-field img{height:calc(25.3334 * var(--dp));width:auto;margin-left:calc(-1.1595 * var(--dp))}

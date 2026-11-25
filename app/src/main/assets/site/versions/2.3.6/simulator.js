@@ -3,6 +3,8 @@
   'use strict';
 
   const STORE = 'android-time-machine-gb-v1';
+  // Launcher APK, once: 2.3.6 starts again from the site's defaults (the owner asked for a fresh start in build 38).
+  try { if (window.AndroidLauncher && localStorage.getItem('gingerbread-launcher-reset') !== '38') { localStorage.removeItem(STORE); localStorage.setItem('gingerbread-launcher-reset', '38'); } } catch (error) { /* storage blocked */ }
   const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   const defaultData = {
     // Gingerbread's Launcher2 has no first-run clings (Cling.java came with 4.0).
@@ -160,13 +162,15 @@
   const appNames = Object.fromEntries(apps.map(app => [app[0], app[1]]));
   appNames.google = 'Google';
   // gb-real-apps.js: inside the launcher APK the phone's real apps join the simulated ones (ids "real:<package>/<activity>").
-  for (const app of GBRealApps.list()) appNames[app.id] = app.label;
+  for (const id of GBRealApps.ids()) appNames[id] = GBRealApps.name(id);
   const knownApps = () => [...apps.map(app => app[0]), ...GBRealApps.ids()];
   ICSLauncherFolders.initialize(data,knownApps());
   if (GBRealApps.active) {
     // Real apps that were uninstalled leave the home screen and the folders.
     data.homePages = data.homePages.map(page => page.map(id => GBRealApps.isReal(id) && !GBRealApps.has(id) ? null : id));
     // First run: Files and Claude go on the middle home screen, in the free row under the search bar.
+    // The demo's 7:00 alarm starts switched off, so the alarm icon means an alarm was really set.
+    if (!data.realAlarmsOff) { data.alarms.forEach(alarm => { alarm.enabled = false; }); data.realAlarmsOff = true; AndroidState.save(STORE, data); }
     if (!data.realSeeded) {
       const page = data.homePages[2], free = [8, 9, 10, 11, 4, 5, 6, 7].filter(slot => !page[slot]);
       GBRealApps.starters().forEach((id, i) => { if (free[i] != null) page[free[i]] = id; });
@@ -208,8 +212,97 @@
   };
   const liveNames={all:'All contacts',starred:'Starred contacts',phone:'Contacts with phone numbers'};
   const folderName=id=>{const folder=ICSLauncherFolders.folder(data,id);return folder?.name||i18n.t(folder?.live?liveNames[folder.live]:'Folder');};
-  // The floating Back / Home / Recents bar has been removed; render() still calls this hook.
-  function syncFloatBar() {}
+  // gb-extras.js: the floating Back / Home / Recents bar, hidden on the lock screen, while asleep and when turned off.
+  let floatRoot = null;
+  // The launcher APK leaves and re-enters the page: the real camera is released while away and comes back with the Camera.
+  window.gbOnPause = () => GBRealCamera.stop();
+  // Launcher APK: turning the phone's screen off locks the Gingerbread phone, so its lock screen greets you next time.
+  window.gbLockNow = () => { if (ui.activeCall || ui.power || ui.locked || ui.view === 'lock' || data.settings.screenLock === 'none') return; ui.overlay = ''; lockScreen(); };
+  // Launcher APK: the status bar's Wi-Fi, signal, data, battery and alarm icons follow the real phone.
+  window.addEventListener('gb-real-wifi', () => renderStatus());
+  // A new Wi-Fi scan or connection: redraw the Wi-Fi settings while they are open (not under a dialog being typed in).
+  /* Launcher APK as the default phone app: every real call (gb-real-calls.js) runs on the Gingerbread call screen.
+     The phone reports each call by id; the screen shows the one that matters most (ringing, then dialing, then the
+     call in progress, then one on hold), and each call that ends goes into the Gingerbread call log. */
+  const realCalls = new Map();
+  let gbCallTabs = null, gbCallFromLock = false, gbCallReturn = null;
+  const CALL_RANK = {ringing: 0, 'select-account': 1, dialing: 1, active: 2, holding: 3};
+  function showRealCall() {
+    const live = [...realCalls.values()].filter(call => !call.endedAt).sort((a, b) => CALL_RANK[a.state] - CALL_RANK[b.state]);
+    const next = live[0];
+    if (next && ui.activeCall !== next && !(ui.activeCall?.real && ui.activeCall.endedAt)) {
+      // Remember where the phone was, to go back there when the calls are over (the lock screen locks again).
+      if (!ui.activeCall) { gbCallFromLock = ui.view === 'lock'; gbCallReturn = ui.view === 'lock' || ui.view === 'phone' ? null : {view: ui.view, sub: ui.sub}; }
+      ui.activeCall = next; ui.gbAddCall = false;
+      if (next.state === 'ringing' || next.state === 'dialing' || next.state === 'select-account') { ui.gbCallBackground = false; captureRecentView(); ui.recent = ['phone', ...ui.recent.filter(id => id !== 'phone')].slice(0, 8); ui.callNumber = next.number; ui.view = 'phone'; ui.sub = 'calling'; if (ui.overlay !== 'gb-dialog-callwith') ui.overlay = ''; }
+    }
+    render(); renderStatus();
+  }
+  function endRealCall(call) {
+    if (call.endedAt) return;
+    call.endedAt = Date.now(); call.keypad = false;
+    const type = call.incoming ? (call.answered ? 'incoming' : 'missed') : 'outgoing';
+    data.callHistory = [...(data.callHistory || []), {...ICSPhoneCall.finish(call, call.endedAt), connected: !!call.answered, type}].slice(-50); save();
+    if (ui.activeCall !== call) { realCalls.delete(call.id); showRealCall(); return; }
+    render();
+    setTimeout(() => { if (ui.activeCall === call && ui.view === 'phone') render(); }, GBPhone.HANGING_UP);
+    setTimeout(() => {
+      realCalls.delete(call.id);
+      if (ui.activeCall !== call) return;
+      ui.activeCall = null; ui.gbCallBackground = false; ui.gbAddCall = false;
+      if ([...realCalls.values()].some(other => !other.endedAt)) { showRealCall(); return; }
+      if (ui.view === 'phone') { ui.sub = ''; ui.dial = ''; }
+      if (gbCallFromLock) { gbCallFromLock = false; gbCallReturn = null; lockScreen(); return; }
+      if (gbCallReturn && ui.view === 'phone') { ui.view = gbCallReturn.view; ui.sub = gbCallReturn.sub; }
+      gbCallReturn = null;
+      render(); renderStatus();
+    }, GBPhone.HANGING_UP + GBPhone.ENDED);
+  }
+  function applyRealCall(report) {
+    if (!report?.id) return;
+    let call = realCalls.get(report.id);
+    if (!call) {
+      if (report.state === 'disconnected' || report.state === 'disconnecting') return;
+      call = {real: true, id: report.id, number: report.number || '', started: Date.now(), connected: Number.MAX_SAFE_INTEGER, mute: false, speaker: false, hold: false, keypad: false, digits: '', incoming: !!report.incoming};
+      realCalls.set(report.id, call);
+    }
+    if (report.number) call.number = report.number;
+    if (report.state === 'disconnected' || report.state === 'disconnecting') { endRealCall(call); return; }
+    call.state = report.state; call.hold = report.state === 'holding';
+    call.mute = !!report.mute; call.speaker = !!report.speaker; call.bluetooth = !!report.bluetooth; call.bluetoothAvailable = !!report.bluetoothAvailable;
+    if (report.state === 'active' || report.state === 'holding') call.answered = true;
+    if (report.connectTime > 0) call.connected = report.connectTime;
+    else if (call.answered && call.connected === Number.MAX_SAFE_INTEGER) call.connected = Date.now();
+    // Dual SIM without a default: Android asks which SIM to call with; Gingerbread shows the choice as a list.
+    if (report.state === 'select-account' && report.accounts?.length && ui.overlay !== 'gb-dialog-callwith') { ui.gbCallAccounts = report.accounts; ui.gbCallAccountFor = report.id; ui.overlay = 'gb-dialog-callwith'; }
+    showRealCall();
+    // Tell the APK the call is on screen (otherwise it shows its own Answer / End dialog after 3 s).
+    if (viewport.querySelector('.gbic') || ui.overlay === 'gb-dialog-callwith') { try { window.AndroidLauncher?.callShown?.(report.id); } catch (error) { /* not in the APK */ } }
+  }
+  // IncomingCallWidget: slide the green tab to answer, the red tab to decline.
+  function attachIncomingCall() {
+    gbCallTabs?.destroy(); gbCallTabs = null;
+    const root = ui.view === 'phone' && ui.activeCall?.real && ui.activeCall.state === 'ringing' ? viewport.querySelector('.gbic') : null;
+    if (!root) return;
+    gbCallTabs = GBKeyguard.slidingTab(root, {haptic: () => data.settings.haptic !== false, reduced: !!reducedMotion?.matches, onTrigger: side => {
+      suppressClickUntil = Date.now() + 350;
+      const call = ui.activeCall; if (!call?.real) return;
+      GBRealCalls.action(call.id, side === 'left' ? 'answer' : 'reject');
+    }});
+  }
+  if (GBRealCalls.active) { GBRealCalls.onChange(applyRealCall); setTimeout(() => applyRealCall(GBRealCalls.now()), 0); }
+  // A number tapped in another app ("tel:" link): the Gingerbread dial pad with it filled in.
+  window.gbOpenDialer = number => { if (ui.power) return; ui.overlay = ''; ui.gbCallBackground = !!ui.activeCall; captureRecentView(); ui.view = 'phone'; ui.sub = ''; ui.phoneTab = 'dialpad'; ui.dial = String(number || '').replace(/[^0-9+*#,;]/g, ''); render(); };
+
+  window.addEventListener('gb-real-wifi-list', () => { if (ui.view === 'settings' && !ui.overlay) render(); });
+  window.gbOnResume = () => { if (ui.view === 'camera' || ui.view === 'settings') render(); };
+  function syncFloatBar() {
+    if (!floatRoot) { floatRoot = document.createElement('div'); floatRoot.id = 'gbx-float'; screen.insertBefore(floatRoot, overlayRoot); }
+    const show = GBExtras.prefs(data).floatBar && !GBRealApps.active && !ui.locked && !ui.sleeping && ui.view !== 'lock' && !ui.power;
+    floatRoot.hidden = !show;
+    screen.classList.toggle('gbx-on-home', ui.view === 'home');
+    if (show && !floatRoot.firstElementChild) floatRoot.innerHTML = GBExtras.floatBar(key => i18n.t(key));
+  }
   const launcherIcon = id => ICSLauncherFolders.folder(data,id)
     ? `<button class="launcher-icon" data-action="folder-open" data-folder-id="${safe(id)}" aria-label="${safe(folderName(id))}" data-no-translate>${appIcon(id)}<span>${safe(folderName(id))}</span></button>`
     : `<button class="launcher-icon" data-action="${id==='apps'?'drawer':'open-app'}" ${id==='apps'?'':`data-app="${id}"`} aria-label="${safe(appNames[id]||'Apps')}">${appIcon(id)}<span>${safe(appNames[id]||'Apps')}</span></button>`;
@@ -233,7 +326,7 @@
     GBStatusBar.bar(statusRoot, {
       label: i18n.t('Open notifications'), notifications: icons, clock: gbClock(), expanded: ui.overlay === 'shade',
       date: deviceDate().toLocaleDateString(i18n.locale(), {year: 'numeric', month: 'long', day: 'numeric'}),
-      state: {bluetooth: data.settings.bluetooth, ringer: data.settings.silent ? (data.settings.silentMode === 'vibrate' ? 'vibrate' : 'silent') : '', airplane: data.settings.airplane, wifi: data.settings.wifi && !!data.settings.wifiNetwork, data: data.settings.mobileData === false || data.settings.dataEnabled === false ? '' : '3g', battery: 78, alarm: data.alarms.some(alarm => alarm.enabled)}
+      state: {...(GBRealApps.active ? {bluetooth: GBRealApps.phone().bluetooth, bluetoothConnected: GBRealApps.phone().bluetoothConnected, ringer: GBRealApps.phone().ringer, wifiLevel: GBRealApps.phone().wifiLevel, dataActive: GBRealApps.phone().dataActive} : {bluetooth: data.settings.bluetooth, ringer: data.settings.silent ? (data.settings.silentMode === 'vibrate' ? 'vibrate' : 'silent') : ''}), airplane: GBRealApps.active ? GBRealApps.phone().airplane : data.settings.airplane, noSim: GBRealApps.active && GBRealApps.phone().noSim, signal: GBRealApps.active ? GBRealApps.phone().signal : 4, wifi: GBRealApps.active ? GBRealApps.wifi() : data.settings.wifi && !!data.settings.wifiNetwork, data: GBRealApps.active ? GBRealApps.phone().data : data.settings.mobileData === false || data.settings.dataEnabled === false ? '' : '3g', battery: GBRealApps.active ? GBRealApps.battery().level : 78, charging: GBRealApps.active && GBRealApps.battery().charging, alarm: GBRealApps.active && GBRealApps.alarm() || data.alarms.some(alarm => alarm.enabled)}
     });
     // Ticker: newly posted notifications scroll through the bar once (tickerText = the notification title).
     const ids = new Set(data.notifications.map(n => n.id));
@@ -303,7 +396,7 @@
     {action: 'gb-add', title: i18n.t('Add'), icon: 'ic_menu_add'},
     {action: 'settings-open', id: 'apps', title: i18n.t('Manage apps'), icon: 'ic_menu_manage'},
     {action: 'gb-wallpaper', title: i18n.t('Wallpaper'), icon: 'ic_menu_gallery'},
-    {action: 'gbx-home-menu', title: i18n.t('Launcher settings'), icon: 'ic_menu_preferences'},
+    {action: 'gbx-home-menu', title: i18n.t(GBRealApps.active ? 'Launcher settings' : 'Home screen'), icon: GBRealApps.active ? 'ic_menu_preferences' : 'ic_menu_home'},
     {action: 'browser-search', title: i18n.t('Search'), icon: 'ic_search_category_default'},
     {action: 'gb-notifications', title: i18n.t('Notifications'), icon: 'ic_menu_notifications'},
     {action: 'open-app', app: 'settings', title: i18n.t('Settings'), icon: 'ic_menu_preferences'}
@@ -416,17 +509,22 @@
     const outgoing = viewport.firstElementChild;
     screen.className = `screen${activeTransition ? ' transitioning' : ''} wallpaper-${data.wallpaper}${data.settings.largeText ? ' large-text' : ''}${ui.sleeping?' sleeping':''}${ui.locked?' credential-locked':''}${(ui.view==='camera'||ui.view==='settings'&&ui.sub==='easter'||ui.view==='car-home'&&!ui.gbPrefs&&data.appPrefs?.['car-settings']?.['settings.hide_statusbar'])&&!ui.locked?' gb-fullscreen':''}`;
     screen.style.background = data.wallpaper === 99 && data.customWallpaperPhoto ? `#080d14 url('${ICSMedia.image(data.customWallpaperPhoto)}') center / cover no-repeat` : data.wallpaper === 99 && data.customWallpaper ? `linear-gradient(160deg, ${data.customWallpaper[0]}, ${data.customWallpaper[1]} 53%, ${data.customWallpaper[2]})` : `#000 url('assets/gb-wallpaper_${wallpaperFiles[data.wallpaper] || 'street_lights'}.jpg') ${ui.page * 25}% center / auto 100% no-repeat`;
-    screen.style.filter = `brightness(${.5 + data.settings.brightness / 135})`;
+    screen.style.filter = GBRealSettings.active ? '' : `brightness(${.5 + data.settings.brightness / 135})`; // the APK dims the real screen
     renderStatus(); renderNav(); syncLiveWallpaper();
     if (ui.view !== 'home') ui.gbxEdit = false;
+    // Launcher APK: the Settings app shows the phone's real settings.
+    if (ui.view === 'settings' && GBRealSettings.active) GBRealSettings.sync(data.settings);
+    if (ui.view === 'settings' && GBRealWifi.active) data.settings.wifiNetwork = GBRealWifi.current();
     if (ui.view === 'lock') { viewport.innerHTML = renderLock(); attachGBLock(); }
     else if (ui.view === 'home') { viewport.innerHTML = renderHome(); restoreWidgetScroll(); }
     else if (ui.view === 'drawer') viewport.innerHTML = renderDrawer();
     else viewport.innerHTML = renderApp();
     if (GBApps.has(ui.view)) GBApps.get(ui.view).mounted?.(gappContext());
+    if (GBRealCalls.active) attachIncomingCall();
     if (ui.view === 'messaging') window.GBMmsAttach?.mounted(gbMmsContext());
     snapResting(viewport);
     syncFloatBar();
+    { const cam = GBCamera.settings(data.cameraSettings || {}); GBRealCamera.sync(ui.view === 'camera' && !gbCapture()?.taken && !ui.sleeping && !ui.locked && !ui.power, cam.facing, cam.zoom); }
     renderOverlay();
     i18n.translateDOM(screen);
     const scene = {view: ui.view, sub: ui.sub}, transit = ui.sleeping ? '' : ICSTransitions.kind(lastScene, scene, pendingNav);
@@ -556,7 +654,8 @@
     if (widget.type === 'search') return GBLauncher.search(t);
     if (widget.type === 'protips') return GBLauncher.protips({...(data.protips || {index: 0, set: 0}), icon: ui.tipsIcon}, i18n.language);
     if (widget.type === 'analog') return GBWidgets.analog(deviceDate());
-    if (widget.type === 'power') return GBWidgets.power({...GBSettings.DEFAULTS, ...data.settings}, t);
+    // In the launcher APK the Power control widget shows the phone's real Wi-Fi, Bluetooth, GPS, sync and brightness.
+    if (widget.type === 'power') { window.GBRealSettings?.sync(data.settings); return GBWidgets.power({...GBSettings.DEFAULTS, ...data.settings}, t); }
     if (widget.type === 'bookmarks') return GBWidgets.bookmarks(data.bookmarks || [], ui.bookmarkWidget?.[widget.id] || 0, gbBrowserTitle, renderWebsite);
     if (widget.type === 'music') return GBLauncher.music(ui.music, tracks[ui.music.track], musicActive(), t);
     if (widget.type === 'news-weather') return GBWidgets.newsWeather(i18n.language);
@@ -574,20 +673,13 @@
   };
   function renderHome() {
     const t = key => i18n.t(key);
-    const edit = !!ui.gbxEdit;
-    return `<div class="home-view gbl${edit ? ' gbx-editing' : ''}">${edit ? GBExtras.editBar(t) : ''}<div class="home-content"><div class="home-pages" style="transform:translateX(${-ui.page * 100}%)">${data.homePages.map((page, index) => `<div class="home-grid" data-home-page="${index}" ${index !== ui.page ? 'inert' : ''}>${page.map((id, slot) => `<div class="home-slot" data-home-slot="${slot}" style="grid-column:${slot % 4 + 1};grid-row:${Math.floor(slot / 4) + 1}">${id ? launcherIcon(id) + (edit ? GBExtras.removeButton('gbx-remove', slot, t) : '') : ''}</div>`).join('')}${data.homeWidgets[index].map(widget => edit ? homeWidget(widget).replace(/<\/div>$/, GBExtras.removeButton('gbx-remove-widget', widget.id, t) + '</div>') : homeWidget(widget)).join('')}</div>`).join('')}</div></div>${GBLauncher.arrows(ui.page, 5, t)}${GBLauncher.dock(t)}<div class="drop-target-bar gbl-delete"><div class="drop-target" data-drop-remove="true" aria-label="${safe(t('Remove'))}"><img src="assets/gb-l2-trashcan.png" alt=""><img class="drop-target-active" src="assets/gb-l2-trashcan_hover.png" alt=""></div></div></div>`;
+    const gbx = GBExtras.prefs(data), edit = !!ui.gbxEdit;
+    return `<div class="home-view gbl${edit ? ' gbx-editing' : ''}">${edit ? GBExtras.editBar(t) : ''}<div class="home-content"><div class="home-pages" style="transform:translateX(${-ui.page * 100}%)">${data.homePages.map((page, index) => `<div class="home-grid" data-home-page="${index}" ${index !== ui.page ? 'inert' : ''}>${page.map((id, slot) => `<div class="home-slot" data-home-slot="${slot}" style="grid-column:${slot % 4 + 1};grid-row:${Math.floor(slot / 4) + 1}">${id ? launcherIcon(id) + (edit ? GBExtras.removeButton('gbx-remove', slot, t) : '') : ''}</div>`).join('')}${data.homeWidgets[index].map(widget => edit ? homeWidget(widget).replace(/<\/div>$/, GBExtras.removeButton('gbx-remove-widget', widget.id, t) + '</div>') : homeWidget(widget)).join('')}</div>`).join('')}</div></div>${GBLauncher.arrows(ui.page, 5, t)}${gbx.dots ? GBExtras.dots(ui.page, 5, t) : ''}${GBLauncher.dock(t)}<div class="drop-target-bar gbl-delete"><div class="drop-target" data-drop-remove="true" aria-label="${safe(t('Remove'))}"><img src="assets/gb-l2-trashcan.png" alt=""><img class="drop-target-active" src="assets/gb-l2-trashcan_hover.png" alt=""></div></div></div>`;
   }
-  // Everything the drawer can list: the image's own 2.3.6 apps plus, in the launcher APK, the phone's installed apps.
-  function drawerEntries() {
-    const stock = apps.map(app => [app[0], i18n.t(app[1])]);
-    const real = GBRealApps.list().map(app => [app.id, app.label]);
-    return [...stock, ...real].sort((a, b) => a[1].localeCompare(b[1], i18n.locale()));
-  }
-  // An app's icon file for list dialogs (Hide apps): the <img> inside appIcon(), or none for drawn fallback icons.
-  const dialogIcon = id => { const m = /src="([^"]+)"/.exec(appIcon(id)); if (!m) return undefined; const src = m[1].replace(/&amp;/g, '&'); return src.startsWith('assets/') ? src.slice(7) : src; };
   // AllApps2D: a black 4-column GridView of application_boxed items (alphabetical) above the home button.
   function renderDrawer() {
-    const sortedApps = drawerEntries().filter(([id]) => !GBExtras.isHidden(data, id));
+    // Launcher APK: the Gingerbread apps plus the real Files and Claude, in one alphabetical list.
+    const sortedApps = [...apps.map(app => [app[0], i18n.t(app[1])]), ...GBRealApps.list().map(app => [app.id, app.label])].sort((a, b) => a[1].localeCompare(b[1], i18n.locale()));
     return `<div class="drawer-view gbl-allapps-view"><div class="drawer-page drawer-apps gbl-allapps-grid">${sortedApps.map(app => launcherIcon(app[0])).join('')}</div><button class="gbl-allapps-home" data-action="home" aria-label="${safe(i18n.t('Home'))}"></button></div>`;
   }
   function widgetFits(page, x, y, type, ignoredId = '') {
@@ -682,11 +774,9 @@
       default: return renderHome();
     }
   }
-  function openApp(app, resume = false, fromDock = false) {
+  function openApp(app, resume = false) {
     if(ui.locked)return;
     if (GBRealApps.isReal(app)) { ui.overlay = ''; renderOverlay(); GBRealApps.launch(app); return; }
-    if (GBRealApps.active && fromDock && app === 'phone' && !resume) { GBRealApps.dial(); return; }
-    if (GBRealApps.active && fromDock && app === 'browser' && !resume) { GBRealApps.browse(); return; }
     if (!appNames[app]) return;
     // A capture for Messaging lasts while the Camera is open; Messaging opens on its compose screen, not over it.
     if (!resume) { ui.gbmaCapture = null; ui.gbceCapture = null; if (app === 'messaging') ui.gbmaScreen = null; }
@@ -802,8 +892,10 @@
   // Launcher AddAdapter ("Add to Home screen"), the shortcut and widget pickers and "Select wallpaper from".
   function gbDialogSpec() {
     const t = key => i18n.t(key);
-    if (ui.overlay === 'gb-dialog-gbx-home') return GBExtras.homeSubmenu(data, t);
-    if (ui.overlay === 'gb-dialog-gbx-hidden') return GBExtras.hiddenDialog(data, drawerEntries().map(([id, label]) => [id, label, dialogIcon(id)]), t);
+    if (ui.overlay === 'gb-dialog-gbx-home') return GBExtras.homeSubmenu(data, t, GBRealApps.active);
+    if (ui.overlay === 'gb-dialog-gbx-apps') return GBExtras.appsDialog(t);
+    if (ui.overlay === 'gb-dialog-gbx-version') return GBExtras.versionDialog(t);
+    if (ui.overlay === 'gb-dialog-callwith') return {title: t('Call with'), icon: 'ic_menu_call', items: (ui.gbCallAccounts || []).map((label, index) => ({action: 'gbx-call-account', id: String(index), title: label}))};
     if (ui.overlay === 'gb-dialog-add') return {title: t('Add to Home screen'), items: [
       {action: 'gb-add-shortcuts', title: t('Shortcuts'), icon: 'l2-ic_launcher_shortcut'},
       {action: 'gb-add-widgets', title: t('Widgets'), icon: 'l2-ic_launcher_appwidget'},
@@ -1019,7 +1111,8 @@
   }
   window.addEventListener('resize',()=>{if(ui.overlay==='folder')positionFolder();});
 
-  const allWifiNetworks = () => [...wifiNetworks, ...(data.savedWifiNetworks || [])];
+  // Launcher APK: the networks the phone really sees (gb-real-wifi.js) replace the demo list.
+  const allWifiNetworks = () => GBRealWifi.active ? GBRealWifi.networks() : [...wifiNetworks, ...(data.savedWifiNetworks || [])];
   // ZoneList rows and the Date & time summary: timezones.xml's names with their current "GMT+01:00" offsets.
   function gbOffset(zone) { const p = new Intl.DateTimeFormat('en-US', {timeZone: zone, timeZoneName: 'longOffset'}).formatToParts(new Date()).find(x => x.type === 'timeZoneName')?.value || 'GMT'; const m = p.match(/([+-])(\d+):?(\d*)/); const minutes = m ? (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3] || 0)) : 0; return {minutes, text: `GMT${minutes < 0 ? '-' : '+'}${String(Math.floor(Math.abs(minutes) / 60)).padStart(2, '0')}:${String(Math.abs(minutes) % 60).padStart(2, '0')}`}; }
   function gbZones() { const col = {en: 1, hu: 2, de: 3, fr: 4, es: 5}[i18n.language] || 1; const list = (window.GBTimeZones || []).map(z => ({id: z[0], name: z[col], ...gbOffset(z[0])})).map(z => ({...z, offset: z.text})); return ui.gbZoneSort === 'name' ? list.sort((a, b) => a.name.localeCompare(b.name, i18n.locale())) : list.sort((a, b) => a.minutes - b.minutes); }
@@ -1171,13 +1264,23 @@
     ui.play = {...ui.play,...next}; ui.overlay = ''; render();
   }
   function renderPhone() {
-    if(ui.activeCall&&!ui.gbCallBackground)return GBPhone.inCall(ui.activeCall,{lang:i18n.language,t:key=>i18n.t(key),person:contactByPhone(ui.activeCall.number),bluetoothAvailable:!!(data.settings.bluetooth&&data.settings.pairedDevice)});
+    if(ui.activeCall&&!ui.gbCallBackground)return GBPhone.inCall(ui.activeCall,{lang:i18n.language,t:key=>i18n.t(key),person:contactByPhone(ui.activeCall.number),bluetoothAvailable:ui.activeCall.real?!!ui.activeCall.bluetoothAvailable:!!(data.settings.bluetooth&&data.settings.pairedDevice)});
     if(ui.sub==='call-detail'){const call=(data.callHistory||[]).find(call=>call.time===ui.phoneCallId);if(call)return GBPhone.callDetail(call,contactByPhone(call.number),{lang:i18n.language,locale:i18n.locale()});}
     return GBPhone.render(gbPhoneContext());
   }
   function contactByPhone(number) { const normalized = String(number).replace(/[^\d+]/g, ''); return data.contacts.find(item => item.phone.replace(/[^\d+]/g, '') === normalized); }
   function startPhoneCall(number) {
     if(!number)return;
+    // Launcher APK: a real call through the phone's own line (Android shows its in-call screen); the number goes into
+    // the Gingerbread call log as an outgoing call.
+    if (GBRealApps.active) {
+      ui.dial = ''; ui.gbAddCall = false;
+      // 'incall': the launcher is the default phone app and the call comes back on the Gingerbread call screen
+      // (gb-real-calls.js). Otherwise the phone's own call screen shows it, so the call is logged here.
+      if (GBRealApps.call(number) !== 'incall') { data.callHistory = [...(data.callHistory || []), {number, time: Date.now(), duration: 0, connected: true}].slice(-50); save(); }
+      render();
+      return;
+    }
     // Add call: the simulator keeps one line, so the call in progress ends and the new one is dialed.
     if(ui.activeCall&&ui.gbAddCall&&!ui.activeCall.endedAt){data.callHistory=[...(data.callHistory||[]),ICSPhoneCall.finish(ui.activeCall)].slice(-50);ui.activeCall=null;save();}
     if(!ui.activeCall)ui.activeCall=ICSPhoneCall.start(number);
@@ -1509,7 +1612,7 @@
     if (ui.view === 'messaging' && action.startsWith('gbma-') && window.GBMmsAttach?.handle(action, id, gbMmsContext())) return;
     if (GBApps.has(ui.view) && !['back', 'home', 'menu-key', 'search-key', 'open-app'].includes(action) && GBApps.get(ui.view).handle?.(action, id, gappContext(), button)) return;
     switch (action) {
-      case 'open-app': openApp(app || id, !!button.closest('.recent-item'), !!button.closest('.gbl-cluster')); break;
+      case 'open-app': openApp(app || id, !!button.closest('.recent-item')); break;
       case 'home': if (ui.view !== 'lock') home(); break;
       case 'back': back(); break;
       case 'menu-key': menuKey(); break;
@@ -1630,6 +1733,24 @@
       case 'play-rate': { const top = viewport.querySelector('.play-content').scrollTop; data.playRatings ||= {}; data.playRatings[ui.play.selected] = Number(id); save(); render(); viewport.querySelector('.play-content').scrollTop = top; break; }
       case 'page': setHomePage(Number(id)); break;
       case 'power-toggle':
+        // Launcher APK: the buttons switch the phone's own Wi-Fi, Bluetooth, GPS, Auto-sync and brightness.
+        if (window.GBRealSettings?.active) {
+          const real = window.GBRealSettings;
+          real.sync(data.settings);
+          if (id === 'brightness') {
+            const auto = data.settings.autoBrightness ?? GBSettings.DEFAULTS.autoBrightness;
+            if (auto) { data.settings.autoBrightness = false; data.settings.brightness = 20; }
+            else if ((data.settings.brightness ?? 60) < 30) data.settings.brightness = 55;
+            else if (data.settings.brightness < 80) data.settings.brightness = 100;
+            else data.settings.autoBrightness = true;
+            real.apply('autoBrightness', data.settings);
+            if (!data.settings.autoBrightness) real.apply('brightness', data.settings);
+          } else real.toggle(id, data.settings);
+          save(); render();
+          // Wi-Fi and Bluetooth take a moment to switch: show the phone's state once it has.
+          setTimeout(() => { real.sync(data.settings); if (ui.view === 'home') render(); }, 1500);
+          break;
+        }
         if (id === 'brightness') { const auto = data.settings.autoBrightness ?? GBSettings.DEFAULTS.autoBrightness; if (auto) { data.settings.autoBrightness = false; data.settings.brightness = 20; } else if ((data.settings.brightness ?? 60) < 30) data.settings.brightness = 55; else if (data.settings.brightness < 80) data.settings.brightness = 100; else data.settings.autoBrightness = true; }
         else data.settings[id] = !data.settings[id];
         if(id==='wifi'&&data.settings.wifi)data.settings.portableHotspot=false;
@@ -1641,15 +1762,15 @@
       // VoiceSearchPreferences: Personalized recognition asks before it changes.
       case 'gbvs-personal': ui.overlay = 'gb-dialog-set'; ui.gbSetDialog = data.settings.vsPersonal ? 'vs-off' : 'vs-on'; renderOverlay(); break;
       case 'gbvs-personal-on': case 'gbvs-personal-off': data.settings.vsPersonal = action === 'gbvs-personal-on'; ui.overlay = ''; save(); renderOverlay(); render(); break;
+      case 'gbx-call-account': ui.overlay = ''; GBRealCalls.action(ui.gbCallAccountFor, 'account', id); render(); break;
       case 'gbx-home-menu': ui.overlay = 'gb-dialog-gbx-home'; renderOverlay(); break;
-      case 'gbx-hidden-menu': ui.overlay = 'gb-dialog-gbx-hidden'; renderOverlay(); break;
-      case 'gbx-hide-app': {
-        // Tick in place so the long list keeps its scroll position.
-        const on = GBExtras.toggleHidden(data, id); save();
-        button.setAttribute('aria-checked', String(on));
-        const check = button.querySelector('.gbdlg-check'); if (check) check.src = `assets/gb-btn_check_${on ? 'on' : 'off'}.png`;
-        break;
-      }
+      // Launcher settings (launcher APK): hide / unhide real apps, switch the Android version, the default apps.
+      case 'gbx-apps': ui.overlay = 'gb-dialog-gbx-apps'; renderOverlay(); break;
+      case 'gbx-app-toggle': { const list = overlayRoot.querySelector('.gbdlg-list'), top = list?.scrollTop || 0; RealLauncher.toggle(id); renderOverlay(); const again = overlayRoot.querySelector('.gbdlg-list'); if (again) again.scrollTop = top; break; }
+      case 'gbx-apps-done': ui.overlay = ''; render(); break;
+      case 'gbx-version': ui.overlay = 'gb-dialog-gbx-version'; renderOverlay(); break;
+      case 'gbx-version-pick': ui.overlay = ''; if (id !== RealLauncher.version()) RealLauncher.setVersion(id); else renderOverlay(); break;
+      case 'gbx-default': ui.overlay = ''; renderOverlay(); RealLauncher.makeDefault(id); break;
       case 'gbx-edit': ui.overlay = ''; ui.gbxEdit = true; render(); break;
       case 'gbx-edit-done': ui.gbxEdit = false; render(); break;
       case 'gbx-toggle': GBExtras.toggle(data, id); save(); if (floatRoot) floatRoot.innerHTML = ''; render(); ui.overlay = 'gb-dialog-gbx-home'; renderOverlay(); break;
@@ -1668,8 +1789,8 @@
       case 'gb-notifications': ui.overlay = 'shade'; renderOverlay(); break;
       case 'gb-menu-more': ui.overlay = 'gb-menu-more'; renderOverlay(); break;
       case 'settings-open': ui.overlay = ''; ui.view = 'settings'; ui.sub = id; ui.gbSettingsStack = id ? [''] : []; render(); break;
-      case 'gbset-go': if (id === 'brightness') { ui.overlay = 'gb-dialog-brightness'; ui.brightnessDraft = data.settings.brightness; renderOverlay(); break; } (ui.gbSettingsStack ||= []).push(ui.sub); ui.sub = id; render(); break;
-      case 'gbset-check': if (id === 'usbDebug' && !data.settings.usbDebug) { ui.overlay = 'gb-dialog-set'; ui.gbSetDialog = 'adb'; renderOverlay(); break; } { const current = data.settings[id] ?? GBSettings.DEFAULTS[id] ?? (id === 'patternVisible'); data.settings[id] = !current;
+      case 'gbset-go': if (id === 'wifi' && GBRealWifi.active && GBRealWifi.scan() === 'location-off') toast('Turn on Location to see Wi-Fi networks'); if (id === 'brightness') { ui.overlay = 'gb-dialog-brightness'; ui.brightnessDraft = data.settings.brightness; renderOverlay(); break; } (ui.gbSettingsStack ||= []).push(ui.sub); ui.sub = id; render(); break;
+      case 'gbset-check': if (GBRealSettings.toggle(id, data.settings)) { save(); render(); setTimeout(() => { if (ui.view === 'settings') render(); }, 1500); break; } if (id === 'usbDebug' && !data.settings.usbDebug) { ui.overlay = 'gb-dialog-set'; ui.gbSetDialog = 'adb'; renderOverlay(); break; } { const current = data.settings[id] ?? GBSettings.DEFAULTS[id] ?? (id === 'patternVisible'); data.settings[id] = !current;
         // DateTimeSettings 2.3: one Automatic box covers the network time and zone; turning it off keeps the current zone.
         if (id === 'autoTime') { data.settings.timeOffset = 0; data.settings.autoZone = !!data.settings.autoTime; if (!data.settings.autoTime) data.settings.timeZone = ICSSystemSettings.zone({settings: {...data.settings, autoZone: true}}); }
         if (id === 'airplane' && data.settings.airplane) { data.settings.wifi = false; data.settings.bluetooth = false; data.settings.portableHotspot = false; GBNetwork.airplane(gbNetContext()); }
@@ -1677,7 +1798,7 @@
         if (id === 'silent') data.settings.silentMode = data.settings.silent ? (GBSettings.value(data.settings, 'vibrateMode') === 1 || GBSettings.value(data.settings, 'vibrateMode') === 3 ? 'mute' : 'vibrate') : 'off';
         save(); render(); break; }
       case 'gbset-list': ui.overlay = 'gb-dialog-list'; ui.gbListKey = id; renderOverlay(); break;
-      case 'gbset-list-pick': { const [key, index] = id.split(':'); data.settings[key] = Number(index); ui.overlay = ''; save(); render(); break; }
+      case 'gbset-list-pick': { const [key, index] = id.split(':'); data.settings[key] = Number(index); GBRealSettings.apply(key, data.settings); ui.overlay = ''; save(); render(); break; }
       case 'gbset-toast': toast(id); break;
       // Select text arms the page (Browser / Google Mail): the next touch there selects (gb-browser.js).
       case 'gb-select-text': ui.overlay = ''; ui.gbMenuItems = null; renderOverlay(); ui.gbSelecting = ui.view; break;
@@ -1689,18 +1810,18 @@
       case 'gbset-zone': data.settings.timeZone = id; data.settings.autoZone = false; ui.sub = (ui.gbSettingsStack || []).pop() || 'date'; save(); render(); break;
       case 'gbset-zone-sort': ui.gbZoneSort = id; ui.overlay = ''; renderOverlay(); render(); break;
       case 'gbset-ap': ui.overlay = 'gb-dialog-set'; ui.gbSetDialog = `ap:${id}`; renderOverlay(); break;
-      case 'gbset-wifi-connect': { const network = allWifiNetworks().find(item => item.name === id), password = overlayRoot.querySelector('[data-wifi-password]')?.value || ''; if (network && network.security !== 'Open' && password.length < 8) { toast('Password must have at least 8 characters'); break; } data.settings.wifiNetwork = id; ui.overlay = ''; save(); render(); break; }
-      case 'gbset-wifi-forget': data.settings.wifiNetwork = ''; ui.overlay = ''; save(); render(); break;
+      case 'gbset-wifi-connect': { const network = allWifiNetworks().find(item => item.name === id), password = overlayRoot.querySelector('[data-wifi-password]')?.value || ''; if (network && network.security !== 'Open' && network.security !== 'WEP' && password.length < 8) { toast('Password must have at least 8 characters'); break; } if (GBRealWifi.active) { const result = GBRealWifi.connect(id, password); ui.overlay = ''; render(); if (result === 'ok') toast('Connecting…'); else if (result === 'no') toast('Couldn’t connect to the network'); break; } data.settings.wifiNetwork = id; ui.overlay = ''; save(); render(); break; }
+      case 'gbset-wifi-forget': if (GBRealWifi.active) { GBRealWifi.forget(ui.wifiTarget || data.settings.wifiNetwork); ui.overlay = ''; render(); break; } data.settings.wifiNetwork = ''; ui.overlay = ''; save(); render(); break;
       case 'gbset-wifi-save': { const ssid = overlayRoot.querySelector('[data-wifi-ssid]')?.value.trim(); if (ssid && !allWifiNetworks().some(item => item.name === ssid)) data.savedWifiNetworks = [...(data.savedWifiNetworks || []), {name: ssid.slice(0, 32), security: 'Open', strength: 2}]; ui.overlay = ''; save(); render(); break; }
-      case 'gbset-wifi-scan': ui.overlay = ''; render(); toast('Scanning…'); break;
+      case 'gbset-wifi-scan': ui.overlay = ''; if (GBRealWifi.active) GBRealWifi.scan(); render(); toast('Scanning…'); break;
       case 'gbset-bt-scan': ui.btScanning = true; render(); setTimeout(() => { ui.btScanning = false; ui.btFound = [{name: 'Headset', kind: 'headset_hfp'}, {name: 'Car kit', kind: 'headphones_a2dp'}, {name: "Sam's laptop", kind: 'laptop'}]; if (ui.view === 'settings') render(); }, 1500); break;
       case 'gbset-bt-device': if (data.settings.pairedDevice === id) { toast('Connected'); break; } data.settings.pairedDevice = id; save(); render(); break;
       case 'gbset-bt-name-ok': { const name = overlayRoot.querySelector('[data-bt-name]')?.value.trim(); if (name) data.settings.bluetoothName = name.slice(0, 40); ui.overlay = ''; save(); render(); break; }
-      case 'gbset-volume-ok': overlayRoot.querySelectorAll('[data-vol]').forEach(input => { data.settings[input.dataset.vol] = Number(input.value); }); { const same = overlayRoot.querySelector('[data-vol-same]'); if (same) data.settings.notificationSameAsRing = same.checked; } ui.overlay = ''; save(); render(); break;
+      case 'gbset-volume-ok': overlayRoot.querySelectorAll('[data-vol]').forEach(input => { data.settings[input.dataset.vol] = Number(input.value); GBRealSettings.apply(input.dataset.vol, data.settings); }); { const same = overlayRoot.querySelector('[data-vol-same]'); if (same) data.settings.notificationSameAsRing = same.checked; } ui.overlay = ''; save(); render(); break;
       case 'gbset-sound-pick': { const at = id.indexOf(':'), kind = id.slice(0, at), name = id.slice(at + 1); data.settings[kind] = name; save(); renderOverlay(); render(); break; }
       case 'gbset-locale': i18n.setLanguage(id); location.reload(); break;
       case 'gbset-adb-ok': data.settings.usbDebug = true; ui.overlay = ''; save(); render(); break;
-      case 'gbset-brightness-ok': { const input = overlayRoot.querySelector('.gbbright input[type=range]'); if (input) data.settings.brightness = Number(input.value); const auto = overlayRoot.querySelector('.gbbright input[type=checkbox]'); if (auto) data.settings.autoBrightness = auto.checked; ui.overlay = ''; save(); render(); break; }
+      case 'gbset-brightness-ok': { const input = overlayRoot.querySelector('.gbbright input[type=range]'); if (input) data.settings.brightness = Number(input.value); const auto = overlayRoot.querySelector('.gbbright input[type=checkbox]'); if (auto) data.settings.autoBrightness = auto.checked; GBRealSettings.apply('autoBrightness', data.settings); GBRealSettings.apply('brightness', data.settings); ui.overlay = ''; save(); render(); break; }
       case 'gb-add-app': { ui.overlay = ''; const slot = data.homePages[ui.page].findIndex((item, index) => !item && widgetFits(ui.page, index % 4, Math.floor(index / 4), {type: 'x', width: 1, height: 1})); if (slot < 0) { renderOverlay(); toast('No more room on this Home screen.'); break; } data.homePages[ui.page][slot] = id; save(); render(); break; }
       case 'add-widget-gb': { ui.overlay = ''; const added = addWidget(id); if (!added) { renderOverlay(); toast('No more room on this Home screen.'); break; } if (ui.gbgPickPending) { ui.gbgPickPending = false; save(); const setup = ui.photoWidgetSetup; openApp('gallery'); ui.photoWidgetSetup = setup; ui.gbgPick = true; ui.sub = ''; render(); break; } if (ui.overlay) renderOverlay(); render(); break; }
       case 'widget-bookmark-step': { const host = button.closest('.home-widget'); if (!host) break; (ui.bookmarkWidget ||= {})[host.dataset.widgetId] = (ui.bookmarkWidget[host.dataset.widgetId] || 0) + Number(id); render(); break; }
@@ -1870,12 +1991,12 @@
       case 'dial': if (ui.dial.length < 30) ui.dial += id; if (ui.dial.endsWith('*#*#8477#*#*')) { ui.dial = ''; data.protips = {index: 0, set: 1 - (data.protips?.set || 0)}; save(); home(false); setTimeout(() => blinkTips(3), 300); break; } render(); break;
       case 'dial-delete': ui.dial = ui.dial.slice(0, -1); render(); break;
       case 'call': if(!ui.dial){toast('Enter a phone number');break;}startPhoneCall(ui.dial);break;
-      case 'hangup': { const call=ui.activeCall; if(!call||call.endedAt)break; call.endedAt=Date.now(); call.keypad=false; render(); setTimeout(()=>{if(ui.activeCall===call&&ui.view==='phone')render();},GBPhone.HANGING_UP); setTimeout(()=>{if(ui.activeCall!==call)return; data.callHistory=[...(data.callHistory||[]),ICSPhoneCall.finish(call,call.endedAt)].slice(-50); ui.activeCall=null; ui.gbCallBackground=false; ui.gbAddCall=false; save(); if(ui.view==='phone'){ui.sub='';ui.dial='';render();} else renderStatus();},GBPhone.HANGING_UP+GBPhone.ENDED); break; }
+      case 'hangup': { const call=ui.activeCall; if(!call||call.endedAt)break; if(call.real){GBRealCalls.action(call.id,'hangup');break;} call.endedAt=Date.now(); call.keypad=false; render(); setTimeout(()=>{if(ui.activeCall===call&&ui.view==='phone')render();},GBPhone.HANGING_UP); setTimeout(()=>{if(ui.activeCall!==call)return; data.callHistory=[...(data.callHistory||[]),ICSPhoneCall.finish(call,call.endedAt)].slice(-50); ui.activeCall=null; ui.gbCallBackground=false; ui.gbAddCall=false; save(); if(ui.view==='phone'){ui.sub='';ui.dial='';render();} else renderStatus();},GBPhone.HANGING_UP+GBPhone.ENDED); break; }
       case 'gbp-add-call': if(!ui.activeCall)break; ui.gbCallBackground=true; ui.gbAddCall=true; ui.phoneTab='dialpad'; ui.view='phone'; ui.sub=''; ui.dial=''; render(); break;
       case 'gbp-dtmf': if(!ui.activeCall)break; ui.gbCallBackground=false; ui.gbAddCall=false; ui.activeCall.keypad=GBPhone.callState(ui.activeCall)==='active'; ui.view='phone'; render(); break;
       case 'gbp-return-call': if(!ui.activeCall)break; ui.overlay=''; ui.gbCallBackground=false; ui.gbAddCall=false; captureRecentView(); ui.view='phone'; ui.sub='calling'; ui.recent=['phone',...ui.recent.filter(id=>id!=='phone')].slice(0,8); render(); break;
-      case 'incall-toggle': if(ui.activeCall&&!ui.activeCall.endedAt){ui.activeCall[id]=!ui.activeCall[id];if(id==='hold')ui.activeCall.keypad=false;}render();renderStatus();break;
-      case 'incall-digit': if(ui.activeCall)ui.activeCall.digits=(ui.activeCall.digits+id).slice(-24);render();break;
+      case 'incall-toggle': if(ui.activeCall?.real&&!ui.activeCall.endedAt&&id!=='keypad'){const call=ui.activeCall;GBRealCalls.action(call.id,id==='hold'?(call.hold?'unhold':'hold'):id,id==='hold'?'':String(!call[id]));break;} if(ui.activeCall&&!ui.activeCall.endedAt){ui.activeCall[id]=!ui.activeCall[id];if(id==='hold')ui.activeCall.keypad=false;}render();renderStatus();break;
+      case 'incall-digit': if(ui.activeCall?.real)GBRealCalls.action(ui.activeCall.id,'dtmf',id); if(ui.activeCall)ui.activeCall.digits=(ui.activeCall.digits+id).slice(-24);render();break;
       case 'phone-log-detail': ui.phoneCallId=Number(id);ui.sub='call-detail';render();break;
       case 'phone-log-message': { const recipient=ICSMessaging.recipient(id,data.contacts); if(recipient)openMessageThread(recipient.key);else toast('Enter a valid phone number');break; }
       case 'people-search': ui.peopleTab='all'; ui.peopleSearching=true; render(); viewport.querySelector('.people-search input')?.focus(); break;
@@ -1986,7 +2107,7 @@
           ui.gbcamRec = Date.now(); render(); ui.gbcamRecTimer = setInterval(() => { const label = viewport.querySelector('.gbcam-rec span'); if (label) label.textContent = gbcamClock(); else clearInterval(ui.gbcamRecTimer); }, 500); break;
         }
         // ShutterButton: autofocus, then the capture; the new picture slides into the review thumbnail.
-        gbcamFocus(() => { const photo = {...ICSMedia.scene(data), ...(GBCamera.settings(data.cameraSettings || {}).gps === 'on' ? {location: {fx: GBMaps.ME.fx, fy: GBMaps.ME.fy}} : {}), id: Date.now(), name: `IMG_${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 8)}_${new Date().toISOString().replace(/[-:T]/g, '').slice(8, 14)}`, album: 'camera', created: Date.now()}; const cap = gbCapture(); if (cap) { cap.taken = photo; render(); return; } data.photos.unshift(photo); save(); render(); viewport.querySelector('.gbcam-preview')?.animate([{opacity: 1}, {opacity: .15}, {opacity: 1}], {duration: 260}); viewport.querySelector('.gbcam-thumb img')?.animate([{transform: 'scale(1.6)', opacity: .3}, {transform: 'none', opacity: 1}], {duration: 380}); });
+        gbcamFocus(() => { const photo = {...ICSMedia.scene(data), ...(GBCamera.settings(data.cameraSettings || {}).gps === 'on' ? {location: {fx: GBMaps.ME.fx, fy: GBMaps.ME.fy}} : {}), id: Date.now(), name: `IMG_${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 8)}_${new Date().toISOString().replace(/[-:T]/g, '').slice(8, 14)}`, album: 'camera', created: Date.now(), ...(GBRealCamera.live() ? {real: GBRealCamera.take()} : {})}; const cap = gbCapture(); if (cap) { cap.taken = photo; render(); return; } data.photos.unshift(photo); save(); render(); viewport.querySelector('.gbcam-preview')?.animate([{opacity: 1}, {opacity: .15}, {opacity: 1}], {duration: 260}); viewport.querySelector('.gbcam-thumb img')?.animate([{transform: 'scale(1.6)', opacity: .3}, {transform: 'none', opacity: 1}], {duration: 380}); });
         break;
       case 'camera-review': {gbcamStopRecording();const photo=ICSMedia.photos(data,'camera')[0];openApp('gallery');if(photo){ui.galleryAlbum='camera';ui.selectedPhoto=photo.id;ui.sub='photo';render();}break;}
       case 'calendar-prev': calendarMove(-1); break;
@@ -2270,7 +2391,7 @@
     if (event.target.dataset.field === 'brightness') {
       data.settings.brightness = Number(event.target.value); save();
       const display = event.target.closest('.detail-pad')?.querySelector('p'); if (display) display.textContent = `${data.settings.brightness}%`;
-      screen.style.filter = `brightness(${.5 + data.settings.brightness / 135})`;
+      screen.style.filter = GBRealSettings.active ? '' : `brightness(${.5 + data.settings.brightness / 135})`; // the APK dims the real screen
     }
     if(event.target.dataset.field==='music-position'){ui.music.position=Number(event.target.value);saveMusic();const elapsed=viewport.querySelector('.music-elapsed');if(elapsed)elapsed.textContent=ICSMusic.time(ui.music.position);}
   });
@@ -2678,7 +2799,7 @@
     if (net && !ui.overlay) GBNetwork.hold(net.dataset.gbnetHold, gbNetContext());
     const alarm = event.target.closest('.gbdc-alarm-body');
     if (alarm && !ui.overlay) { ui.dcContext = Number(alarm.dataset.id); ui.overlay = 'clock-context'; renderOverlay(); }
-    if (!dragState && ui.view === 'home' && !ui.overlay && event.button === 2 && event.target.closest('.home-slot') && !event.target.closest('.launcher-icon')) { ui.overlay = 'wallpaper-source'; renderOverlay(); }
+    if (!dragState && ui.view === 'home' && !ui.overlay && event.button === 2 && event.target.closest('.home-slot') && !event.target.closest('.launcher-icon')) { ui.overlay = 'gb-dialog-wallpaper'; renderOverlay(); }
   });
   // Older WebKit versions may still start page rubber-banding during a custom
   // gesture. Cancel only gestures owned by the simulator; lists scroll natively.
@@ -2701,14 +2822,37 @@
     if (!frame || !photo || event.target.closest('button')) return;
     if (GBGallery.cropDrag(event, frame, ui.gbgCrop, photo, () => {})) { event.stopPropagation(); event.preventDefault(); }
   }, true);
+  // A flicked app drawer keeps gliding and slows down, like a real list.
+  let flingSamples = [], flingFrame = 0;
+  function trackFling(y) { const now = performance.now(); flingSamples.push([now, y]); flingSamples = flingSamples.filter(([t]) => now - t < 100); }
+  function stopFling() { cancelAnimationFrame(flingFrame); flingFrame = 0; flingSamples = []; }
+  function startFling(list) {
+    const samples = flingSamples; flingSamples = [];
+    if (samples.length < 2) return;
+    const [t0, y0] = samples[0], [t1, y1] = samples.at(-1);
+    let velocity = t1 > t0 ? -(y1 - y0) / (t1 - t0) : 0; // px per ms, positive scrolls down
+    if (Math.abs(velocity) < .15) return;
+    let last = performance.now();
+    const step = now => {
+      const dt = Math.min(32, now - last); last = now;
+      const before = list.scrollTop; list.scrollTop += velocity * dt;
+      velocity *= Math.pow(.995, dt);
+      if (!list.isConnected || Math.abs(velocity) < .02 || list.scrollTop === before) { flingFrame = 0; return; }
+      flingFrame = requestAnimationFrame(step);
+    };
+    flingFrame = requestAnimationFrame(step);
+  }
   screen.addEventListener('pointerdown', event => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     if (data.settings.showTouches) { const dot = document.createElement('span'); const rect = screen.getBoundingClientRect(); dot.className = 'touch-indicator'; dot.style.left = `${event.clientX - rect.left}px`; dot.style.top = `${event.clientY - rect.top}px`; screen.append(dot); setTimeout(() => dot.remove(), 400); }
     const widgetList = ui.view === 'home' && !ui.overlay ? event.target.closest('.calw-list') : null;
-    const scrollTarget = widgetList || (event.pointerType === 'mouse' && !ui.overlay && !event.target.closest('input, select, textarea, .wallpaper-choice')
+    // The app drawer scrolls under a finger as well as the mouse (its view takes touch-action:none for the swipes).
+    const drawerGrid = ui.view === 'drawer' && !ui.overlay ? event.target.closest('.gbl-allapps-grid') : null;
+    if (drawerGrid) stopFling();
+    const scrollTarget = widgetList || drawerGrid || (event.pointerType === 'mouse' && !ui.overlay && !event.target.closest('input, select, textarea, .wallpaper-choice')
       ? (ui.view === 'settings' && event.target.closest('.settings-app .app-content') ? event.target.closest('.settings-app') : event.target.closest('.play-content,.mms-scroll,.people-scroll,.browser-page,.web-tabs,.web-library,.gbdc-alarms,.gallery-scroll,.cal-scroll,.music-library-scroll,.email-scroll')) : null);
     pointerStart = { x: event.clientX, y: event.clientY, target: event.target, source: dragSource(event.target), pointerType: event.pointerType, pointerId: event.pointerId, downTime: performance.now(), scrollTarget, scrollTop: scrollTarget?.scrollTop || 0, lockDrag: ui.view === 'lock' && !!event.target.closest('.lock-handle'), shadeDragEligible: !ui.overlay && !ui.locked && !!event.target.closest('#status-bar'), shadeCloseEligible: ui.overlay === 'shade' && !!event.target.closest('.gbsh-close'), pageSwipeEligible: ui.view === 'home' && !ui.overlay && !!event.target.closest('.home-view') && !event.target.closest('.dock, .page-indicators, .home-search'), drawerSwipeEligible: ui.view === 'drawer' && !!event.target.closest('.drawer-page') };
-    if (ui.view === 'home' && !ui.overlay && event.target.closest('.home-slot') && !pointerStart.source) homeLongPressTimer = setTimeout(() => { ui.overlay = 'wallpaper-source'; renderOverlay(); pointerStart = null; suppressReleaseClick(); }, 550);
+    if (ui.view === 'home' && !ui.overlay && event.target.closest('.home-slot') && !pointerStart.source) homeLongPressTimer = setTimeout(() => { ui.overlay = 'gb-dialog-wallpaper'; renderOverlay(); pointerStart = null; suppressReleaseClick(); }, 550);
     const message = event.target.closest('.mms-message');
     if (message && !ui.overlay) messageHoldTimer = setTimeout(() => { ui.mmsMessage = message.dataset.id; suppressReleaseClick(); gbMmsDialog('message'); }, 550);
     const heldGallery = event.target.closest('[data-gbg-hold]');
@@ -2807,7 +2951,7 @@
       if (front) { front.style.transition = 'none'; front.style.transform = `translateY(${Math.max(-60, Math.min(90, dy))}px) rotate(${Math.max(-6, Math.min(6, dy / 15))}deg)`; front.style.opacity = String(Math.max(.35, 1 - Math.abs(dy) / 160)); }
       return;
     }
-    if (pointerStart.scrolling) { event.preventDefault(); pointerStart.scrollTarget.scrollTop = pointerStart.scrollTop - dy; return; }
+    if (pointerStart.scrolling) { event.preventDefault(); pointerStart.scrollTarget.scrollTop = pointerStart.scrollTop - dy; trackFling(event.clientY); return; }
     if (pointerStart.scrollTarget && Math.abs(dy) > dp(7) && Math.abs(dy) > Math.abs(dx)) {
       clearTimeout(dragTimer);
       pointerStart.scrolling = true; screen.classList.add('settings-scrolling');
@@ -2883,7 +3027,7 @@
       lockRelease(active);
       pointerStart = null; return;
     }
-    if (pointerStart.scrolling) { screen.classList.remove('settings-scrolling'); suppressClickUntil = Date.now() + 350; pointerStart = null; return; }
+    if (pointerStart.scrolling) { screen.classList.remove('settings-scrolling'); suppressClickUntil = Date.now() + 350; if (pointerStart.scrollTarget.classList.contains('gbl-allapps-grid')) startFling(pointerStart.scrollTarget); pointerStart = null; return; }
     if (pointerStart.swiping || pointerStart.pageSwipeEligible && !dragState && Math.abs(dx) > dp(52) && Math.abs(dx) > Math.abs(dy) && (!pointerStart.source || pointerStart.source.type === 'home' && performance.now() - pointerStart.downTime < 260)) {
       finishHomePage(dx); pointerStart = null; return;
     }
@@ -2976,17 +3120,16 @@
   function bootUp(booted) {
     booted ||= AndroidBoot.prepare({markup: apps.map(app => appIcon(app[0])).join('')});
     ui.power = 'boot'; renderPower();
-    // The boot animation is removed: finish as soon as the startup resources are ready.
+    // Finish after the native movie, or after a requested skip once startup resources are ready.
     let finished = false, stop = () => {};
     const finish = () => { if (finished) return; finished = true; stop(); AndroidBoot.complete('2.3.6'); ui.power = ''; lockScreen(); ui.sleeping = false; if (!ui.locked && ui.view !== 'lock') home(); else render(); renderPower(); lastActivity = Date.now(); };
-    Promise.resolve(booted).then(finish);
+    stop = GlobalActions.playBoot(powerLayer.firstElementChild, finish, booted);
     return finish;
   }
   /* A fresh tab always shows the image's boot movie, including reduced-motion/private browsing.
      Its exit waits for decoded launcher/keyguard resources; a requested skip cannot reveal unloaded icons. */
   function coldBoot() {
-    // No boot animation: the launcher starts straight on the home screen.
-    AndroidBoot.complete('2.3.6'); return;
+    if (!AndroidBoot.shouldBoot('2.3.6')) return;
     const booted = AndroidBoot.prepare({markup: apps.map(app => appIcon(app[0])).join('')});
     const finish = bootUp(booted);
     const skip = event => { off(); if (ui.power !== 'boot') return; event.preventDefault(); event.stopPropagation(); suppressClickUntil = Date.now() + 350; booted.then(finish); };
@@ -3029,7 +3172,7 @@
   bindVolumeKey(document.querySelector('#volume-up'), 1);
   bindVolumeKey(document.querySelector('.volume-rocker'), event => event.offsetY < event.currentTarget.clientHeight / 2 ? 1 : -1);
   const powerLayer = document.createElement('div'); powerLayer.id = 'power-layer'; screen.append(powerLayer);
-  function renderPower() { if (ui.power === 'boot' && powerLayer.querySelector('.ga-boot')) return; powerLayer.innerHTML = ui.power === 'off' ? '<div class="ga-off"></div>' : ui.power === 'boot' ? '<div class="ga-off"></div>' : ''; }
+  function renderPower() { if (ui.power === 'boot' && powerLayer.querySelector('.ga-boot')) return; powerLayer.innerHTML = ui.power === 'off' ? '<div class="ga-off"></div>' : ui.power === 'boot' ? GlobalActions.boot() : ''; }
   screen.addEventListener('pointerdown',()=>{if(ui.sleeping){ui.sleeping=false;suppressClickUntil=Date.now()+350;if(ui.locked)render();else home(false);}},true);
   // Full screen (Fullscreen API): hides the browser chrome on phones and keeps portrait where the browser allows it.
   const fullscreenButton = document.querySelector('#fullscreen-button');
@@ -3076,6 +3219,12 @@
       node.setAttribute('aria-label', clock());
       node.querySelector('.clock-hour').style.transform = `rotate(${now.getHours() % 12 * 30 + now.getMinutes() / 2}deg)`;
       node.querySelector('.clock-minute').style.transform = `rotate(${now.getMinutes() * 6}deg)`;
+    });
+    // The Gingerbread analog clock widget (DeskClock's AnalogAppWidget) keeps time too: its hour and minute hands.
+    document.querySelectorAll('.gbw-analog').forEach(node => {
+      const [hour, minute] = node.querySelectorAll('img.hand');
+      if (hour) hour.style.transform = `rotate(${now.getHours() % 12 * 30 + now.getMinutes() / 2}deg)`;
+      if (minute) minute.style.transform = `rotate(${now.getMinutes() * 6}deg)`;
     });
     const lockTime = document.querySelector('.lock-time'); if (lockTime) lockTime.textContent = clock();
     tickMusic();

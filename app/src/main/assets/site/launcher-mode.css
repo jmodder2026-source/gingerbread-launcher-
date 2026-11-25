@@ -1,0 +1,47 @@
+/* Launcher APK, versions 4.0.4 to 7.1.2 (launcher-mode.js): only the phone's screen, filling the real screen. No site
+   header or frame and no on-screen navigation bar: the phone's own keys drive it. */
+.apk-launcher .site-header,.apk-launcher #header-handle,.apk-launcher .intro-panel,.apk-launcher .site-footer,
+.apk-launcher #nav-bar,.apk-launcher .volume-rocker,.apk-launcher .power-key,.apk-launcher .proximity-sensor,
+.apk-launcher .earpiece,.apk-launcher .front-camera,.apk-launcher .fp-sensor{display:none!important}
+.apk-launcher,.apk-launcher body,.apk-launcher .page-shell{margin:0!important;padding:0!important;min-height:0!important;background:#000!important;overflow:hidden!important}
+.apk-launcher .workspace,.apk-launcher .device-area{display:block!important;padding:0!important;margin:0!important;min-height:0!important;width:100vw!important;max-width:none!important}
+.apk-launcher .device{width:100vw!important;height:100vh!important;height:100dvh!important;max-width:none!important;max-height:none!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;background:#000!important;box-shadow:none!important;transform:none!important;aspect-ratio:auto!important}
+.apk-launcher .device::before,.apk-launcher .device::after{display:none!important}
+.apk-launcher .screen{position:absolute!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;margin:0!important;border-radius:0!important;transform:none!important;aspect-ratio:auto!important}
+.apk-launcher button,.apk-launcher [data-action],.apk-launcher a{-webkit-tap-highlight-color:transparent;outline:none}
+
+/* Launcher settings */
+#apk-panel{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;background:#101214;color:#e8eaed;font:15px/1.35 Roboto,"Droid Sans",system-ui,sans-serif}
+#apk-panel .apk-bar{display:flex;align-items:center;gap:6px;height:56px;padding:0 8px;background:#263238;font-size:19px;font-weight:500;flex:none}
+#apk-panel .apk-bar button{width:44px;height:44px;border:0;background:none;color:#fff;font-size:34px;line-height:1}
+#apk-panel .apk-body{flex:1;overflow-y:auto;padding-bottom:24px}
+#apk-panel h3{margin:18px 16px 4px;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#80cbc4}
+#apk-panel .apk-row{display:flex;align-items:center;gap:14px;width:100%;min-height:52px;padding:8px 16px;border:0;border-bottom:1px solid #1f2326;background:none;color:inherit;text-align:left;font:inherit}
+#apk-panel .apk-row:active{background:#1d2a30}
+#apk-panel .apk-text{flex:1;display:flex;flex-direction:column;gap:2px}
+#apk-panel .apk-text b{font-weight:400;font-size:16px}
+#apk-panel .apk-text small{color:#9aa0a6;font-size:13px}
+#apk-panel .apk-app img{width:36px;height:36px;flex:none}
+#apk-panel .apk-radio,#apk-panel .apk-check{flex:none;width:20px;height:20px;border:2px solid #9aa0a6;box-sizing:border-box}
+#apk-panel .apk-radio{border-radius:50%}
+#apk-panel .apk-radio.on{border-color:#80cbc4;background:radial-gradient(#80cbc4 0 4px,transparent 5px)}
+#apk-panel .apk-check{border-radius:2px}
+#apk-panel .apk-check.on{border-color:#80cbc4;background:#80cbc4 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z' fill='%23101214'/%3E%3C/svg%3E") center/16px no-repeat}
+
+/* No navigation bar: apps reach the bottom of the screen, and the bottom bars and docks sit on it. */
+.apk-launcher #viewport{bottom:0!important}
+.apk-launcher .screen,.apk-launcher .screen *{--nb:0px!important}
+
+/* A ringing real call on the version's own in-call screen: Answer and Decline in place of the call buttons. */
+.apk-ringing .incall-state,.apk-ringing .incall-end,.apk-ringing .incall-controls,
+.apk-ringing .lpc-state,.apk-ringing .lpc-end,.apk-ringing .lpc-buttons,
+.apk-ringing .mmph-state,.apk-ringing .mmph-end,.apk-ringing .mmph-cbtns,.apk-ringing .ngph-top,.apk-ringing .ngph-bottom,.apk-ringing .ngph-end,.apk-ringing .ngph-cbtn{visibility:hidden!important}
+.apk-ring{position:absolute;left:0;right:0;bottom:calc(24 * var(--dp));z-index:5;display:flex;flex-direction:column;align-items:center;gap:calc(10 * var(--dp));color:#fff;font-family:Roboto,"RobotoICS",Arial,sans-serif;pointer-events:none}
+.apk-ring-label{font-size:calc(18 * var(--dp));text-shadow:0 1px 3px #000;margin-bottom:calc(8 * var(--dp))}
+.apk-ring-btns,.apk-ring-texts{display:flex;justify-content:space-around;width:100%}
+.apk-ring-texts span{width:calc(80 * var(--dp));text-align:center;font-size:calc(14 * var(--dp))}
+.apk-ring button{pointer-events:auto;width:calc(72 * var(--dp));height:calc(72 * var(--dp));border:0;border-radius:50%;display:grid;place-items:center;padding:0;cursor:pointer;box-shadow:0 calc(3 * var(--dp)) calc(8 * var(--dp)) #0008}
+.apk-ring-decline{background:#d32f2f}
+.apk-ring-answer{background:#43a047}
+.apk-ring img{width:calc(40 * var(--dp));height:calc(40 * var(--dp));object-fit:contain}
+.incall-app .apk-ring-answer img{transform:rotate(-135deg)}
