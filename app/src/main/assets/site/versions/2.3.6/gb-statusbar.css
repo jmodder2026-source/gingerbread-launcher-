@@ -12,6 +12,8 @@
 .gbsb-icon{width:calc(24.9972 * var(--dp));height:calc(24.9972 * var(--dp));flex:none;display:grid;place-items:center}
 /* StatusBarIconView: ImageView FIT_CENTER in the mIconSize square (the hdpi icons are 38 px tall, so all scale alike). */
 .gbsb-icon img{display:block;width:auto;height:auto;max-width:calc(24.9972 * var(--dp));max-height:calc(24.9972 * var(--dp))}
+.gbsb-icon:has(img[src*="gb-u_"]){width:auto;min-width:calc(24.9972 * var(--dp))}
+.gbsb-icon img[src*="gb-u_"]{height:calc(24.9972 * var(--dp));max-width:none}
 .gbsb-clock{padding-right:calc(6.0058 * var(--dp));white-space:nowrap}
 /* Ticker: 25 dp icon with an 8 dp gap, then TextAppearance.StatusBar.Ticker (14 sp) 2 dp from the top. */
 .gbsb-ticker{padding-left:calc(6.0058 * var(--dp));visibility:hidden}

@@ -6,34 +6,39 @@
   const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 
   // stat_sys_battery.xml level-list: each 5% step covers the levels up to 2 above it (0-2, 3-7, ... 98-100).
+  // Battery, data, signal and the other tray icons are the user's edited icons (gb-u_*.png, copied as drawn).
   const batteryIcon = (level, charging) => {
-    if (charging) return 'gb-stat_sys_battery_charge_anim5.png';
-    const step = Math.min(100, Math.max(0, Math.round(Number(level) / 5) * 5));
-    return `gb-stat_sys_battery_${step}.png`;
+    if (charging) return 'gb-u_bat_chg.png';
+    const v = Number(level);
+    return v <= 15 ? 'gb-u_bat_vlow.png' : v <= 30 ? 'gb-u_bat_low.png' : v < 90 ? 'gb-u_bat_part.png' : 'gb-u_bat_full.png';
   };
+  const DATA = {g: 'g', e: 'e', '3g': 'g3'};
   // config_statusBarIcons order, left to right: bluetooth, mute/volume, wifi, data_connection, phone_signal, battery,
   // alarm_clock. StatusBarService puts every icon in a 25 dp square (status_bar_icon_size).
   function statusIcons(state) {
     const slots = [];
-    if (state.bluetooth) slots.push(state.bluetoothConnected ? 'gb-stat_sys_data_bluetooth_connected.png' : 'gb-stat_sys_data_bluetooth.png');
-    // GPS tray icon removed
+    if (state.bluetooth) slots.push(state.bluetoothConnected ? 'gb-u_bt_conn.png' : 'gb-u_bt_on.png');
     // GPS (launcher): receiving location data while Google Maps is open, otherwise GPS is on while location is on.
-    if (state.gpsFix) slots.push('gb-stat_sys_gps_fix_pic.png'); else if (state.gps) slots.push('gb-stat_sys_gps_on_pic.png');
+    if (state.gpsFix) slots.push('gb-u_gps_fix.png'); else if (state.gps) slots.push('gb-u_gps_on.png');
     if (state.headset) slots.push('gb-stat_sys_headset.png');
     if (state.callForward) slots.push('gb-stat_sys_call_forward_pic.png');
     if (state.vpn) slots.push('gb-stat_sys_vpn_pic.png');
     if (state.tetherWifi && state.tetherUsb) slots.push('gb-stat_sys_tether_general_pic.png');
     else if (state.tetherWifi) slots.push('gb-stat_sys_tether_wifi.png');
     else if (state.tetherUsb) slots.push('gb-stat_sys_tether_usb.png');
-    if (state.speaker) slots.push('gb-stat_sys_speakerphone_pic.png');
-    if (state.micMute) slots.push('gb-stat_sys_mic_mute_pic.png');
-    if (state.ringer) slots.push(`gb-stat_sys_ringer_${state.ringer}.png`);
-    if (!state.airplane && state.wifi) slots.push(state.wifiLevel === 0 ? 'gb-stat_sys_wifi_signal_0.png' : `gb-stat_sys_wifi_signal_${state.wifiLevel ?? 4}_fully.png`);
+    if (state.speaker) slots.push('gb-u_speaker.png');
+    if (state.micMute) slots.push('gb-u_micmute.png');
+    if (state.ringer) slots.push(state.ringer === 'vibrate' ? 'gb-u_vibrate.png' : state.ringer === 'silent' ? 'gb-u_silent.png' : `gb-stat_sys_ringer_${state.ringer}.png`);
+    if (!state.airplane && state.wifi) slots.push(state.wifiLevel === 0 ? 'gb-stat_sys_wifi_signal_0.png' : (state.wifiLevel ?? 4) >= 4 ? 'gb-u_wifi.png' : `gb-stat_sys_wifi_signal_${state.wifiLevel}_fully.png`);
     // GPRS (G), EDGE (E), 3G and H: grey arrows while connected, green arrows while data is in use.
-    if (!state.airplane && state.data) slots.push(`gb-stat_sys_data_fully_${state.dataActive && ['3g', 'h', 'g', 'e'].includes(state.data) ? 'inandout' : 'connected'}_${state.data}.png`);
-    slots.push(state.airplane ? 'gb-stat_sys_signal_flightmode_pic.png' : state.noSim ? 'gb-stat_sys_no_sim.png' : state.signal === null || state.signal === -1 ? 'gb-stat_sys_signal_null_pic.png' : state.roaming ? 'gb-stat_sys_signal_roaming.png' : `gb-stat_sys_signal_${state.signal ?? 4}_fully.png`);
+    if (!state.airplane && state.data) {
+      const use = state.dataActive && ['3g', 'h', 'g', 'e'].includes(state.data);
+      slots.push(DATA[state.data] ? `gb-u_${DATA[state.data]}_${use ? 'use' : 'conn'}.png` : `gb-stat_sys_data_fully_${use ? 'inandout' : 'connected'}_${state.data}.png`);
+    }
+    const sig = state.signal ?? 4;
+    slots.push(state.airplane ? 'gb-u_airplane.png' : state.noSim ? 'gb-u_nosim.png' : state.signal === null || state.signal === -1 ? 'gb-u_nosignal.png' : state.roaming ? 'gb-u_roaming.png' : sig >= 4 ? 'gb-u_signal.png' : `gb-stat_sys_signal_${sig}_fully.png`);
     slots.push(batteryIcon(state.battery ?? 100, state.charging));
-    if (state.alarm) slots.push('gb-stat_notify_alarm.png');
+    if (state.alarm) slots.push('gb-u_alarm.png');
     return slots.map(src => `<span class="gbsb-icon"><img src="assets/${src}" alt=""></span>`).join('');
   }
   const notificationIcons = icons => icons.map(src => `<span class="gbsb-icon"><img src="assets/${src}" alt=""></span>`).join('');
