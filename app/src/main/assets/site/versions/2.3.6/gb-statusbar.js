@@ -72,12 +72,21 @@
 
   // status_bar_latest_event.xml (64 sp row + divider) around status_bar_latest_event_content.xml.
   const item = n => `<button class="gbsh-item" data-action="${n.action || 'notification-open'}" data-id="${e(n.id)}"${n.app ? ` data-app="${e(n.app)}"` : ''}><span class="gbsh-row"><img class="gbsh-icon" src="assets/${n.icon}" alt=""><span class="gbsh-title">${e(n.title)}</span></span><span class="gbsh-row"><span class="gbsh-text">${e(n.text)}</span>${n.time ? `<span class="gbsh-time">${e(n.time)}</span>` : ''}</span></button>`;
+  // Quick settings row (Wi-Fi, Bluetooth, GPS, Vibrate, Sound) under the shade header: grey when off, pink-red when on.
+  const QS_GLYPH = {
+    wifi: '<path d="M3 9.5a13 13 0 0 1 18 0M6 12.8a8.5 8.5 0 0 1 12 0M9 16a4 4 0 0 1 6 0"/><circle cx="12" cy="19" r="1.6" fill="currentColor" stroke="none"/>',
+    bluetooth: '<path d="M7 7.5l10 9-5 4.5V3l5 4.5-10 9"/>',
+    gps: '<circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/><path d="M12 2.5v3.5M12 18v3.5M2.5 12H6M18 12h3.5"/>',
+    vibrate: '<rect x="8" y="4" width="8" height="16" rx="1.5"/><path d="M5 8v8M2.5 10v4M19 8v8M21.5 10v4"/>',
+    sound: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15 9a4 4 0 0 1 0 6M17.5 6.5a7.5 7.5 0 0 1 0 11"/>'
+  };
+  const quick = toggles => toggles && toggles.length ? `<div class="gbqt">${toggles.map(q => `<button type="button" class="gbqt-btn${q.on ? ' on' : ''}" data-action="gbqt-toggle" data-id="${e(q.id)}" aria-pressed="${!!q.on}" aria-label="${e(q.label)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${QS_GLYPH[q.id] || ''}</svg></button>`).join('')}</div>` : '';
   function shade(parts) {
     const t = parts.t, ongoing = parts.ongoing || [], latest = parts.latest || [];
     const sections = !ongoing.length && !latest.length
       ? `<div class="gbsh-section">${e(t('No notifications'))}</div>`
       : `${ongoing.length ? `<div class="gbsh-section">${e(t('Ongoing'))}</div>${ongoing.map(item).join('')}` : ''}${latest.length ? `<div class="gbsh-section">${e(t('Notifications'))}</div>${latest.map(item).join('')}` : ''}`;
-    return `<div class="gbsh" role="dialog" aria-label="${e(t('Notifications'))}"><div class="gbsh-panel"><div class="gbsh-header"><span class="gbsh-carrier">${e(parts.carrier)}</span><button class="gbsh-clear" data-action="clear-notifications"${parts.clearable ? '' : ' hidden'}>${e(t('Clear'))}</button></div><div class="gbsh-scroll"><div class="gbsh-list">${sections}</div><div class="gbsh-shadow" aria-hidden="true"></div></div><button class="gbsh-close" data-action="close-overlay" aria-label="${e(t('Close notifications'))}"></button></div></div>`;
+    return `<div class="gbsh" role="dialog" aria-label="${e(t('Notifications'))}"><div class="gbsh-panel"><div class="gbsh-header"><span class="gbsh-carrier">${e(parts.carrier)}</span><button class="gbsh-clear" data-action="clear-notifications"${parts.clearable ? '' : ' hidden'}>${e(t('Clear'))}</button></div>${quick(parts.toggles)}<div class="gbsh-scroll"><div class="gbsh-list">${sections}</div><div class="gbsh-shadow" aria-hidden="true"></div></div><button class="gbsh-close" data-action="close-overlay" aria-label="${e(t('Close notifications'))}"></button></div></div>`;
   }
 
   /* StatusBarService.incrementAnim: y += v t + a t^2 / 2 with a = +-2000 px/s^2. animateExpand flings from the top at

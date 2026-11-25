@@ -60,3 +60,10 @@
 .gbsh-time{flex:none;margin-left:calc(4 * var(--dp));padding-right:calc(4.9972 * var(--dp));font-size:calc(13.9943 * var(--dp));color:#6b6b6b}
 /* status_bar_close_on: the 9-patch handle stretched across the bottom. */
 .gbsh-close{flex:none;height:calc(29.3334 * var(--dp));width:100%;border:0 solid transparent;padding:0;border-image:url('assets/gb-status_bar_close_on.png') 11 15 10 15 fill / calc(7.3392 * var(--dp)) calc(10.0058 * var(--dp)) calc(6.6667 * var(--dp)) stretch;background:none;cursor:grab;touch-action:none}
+
+/* Quick settings row in the shade (launcher): five raised grey buttons; a switched-on one turns pink-red. */
+.gbqt{flex:none;display:flex;gap:calc(5 * var(--dp));padding:calc(6 * var(--dp)) calc(6 * var(--dp));background:linear-gradient(#dcdcdc,#b9b9b9);border-bottom:1px solid #7d7d7d}
+.screen .gbqt-btn{flex:1;height:calc(46 * var(--dp));margin:0;padding:0;display:grid;place-items:center;border:1px solid #8c8c8c;border-radius:calc(4 * var(--dp));background:linear-gradient(#fbfbfb,#d9d9d9);box-shadow:inset 0 1px 0 #fff,0 1px 2px #0005;color:#6b6b6b;cursor:pointer}
+.gbqt-btn svg{width:calc(28 * var(--dp));height:calc(28 * var(--dp))}
+.screen .gbqt-btn.on{color:#e3176e;background:linear-gradient(#fff6fa,#ebd3dd)}
+.screen .gbqt-btn:active{background:linear-gradient(#ffcf7a,#ff9a00);color:#fff}

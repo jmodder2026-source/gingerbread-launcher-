@@ -59,27 +59,3 @@
 .gbcam-review-icon{display:flex;align-items:center;justify-content:center;width:calc(66 * var(--dp));height:calc(46.6667 * var(--dp));background:url('assets/gb-cam-btn_camera_review_normal.png') 0 0/100% 100%}
 .screen .gbcam-review:active .gbcam-review-icon{background-image:url('assets/gb-cam-btn_camera_review_pressed.png')}
 .gbcam-review-icon img{width:calc(36 * var(--dp));height:calc(36 * var(--dp))}
-
-/* Camera keeps the status bar: a transparent overlay across the top of the viewfinder, icons and clock on top of the scene. */
-.screen.gb-cam-overlay #status-bar{position:absolute;top:0;left:0;right:0;z-index:6;background:linear-gradient(#0009,#0000);pointer-events:auto}
-.screen.gb-cam-overlay #status-bar .gbsb{background:transparent;text-shadow:0 0 calc(2 * var(--dp)) #000}
-.screen.gb-cam-overlay #status-bar .gbsb-icon img{filter:drop-shadow(0 0 calc(1.5 * var(--dp)) #000)}
-.screen.gb-cam-overlay #viewport{top:0}
-/* Textured frame: the camera pattern shows as rectangles above and beside the viewfinder, which sits in a recessed black/grey bezel. */
-.gbcam-frame{left:calc(9 * var(--dp));right:calc(9 * var(--dp));top:calc(9 * var(--dp));bottom:calc(76 * var(--dp) + 6 * var(--dp))}
-.screen .gbcam-preview{box-shadow:0 0 0 calc(1.5 * var(--dp)) #000,0 0 0 calc(3 * var(--dp)) #4a4a4a,0 0 calc(6 * var(--dp)) calc(3 * var(--dp)) #000c}
-.gbcam-control{border-top:calc(1.5 * var(--dp)) solid #00000080}
-/* Top rectangle: the textured strip stays visible above the picture; the transparent status bar sits inside the viewfinder, not over the strip. */
-.screen.gb-cam-overlay #status-bar{top:calc(9 * var(--dp) + 3.3392 * var(--dp));left:calc(9 * var(--dp) + 3.3392 * var(--dp));right:calc(9 * var(--dp) + 3.3392 * var(--dp))}
-.gbcam::before{content:"";position:absolute;left:0;right:0;top:0;height:calc(9 * var(--dp));z-index:2;background:linear-gradient(#000 0,#0000 100%) 0 0/100% calc(2 * var(--dp)) no-repeat,url('assets/gb-cam-bg_camera_pattern.png') 0 0/calc(128 * var(--dp)) calc(128 * var(--dp)) repeat;pointer-events:none}
-/* The viewfinder fills the frame from the top strip down to the control bar (the icon bar lies over its bottom edge), as in the reference. */
-.screen .gbcam-preview{height:100%;max-height:none;aspect-ratio:auto}
-/* Shorter bottom control bar (64 dp instead of 76 dp); the status bar over the top of the picture is fully transparent. */
-.gbcam-frame{bottom:calc(64 * var(--dp) + 2 * var(--dp))}
-.gbcam-control{height:calc(64 * var(--dp))}
-.screen .gbcam-shutter{width:calc(58 * var(--dp));height:calc(58 * var(--dp))}
-.screen .gbcam-thumb{width:calc(46 * var(--dp));height:calc(46 * var(--dp))}
-.gbcam-switch-set{transform:scale(.88)}
-.gbcam-popup{bottom:calc(64 * var(--dp) + 10.0058 * var(--dp) + 40 * var(--dp) + 16.2319 * var(--dp))}
-.gbcam-triangle{bottom:calc(64 * var(--dp) + 10.0058 * var(--dp) + 40 * var(--dp) - 4.6377 * var(--dp))}
-.screen.gb-cam-overlay #status-bar{background:transparent}

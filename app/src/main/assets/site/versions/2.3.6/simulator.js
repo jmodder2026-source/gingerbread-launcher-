@@ -1004,7 +1004,10 @@
       }
       const latest = allNotes().map(n => ({id: n.id, icon: noteIcon(n), title: n.title, text: n.detail, time: time(n)}));
       const open = overlayRoot.querySelector('.gbsh');
-      overlayRoot.innerHTML = GBStatusBar.shade({t: key => i18n.t(key), carrier: carrierName(), ongoing, latest, clearable: latest.length > 0});
+      if (GBRealApps.active) window.GBRealSettings?.sync(data.settings);
+      const st = data.settings, vibrating = !!st.silent && st.silentMode === 'vibrate';
+      const toggles = GBRealApps.active ? [['wifi', 'Wi-Fi', !!st.wifi], ['bluetooth', 'Bluetooth', !!st.bluetooth], ['gps', 'GPS', !!st.gps], ['vibrate', 'Vibrate', vibrating], ['sound', 'Sound', !st.silent]].map(([id, label, on]) => ({id, label: i18n.t(label), on})) : [];
+      overlayRoot.innerHTML = GBStatusBar.shade({t: key => i18n.t(key), carrier: carrierName(), ongoing, latest, clearable: latest.length > 0, toggles});
       const panel = overlayRoot.querySelector('.gbsh-panel');
       if (open || shadeTracking) GBStatusBar.place(panel, shadeTracking ? shadeTracking.y : screen.clientHeight, shadeBottom());
       else shadeFling(statusRoot.offsetHeight, 2000 * GBStatusBar.PX(), true);
@@ -1847,6 +1850,19 @@
       case 'shade': if (ui.overlay === 'shade') { closeShade(); break; } if (ui.locked) break; ui.overlay = 'shade'; renderOverlay(); break;
       case 'recent': if (ui.view === 'lock') break; if (ui.overlay !== 'recent') captureRecentView(); ui.overlay = ui.overlay === 'recent' ? '' : 'recent'; renderOverlay(); break;
       case 'close-overlay': if (ui.overlay === 'shade') { closeShade(); break; } ui.overlay = ''; renderOverlay(); break;
+      case 'gbqt-toggle': {
+        // The shade's quick settings: the phone's real switches (gb-real-settings.js), then the row redraws.
+        const st = data.settings, real = window.GBRealSettings;
+        if (id === 'vibrate' || id === 'sound') {
+          const vibrating = !!st.silent && st.silentMode === 'vibrate';
+          if (id === 'vibrate') { st.silent = !vibrating; st.silentMode = 'vibrate'; st.vibrateMode = vibrating ? 2 : 0; }
+          else { st.silent = !st.silent; if (st.silent) { st.silentMode = 'silent'; st.vibrateMode = 1; } }
+          real?.apply('silent', st);
+        } else if (!real?.toggle(id, st)) st[id] = !st[id];
+        save(); renderStatus(); renderOverlay();
+        setTimeout(() => { if (ui.overlay === 'shade') renderOverlay(); renderStatus(); }, 1200);
+        break;
+      }
       case 'clear-notifications': window.GBRealNotes?.clear(); data.notifications = []; save(); renderStatus(); renderOverlay(); closeShade(); break;
       case 'notification-open': if (String(id).startsWith('real:')) { ui.overlay = ''; renderOverlay(); renderStatus(); window.GBRealNotes?.open(String(id).slice(5)); break; } { const note = data.notifications.find(item => String(item.id) === id); if (note?.kind === 'calendar') { data.notifications = data.notifications.filter(item => item !== note); save(); ui.overlay = ''; openApp('calendar'); ui.selectedEvent = note.eventId; ui.selectedInstance = note.date; ui.selectedDate = note.date; ui.sub = 'event'; render(); break; } }
         ui.overlay = ''; if (Number(id) === 2) openMessageThread(1); else { ui.view = 'settings'; ui.sub = 'about'; render(); } break;

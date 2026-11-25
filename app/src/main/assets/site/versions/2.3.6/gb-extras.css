@@ -18,8 +18,8 @@
 .screen.dragging .gbx-dots{visibility:hidden}
 
 /* Remove items mode: a red × on every shortcut, folder and widget, and a bar with Done at the top. */
-.home-view .gbx-x{position:absolute!important;top:calc(-2 * var(--dp))!important;right:calc(2 * var(--dp))!important;left:auto!important;bottom:auto!important;width:calc(22 * var(--dp))!important;height:calc(22 * var(--dp))!important;min-width:0!important;min-height:0!important;flex:none!important;margin:0!important;border:calc(1.5 * var(--dp)) solid #fff;border-radius:50%;padding:0;background:#d32f2f;display:grid;place-items:center;z-index:6;box-shadow:0 calc(1 * var(--dp)) calc(3 * var(--dp)) #000a;animation:gbx-pop .15s ease-out}
-.home-view .gbx-x svg{width:calc(13 * var(--dp));height:calc(13 * var(--dp));fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round}
+.home-view .gbx-x{position:absolute!important;top:calc(-2 * var(--dp))!important;right:calc(2 * var(--dp))!important;left:auto!important;bottom:auto!important;width:calc(30 * var(--dp))!important;height:calc(30 * var(--dp))!important;min-width:0!important;min-height:0!important;flex:none!important;margin:0!important;border:calc(1.5 * var(--dp)) solid #fff;border-radius:50%;padding:0;background:#d32f2f;display:grid;place-items:center;z-index:6;box-shadow:0 calc(1 * var(--dp)) calc(3 * var(--dp)) #000a;animation:gbx-pop .15s ease-out}
+.home-view .gbx-x svg{width:calc(18 * var(--dp));height:calc(18 * var(--dp));fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round}
 .home-slot,.home-widget{position:relative}
 .gbx-editing .home-slot .launcher-icon,.gbx-editing .home-widget>:not(.gbx-x){animation:gbx-wiggle .3s ease-in-out infinite alternate}
 .gbx-editing .home-widget>:not(.gbx-x){pointer-events:none}
@@ -85,3 +85,5 @@ a,input,select,textarea,label,[data-action],[role="button"],[role="option"],[rol
 .apk-launcher #viewport>.drawer-view{touch-action:pan-y}
 .apk-launcher .gbl-allapps-grid{overflow-y:auto!important;touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .apk-launcher .gbl-allapps-grid::-webkit-scrollbar{display:none}
+/* Launcher APK: Voice Search's "Speak now" box sits in the middle of the screen, its hint under it. */
+.apk-launcher .vs{justify-content:center;padding-top:0;padding-bottom:calc(36 * var(--dp))}
