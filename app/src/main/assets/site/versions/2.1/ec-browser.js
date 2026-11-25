@@ -77,7 +77,7 @@
     return AndroidStrings.format(EC.webErrorPage[c.lang] || EC.webErrorPage.en, esc(url(c)), esc(url(c)));
   }
   const page = c => `<div class="ecbr-page">${pageInner(c)}</div>`;
-  window.gbRealBrowse = target => { const c = c0(); c.open('browser'); load(c, target); };
+  window.gbRealBrowse = target => { const c = c0(); c.closeOverlay?.(); c.open('browser'); load(c, target); };
   // CombinedBookmarkHistoryActivity
   function combined(c) {
     const which = c.ui.browserTab || 'bookmarks', s = st(c);

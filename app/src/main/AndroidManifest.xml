@@ -7,6 +7,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Voice Search: the Gingerbread / Eclair "Speak now" screen listens with the phone's real microphone. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Messaging: the 2.3.6 / 2.1 Messaging apps list the phone's real text conversations, with contact names. -->
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
     <!-- Launcher settings > Uninstall launcher opens Android's own uninstall prompt. -->
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <!-- The status bar's Wi-Fi icon shows only while the phone is connected to Wi-Fi. -->

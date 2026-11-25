@@ -52,7 +52,25 @@
     ['Flight itinerary: Budapest', ['Travel'], false, true, [['Sam Rivera', 'sam@example.com', 'Here is the itinerary for March. We land at 14:20, the hotel is near the river.', 120]]],
     ['Your Android Market order', ['^i'], false, true, [['Android Market', 'android-market@google.com', 'Thanks for trying apps from Android Market. Your purchase is ready to install on your Nexus One.', 170]]]
   ];
+  // The emails the phone notified about (launcher-apk.js GBRealInbox; 2.1's Email app has no inbox, so all of them come
+  // here) replace the sample mailbox while there are any; what was read here stays read.
+  let realVersion = -1;
+  function syncReal(c) {
+    const I = window.GBRealInbox; if (!I) return;
+    if (realVersion === -1) I.refresh();
+    if (I.version === realVersion) return;
+    realVersion = I.version;
+    const mails = I.emails();
+    if (!mails.length) return;
+    const old = Array.isArray(c.data.gmail) ? c.data.gmail : [];
+    const wasRead = new Set(old.filter(v => v.real && v.read).map(v => v.id));
+    c.data.gmail = [...mails.map(m => ({id: `real-${m.key}`, subject: m.subject || m.from, labels: ['^i'], read: wasRead.has(`real-${m.key}`), real: true,
+      messages: [{id: `real-${m.key}-0`, from: m.from, address: '', to: [ACCOUNT], body: m.body || m.subject, created: m.when, read: wasRead.has(`real-${m.key}`)}]})),
+      ...old.filter(v => !v.real && !/^g\d+$/.test(String(v.id)))];
+  }
+  window.addEventListener('gb-real-inbox', () => { const c = EC.context; if (c?.ui.view === 'gmail') c.render(); });
   function mailbox(c) {
+    syncReal(c);
     if (Array.isArray(c.data.gmail)) return c.data.gmail;
     const now = Date.now();
     c.data.gmail = SAMPLES.map(([subject, labels, starred, read, messages], i) => ({id: `g${i + 1}`, subject, labels: [...labels, ...(starred ? ['^t'] : [])], read,

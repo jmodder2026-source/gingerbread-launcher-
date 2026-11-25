@@ -99,6 +99,7 @@ public class MainActivity extends Activity {
     private static final int CALL_REQUEST = 9;
     private static final int VOICE_PERMISSION_REQUEST = 19;
     private static final int GEO_PERMISSION_REQUEST = 21;
+    private static final int SMS_PERMISSION_REQUEST = 23;
     // The simulator page and, laid over it where the page asks, the real web view of the Browser and Maps (real-frame.js).
     private android.widget.FrameLayout stage;
     private WebView realWeb;
@@ -222,6 +223,7 @@ public class MainActivity extends Activity {
         stage.addView(web, new android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(stage);
         NotifyService.sink = json -> runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.gbRealNotes && window.gbRealNotes(" + JSONObject.quote(json) + ")", null); });
+        NotifyService.inboxChanged = this::tellPageInbox;
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
         else web.loadUrl(startUrl());
 
@@ -1043,6 +1045,10 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
+        if (requestCode == SMS_PERMISSION_REQUEST) {
+            tellPageInbox();
+            return;
+        }
         if (requestCode == VOICE_PERMISSION_REQUEST) {
             String language = pendingVoiceLanguage;
             pendingVoiceLanguage = null;
@@ -1272,6 +1278,7 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         if (CallService.sink != null) CallService.sink = null;
         NotifyService.sink = null;
+        NotifyService.inboxChanged = null;
         if (recognizer != null) { recognizer.destroy(); recognizer = null; }
         if (realWeb != null) { realWeb.destroy(); realWeb = null; }
         if (proximityLock != null && proximityLock.isHeld()) proximityLock.release();
@@ -1391,6 +1398,39 @@ public class MainActivity extends Activity {
         if (!visible && realWeb.hasFocus()) web.requestFocus();
     }
 
+    // ---- Messaging and email inboxes ------------------------------------------------------------------------------------
+    private void tellPageInbox() {
+        runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.gbRealInboxChanged && window.gbRealInboxChanged()", null); });
+    }
+
+    // The phone's recent texts (newest first): id, address, contact name, body, date, type (1 received, 2 sent), read.
+    private String smsJson() {
+        if (checkSelfPermission(Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) return "[]";
+        org.json.JSONArray list = new org.json.JSONArray();
+        java.util.Map<String, String> names = new java.util.HashMap<>();
+        boolean contacts = checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED;
+        try (android.database.Cursor c = getContentResolver().query(android.provider.Telephony.Sms.CONTENT_URI,
+                new String[]{"_id", "address", "body", "date", "type", "read"}, "type IN (1,2)", null, "date DESC")) {
+            while (c != null && c.moveToNext() && list.length() < 400) {
+                String address = c.getString(1) == null ? "" : c.getString(1);
+                String name = names.get(address);
+                if (name == null) { name = contacts ? contactName(address) : ""; names.put(address, name); }
+                list.put(new JSONObject().put("id", c.getLong(0)).put("address", address).put("name", name)
+                        .put("body", c.getString(2) == null ? "" : c.getString(2)).put("date", c.getLong(3)).put("type", c.getInt(4)).put("read", c.getInt(5) == 1));
+            }
+        } catch (Exception ignored) { }
+        return list.toString();
+    }
+
+    private String contactName(String address) {
+        if (address.isEmpty()) return "";
+        try (android.database.Cursor c = getContentResolver().query(Uri.withAppendedPath(android.provider.ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(address)),
+                new String[]{android.provider.ContactsContract.PhoneLookup.DISPLAY_NAME}, null, null, null)) {
+            if (c != null && c.moveToFirst()) return c.getString(0) == null ? "" : c.getString(0);
+        } catch (Exception ignored) { }
+        return "";
+    }
+
     // ---- Voice Search -------------------------------------------------------------------------------------------------
     private void startRecognizer(String language) {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -1402,11 +1442,19 @@ public class MainActivity extends Activity {
             if (recognizer == null) {
                 recognizer = android.speech.SpeechRecognizer.createSpeechRecognizer(this);
                 recognizer.setRecognitionListener(new android.speech.RecognitionListener() {
-                    @Override public void onReadyForSpeech(Bundle params) { }
-                    @Override public void onBeginningOfSpeech() { }
-                    @Override public void onRmsChanged(float rmsdB) { }
+                    private long lastLevel;
+                    @Override public void onReadyForSpeech(Bundle params) { voiceState("listening"); }
+                    @Override public void onBeginningOfSpeech() { voiceState("speech"); }
+                    // The microphone's loudness (about -2 to 10 dB) for the Voice Search mic icon, ten times a second.
+                    @Override public void onRmsChanged(float rmsdB) {
+                        long now = android.os.SystemClock.uptimeMillis();
+                        if (now - lastLevel < 90 || web == null) return;
+                        lastLevel = now;
+                        float level = Math.max(0f, Math.min(1f, (rmsdB + 2f) / 12f));
+                        web.evaluateJavascript("window.apkVoiceLevel && window.apkVoiceLevel(" + level + ")", null);
+                    }
                     @Override public void onBufferReceived(byte[] buffer) { }
-                    @Override public void onEndOfSpeech() { }
+                    @Override public void onEndOfSpeech() { voiceState("working"); }
                     @Override public void onPartialResults(Bundle partialResults) { }
                     @Override public void onEvent(int eventType, Bundle params) { }
                     @Override public void onError(int error) { voiceEnded(); }
@@ -1429,6 +1477,10 @@ public class MainActivity extends Activity {
         } catch (Exception e) {
             voiceEnded();
         }
+    }
+
+    private void voiceState(String state) {
+        if (web != null) web.evaluateJavascript("window.apkVoiceState && window.apkVoiceState(" + JSONObject.quote(state) + ")", null);
     }
 
     private void voiceEnded() {
@@ -1808,6 +1860,37 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void askNotificationAccess() {
             runOnUiThread(() -> startSafely(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
+        }
+
+        @JavascriptInterface
+        public void cancelVoice() {
+            runOnUiThread(() -> { if (recognizer != null) recognizer.cancel(); });
+        }
+
+        @JavascriptInterface
+        public boolean smsAccess() {
+            return checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface
+        public void askSms() {
+            runOnUiThread(() -> requestPermissions(new String[]{Manifest.permission.READ_SMS, Manifest.permission.READ_CONTACTS}, SMS_PERMISSION_REQUEST));
+        }
+
+        @JavascriptInterface
+        public String smsList() {
+            return smsJson();
+        }
+
+        // A reply goes out through the phone's own Messages app, with the text already typed in.
+        @JavascriptInterface
+        public void smsReply(String address, String body) {
+            runOnUiThread(() -> startSafely(new Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:" + Uri.encode(address))).putExtra("sms_body", body == null ? "" : body)));
+        }
+
+        @JavascriptInterface
+        public String emails() {
+            return NotifyService.emailHistory(MainActivity.this);
         }
 
         @JavascriptInterface

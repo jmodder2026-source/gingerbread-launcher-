@@ -29,6 +29,34 @@ public class NotifyService extends NotificationListenerService {
     static volatile Sink sink;
 
     interface Sink { void notes(String json); }
+    /** Called when a new text or email arrives (the Messaging / Email / Gmail apps refresh their lists). */
+    static volatile Runnable inboxChanged;
+    private static final String HISTORY = "emailHistory";
+
+    /** The emails the phone has notified about, newest first (kept after the notification is gone, at most 60). */
+    static String emailHistory(Context context) {
+        return context.getSharedPreferences("launcher", MODE_PRIVATE).getString(HISTORY, "[]");
+    }
+
+    private void remember(StatusBarNotification sbn) {
+        try {
+            Bundle extras = sbn.getNotification().extras;
+            CharSequence title = extras.getCharSequence(Notification.EXTRA_TITLE);
+            CharSequence text = extras.getCharSequence(Notification.EXTRA_TEXT);
+            CharSequence big = extras.getCharSequence(Notification.EXTRA_BIG_TEXT);
+            if (title == null && text == null) return;
+            String subject = text == null ? "" : text.toString();
+            String body = big == null ? subject : big.toString();
+            JSONObject mail = new JSONObject().put("key", sbn.getKey()).put("app", sbn.getPackageName())
+                    .put("from", title == null ? "" : title.toString()).put("subject", subject).put("body", body).put("when", sbn.getPostTime());
+            JSONArray old = new JSONArray(emailHistory(this)), next = new JSONArray().put(mail);
+            for (int i = 0; i < old.length() && next.length() < 60; i++) {
+                JSONObject o = old.getJSONObject(i);
+                if (!o.optString("key").equals(sbn.getKey())) next.put(o);
+            }
+            getSharedPreferences("launcher", MODE_PRIVATE).edit().putString(HISTORY, next.toString()).apply();
+        } catch (Exception ignored) { }
+    }
 
     // Email apps of common phones (anything posting with CATEGORY_EMAIL counts too).
     private static final Set<String> EMAIL = new HashSet<>(Arrays.asList(
@@ -57,7 +85,14 @@ public class NotifyService extends NotificationListenerService {
     }
 
     @Override
-    public void onNotificationPosted(StatusBarNotification sbn) { if (kind(sbn) != null) report(); }
+    public void onNotificationPosted(StatusBarNotification sbn) {
+        String kind = kind(sbn);
+        if (kind == null) return;
+        if (kind.equals("email")) remember(sbn);
+        report();
+        Runnable changed = inboxChanged;
+        if (changed != null) changed.run();
+    }
 
     @Override
     public void onNotificationRemoved(StatusBarNotification sbn) { if (kind(sbn) != null) report(); }

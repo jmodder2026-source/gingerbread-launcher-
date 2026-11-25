@@ -322,20 +322,14 @@
     const MIC = ['voice-search', 'eclh-voice', 'mmh-voice', 'ngh-voice', 'mmgg-voice', 'ga-voice-listen', 'voice-listen', 'gbw-voice-open'];
     let pending = null, realListening = false;
     // Nothing heard (or an error): the version's own screen shows "No speech heard" on its own after a few seconds.
-    window.apkVoiceEnded = () => { realListening = false; };
+    window.apkVoiceEnded = () => { realListening = false; window.GBRealVoice?.ended(); };
     document.addEventListener('click', event => {
       const mic = event.target.closest?.('[data-action]');
       if (!mic || !MIC.includes(mic.dataset.action) || !bridge.listen) return;
       if (mic.dataset.apkVoice === 'pass') { delete mic.dataset.apkVoice; return; }
       // 2.3.6 and 2.1: the version's own "Speak now" screen opens as usual, and the phone listens behind it.
       const ownScreen = /versions\/(2\.3\.6|2\.1)\//.test(location.pathname) && typeof bridge.recognize === 'function';
-      if (ownScreen) {
-        pending = mic;
-        let ok = false;
-        try { ok = !!bridge.recognize((navigator.language || 'en').slice(0, 5)); } catch (error) { ok = false; }
-        realListening = ok;
-        return;
-      }
+      if (ownScreen) { pending = mic; return; }
       event.preventDefault(); event.stopImmediatePropagation();
       pending = mic;
       let ok = false;
@@ -361,13 +355,12 @@
       text = String(text || '').trim();
       if (!text) return;
       // Heard behind the version's own Voice Search screen: Google's results for the words, as Voice Search did.
-      if (realListening) {
-        realListening = false;
+      if (window.GBRealVoice?.take()) {
         if (window.RealFrame && window.RealWeb) {
           // Leave the Voice Search screen (the simulator's Home key), then show the results.
           const home = document.createElement('button'); home.hidden = true; home.dataset.action = 'home';
           document.querySelector('#screen')?.append(home); home.click(); home.remove();
-          window.RealFrame.open(window.RealWeb.search(text), 'browser'); return;
+          window.RealWeb.open(window.RealWeb.search(text)); return;
         }
       }
       // A search box already on screen (the Google app): fill it in. Otherwise open the bar's search screen first.
@@ -521,4 +514,68 @@
     return `<div class="${cls}">${Object.keys(GLYPH).map(id => `<button type="button" class="${cls}-btn${s[id] ? ' on' : ''}" data-action="${action}" data-id="${id}" aria-pressed="${s[id]}" aria-label="${LABEL[id]}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${GLYPH[id]}</svg></button>`).join('')}</div>`;
   };
   window.GBQuick = {state, toggle, markup};
+})();
+
+/* The phone's real inboxes for the 2.3.6 / 2.1 Messaging, Email and Gmail apps: GBRealInbox.sms() are the recent texts
+   (newest first: {id, address, name, body, date, type 1 received / 2 sent, read}); GBRealInbox.emails() the emails the
+   phone has notified about ({key, app, from, subject, body, when}). `version` grows whenever either list changes, so
+   an app merges them again only then. Reading texts needs Android's SMS permission (asked once, on opening Messaging). */
+(() => {
+  'use strict';
+  const bridge = window.AndroidLauncher || null;
+  if (!bridge?.smsList) return;
+  const parse = value => { try { const v = JSON.parse(value || '[]'); return Array.isArray(v) ? v : []; } catch (error) { return []; } };
+  let sms = [], emails = [], version = 0, stamp = '';
+  function refresh() {
+    let nextSms = [], nextMail = [];
+    try { nextSms = parse(bridge.smsList()); } catch (error) { nextSms = []; }
+    try { nextMail = parse(bridge.emails?.()); } catch (error) { nextMail = []; }
+    const key = `${nextSms.length}:${nextSms[0]?.id || ''}:${nextSms[0]?.read || ''}|${nextMail.length}:${nextMail[0]?.key || ''}:${nextMail[0]?.when || ''}`;
+    sms = nextSms; emails = nextMail;
+    if (key !== stamp) { stamp = key; version++; }
+    return version;
+  }
+  const allowed = () => { try { return !!bridge.smsAccess?.(); } catch (error) { return false; } };
+  function askOnce() {
+    if (allowed()) return;
+    try { if (localStorage.getItem('gb-asked-sms')) return; localStorage.setItem('gb-asked-sms', '1'); } catch (error) { /* no storage */ }
+    try { bridge.askSms?.(); } catch (error) { /* no bridge */ }
+  }
+  window.gbRealInboxChanged = () => { const before = version; refresh(); if (version !== before) window.dispatchEvent(new Event('gb-real-inbox')); };
+  window.GBRealInbox = {
+    refresh, allowed, askOnce,
+    sms: () => sms, emails: () => emails, get version() { return version; },
+    reply: (address, body) => { try { bridge.smsReply?.(String(address), String(body || '')); } catch (error) { /* no bridge */ } },
+    digits: value => String(value || '').replace(/[^\d+]/g, '').replace(/^\+/, '').slice(-10),
+    isGmail: mail => /^com\.google\.android\.gm/.test(mail.app || '')
+  };
+  refresh();
+})();
+
+/* Voice Search with the phone's real microphone (2.3.6 and 2.1): the version's own Speak now / Listening screen calls
+   GBRealVoice.start({level, state, fail}) when it appears. The phone then listens (SpeechRecognizer): level(0-1) follows
+   the loudness for the mic icon, state('speech' | 'working') the recognizer, fail() when nothing was understood; the
+   words heard become a Google search in the Browser (launcher-apk.js apkHeard). */
+(() => {
+  'use strict';
+  const bridge = window.AndroidLauncher || null;
+  const available = !!bridge?.recognize && /versions\/(2\.3\.6|2\.1)\//.test(location.pathname);
+  let active = null;
+  window.apkVoiceLevel = level => { try { active?.level?.(Number(level) || 0); } catch (error) { /* screen gone */ } };
+  window.apkVoiceState = state => { try { active?.state?.(String(state)); } catch (error) { /* screen gone */ } };
+  window.GBRealVoice = {
+    available,
+    get listening() { return !!active; },
+    start(callbacks) {
+      if (!available || active) return false;
+      let ok = false;
+      try { ok = !!bridge.recognize((navigator.language || 'en').slice(0, 5)); } catch (error) { ok = false; }
+      if (ok) active = callbacks || {};
+      return ok;
+    },
+    stop() { if (!active) return; active = null; try { bridge.cancelVoice?.(); } catch (error) { /* no bridge */ } },
+    // The words arrived: this listening is over (true when the screen had started it).
+    take() { const was = !!active; active = null; return was; },
+    ended() { const cb = active; active = null; try { cb?.fail?.(); } catch (error) { /* screen gone */ } }
+  };
 })();

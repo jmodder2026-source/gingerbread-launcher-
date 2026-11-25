@@ -781,7 +781,41 @@
       default: return renderHome();
     }
   }
+  // The phone's real texts (Messaging) and the emails it notified about (Gmail, Email), from the launcher APK
+  // (launcher-apk.js GBRealInbox). They replace the sample conversations and mails while there are any; what was read
+  // here stays read. A reply to a real conversation goes out through the phone's own Messages app.
+  let realInboxVersion = -1;
+  function syncRealInbox(force) {
+    const I = window.GBRealInbox; if (!I) return;
+    if (force) I.refresh();
+    if (I.version === realInboxVersion) return;
+    realInboxVersion = I.version;
+    const fmt = t => new Date(t).toLocaleTimeString(i18n.locale(), {hour: 'numeric', minute: '2-digit', hour12: !data.settings.hour24});
+    const sms = I.sms();
+    if (sms.length) {
+      const people = new Map(), key = m => I.digits(m.address) || String(m.address);
+      for (const m of sms) {
+        const k = key(m);
+        if (!people.has(k)) people.set(k, {id: Number('9' + (k.replace(/\D/g, '') || String(people.size)).slice(-8).padStart(8, '0')), name: m.name || m.address, phone: m.address, real: true});
+      }
+      data.contacts = [...data.contacts.filter(c => !c.real), ...people.values()];
+      data.messages = [...data.messages.filter(m => !m.real && m.id > 3), ...sms.slice().reverse().map(m => ({id: 7e9 + Number(m.id), contact: people.get(key(m)).id, body: m.body, mine: m.type === 2,
+        time: fmt(m.date), timestamp: m.date, read: !!m.read || m.type === 2, real: true}))];
+    }
+    const mails = I.emails();
+    if (mails.length) {
+      const gm = mails.filter(I.isGmail), other = mails.filter(m => !I.isGmail(m));
+      const wasRead = new Set([...(Array.isArray(data.gmail23) ? data.gmail23 : []), ...data.mailbox].filter(x => x.real && x.read).map(x => x.id));
+      if (gm.length) data.gmail23 = [...gm.map(m => ({id: `real-${m.key}`, subject: m.subject || m.from, labels: ['Inbox'], important: false, starred: false, read: wasRead.has(`real-${m.key}`), real: true,
+        messages: [{id: `real-${m.key}-0`, from: m.from, address: '', to: '', body: m.body || m.subject, created: m.when}]})),
+        ...(Array.isArray(data.gmail23) ? data.gmail23.filter(c => !c.real && !String(c.id).startsWith('gm-')) : [])];
+      if (other.length) data.mailbox = [...other.map(m => ({id: `real-${m.key}`, from: m.from, address: '', to: '', cc: '', bcc: '', subject: m.subject || m.from, body: m.body || m.subject,
+        time: fmt(m.when), created: m.when, folder: 'Inbox', read: wasRead.has(`real-${m.key}`), starred: false, real: true})), ...data.mailbox.filter(m => !m.real && !String(m.id).startsWith('inbox-'))];
+    }
+  }
+  window.addEventListener('gb-real-inbox', () => { syncRealInbox(); if (['messaging', 'gmail', 'email'].includes(ui.view)) render(); });
   function openApp(app, resume = false) {
+    if (['messaging', 'gmail', 'email'].includes(app) && window.GBRealInbox) { if (app === 'messaging') window.GBRealInbox.askOnce(); syncRealInbox(true); }
     if(ui.locked)return;
     if (GBRealApps.isReal(app)) { ui.overlay = ''; renderOverlay(); GBRealApps.launch(app); return; }
     if (!appNames[app]) return;
@@ -1613,6 +1647,8 @@
   function addNotification(title, detail) { data.notifications.unshift({ id: Date.now(), title, detail }); save(); renderStatus(); }
   function sendMessage(id, body, attachment) {
     if (!body && !attachment) return;
+    const to = contact(id);
+    if (to?.real && window.GBRealInbox) { window.GBRealInbox.reply(to.phone, body); delete data.messageDrafts?.[ICSMessaging.draftKey(ui)]; save(); return; }
     const subject = String(data.messageDrafts?.[ICSMessaging.draftKey(ui)]?.subject || '').trim();
     data.messages.push({ id: Date.now(), contact: id, body, mine: true, time: clock(), timestamp:Date.now(), read:true, ...(attachment ? {attachment:clone(attachment)} : {}), ...(subject ? {subject} : {}) });
     ui.gbMmsSubject = false;

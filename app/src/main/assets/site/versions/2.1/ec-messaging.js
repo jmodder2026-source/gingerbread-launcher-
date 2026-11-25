@@ -43,7 +43,20 @@
   ];
   const digits = n => String(n).replace(/[^\d+]/g, '');
   const person = (c, address) => (c.data.contacts || []).find(p => EC.contactModel.raws(p).some(r => (r.phone || []).some(x => digits(x.value) === digits(address))));
-  const nameOf = (c, address) => person(c, address)?.name || address;
+  // The phone's real texts (launcher-apk.js GBRealInbox) replace the sample ones while there are any.
+  const realName = address => (window.GBRealInbox?.sms() || []).find(m => m.name && digits(m.address).slice(-9) === digits(address).slice(-9))?.name || '';
+  const nameOf = (c, address) => person(c, address)?.name || realName(address) || address;
+  let realVersion = -1;
+  function syncReal(c) {
+    const I = window.GBRealInbox; if (!I) return;
+    if (realVersion === -1) { I.askOnce(); I.refresh(); }
+    if (I.version === realVersion) return;
+    realVersion = I.version;
+    const sms = I.sms();
+    if (!sms.length) return;
+    c.data.sms = [...(c.data.sms || []).filter(m => !m.real && m.id > 3), ...sms.slice().reverse().map(m => ({id: 7e9 + Number(m.id), address: m.address, body: m.body, box: m.type === 2 ? 2 : 1, when: m.date, read: !!m.read || m.type === 2, real: true}))];
+  }
+  window.addEventListener('gb-real-inbox', () => { const c = EC.context; if (c?.ui.view === 'messaging') c.render(); });
   const when = (c, m) => m.when ?? (c.data.smsBase || Date.now()) - m.ago;
   const hm = (c, d) => `${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}${c.javaAmPm(d.getHours())}`;
   function stamp(c, t) {
@@ -189,6 +202,12 @@
   function send(c) {
     if (!prepared(c)) return;
     const address = recipient(c), mms = needsMms(c);
+    // A real conversation: the reply goes out through the phone's own Messages app, already typed in.
+    if (window.GBRealInbox && (c.data.sms || []).some(x => x.real && digits(x.address) === digits(address))) {
+      window.GBRealInbox.reply(address, (c.ui.smsDraft || '').trim());
+      c.ui.smsDraft = ''; c.ui.smsSubject = undefined; c.ui.smsAttach = null; c.ui.smsThread = address; c.save(); c.render();
+      return;
+    }
     const m = {id: Date.now(), address, body: (c.ui.smsDraft || '').trim(), box: 4, when: Date.now(), read: true, ...(mms ? {mms: true, subject: c.ui.smsSubject ?? ''} : {}), ...(c.ui.smsAttach ? {attach: c.ui.smsAttach} : {})};
     c.data.sms = [...(c.data.sms || []), m];
     c.ui.smsThread = address; c.ui.smsDraft = ''; c.ui.smsTo = ''; c.ui.smsSubject = undefined; c.ui.smsAttach = null;
@@ -252,7 +271,7 @@
 
   EC.register('messaging', {
     title: 'Messaging',
-    render(c) { return c.ui.sub === 'compose' ? compose(c) : c.ui.sub === 'search' ? searchRender(c) : list(c); },
+    render(c) { syncReal(c); return c.ui.sub === 'compose' ? compose(c) : c.ui.sub === 'search' ? searchRender(c) : list(c); },
     mount(c, root) {
       if (!c.data.smsBase) { c.data.smsBase = Date.now(); c.save(); }
       held(c, root, '.ecms-row[data-address]', el => threadMenu(c, el.dataset.address));

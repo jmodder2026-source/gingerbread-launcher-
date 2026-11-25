@@ -275,6 +275,13 @@
     }
     if (ctx.view === 'voice-search' && (ui.vsState || 'listening') === 'listening') {
       clearTimeout(vsTimer);
+      // Launcher APK: the phone's real microphone listens; the mic icon fills with the loudness of your voice.
+      const mic = root.querySelector('.vs-mic'), fill = root.querySelector('.vs-level');
+      if (window.GBRealVoice?.available && (window.GBRealVoice.listening || window.GBRealVoice.start({
+        level: l => { if (!fill?.isConnected) return; mic.classList.add('real'); fill.style.clipPath = `inset(${Math.round((1 - Math.max(0.08, l)) * 100)}% 0 0 0)`; },
+        state: s => { if (s === 'working' && mic?.isConnected) { mic.classList.add('real'); fill.style.clipPath = 'inset(0 0 0 0)'; } },
+        fail: () => { if (ui.view === 'voice-search' && (ui.vsState || 'listening') === 'listening') { ui.vsState = 'timeout'; ctx.render(); } }
+      }))) return;
       vsTimer = setTimeout(() => { if (ui.view === 'voice-search' && (ui.vsState || 'listening') === 'listening') { ui.vsState = 'timeout'; ctx.render(); } }, 5000);
     }
   }
@@ -357,9 +364,9 @@
       case 'ea-clear-cache': ctx.toast(GBPrefs.text('earth', lang, 'msg_clear_cache')); break;
       case 'ea-databases': ctx.dialog('ea-databases'); break;
       case 'ea-about': ctx.dialog('ea-about'); break;
-      case 'vs-help': clearTimeout(vsTimer); ui.vsState = 'help'; ctx.render(); break;
+      case 'vs-help': clearTimeout(vsTimer); window.GBRealVoice?.stop(); ui.vsState = 'help'; ctx.render(); break;
       case 'vs-again': ui.vsState = 'listening'; ctx.render(); break;
-      case 'vs-cancel': clearTimeout(vsTimer); ui.vsState = 'listening'; ctx.home(); break;
+      case 'vs-cancel': clearTimeout(vsTimer); window.GBRealVoice?.stop(); ui.vsState = 'listening'; ctx.home(); break;
       case 'vs-do': voiceDo(ctx, id); break;
       case 'ga-unsupported': close(); ctx.toast('This feature is not part of the simulator.'); break;
       default: return false;

@@ -206,3 +206,6 @@
 .screen .bk-dl-row>button{width:calc(48 * var(--dp));padding:0;border:0;background:none;display:grid;place-items:center}
 .bk-dl-row>button img{width:calc(32 * var(--dp));height:calc(32 * var(--dp))}
 .screen .bk-dl-row>button:active{background:#ffcd3a80}
+
+/* Launcher: the real microphone's loudness drives the mic fill instead of the breathing animation. */
+.vs-mic.real .vs-level{animation:none;transition:clip-path .09s linear}

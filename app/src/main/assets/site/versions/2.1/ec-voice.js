@@ -18,9 +18,16 @@
       mount: root => { if (state === 'listening') { let i = 0; const m = root.querySelector('.ecvs-mic'); level = setInterval(() => { if (!m.isConnected) { clearInterval(level); return; } i = (i + 1) % 6; m.src = `assets/vs-speak_now_level${[0, 3, 6, 3, 0, 0][i]}.png`; }, 250); } },
       buttons: state === 'error' ? [{label: V().t('try_again'), action: () => setTimeout(() => voiceSearch(c), 0)}, {label: V().t('cancel'), action: done}] : [{label: V().t('cancel'), action: done}],
       onCancel: done});
+    // Launcher APK: the phone's real microphone listens; the mic picture shows the loudness (speak_now_level0, 3 and 6).
+    if (state === 'listening' && window.GBRealVoice?.available && (window.GBRealVoice.listening || window.GBRealVoice.start({
+      level: l => { clearInterval(level); const m = document.querySelector('.ecvs-mic'); if (m) m.src = `assets/vs-speak_now_level${l < 0.3 ? 0 : l < 0.65 ? 3 : 6}.png`; },
+      state: s => { if (s === 'working' && c.ui.view === 'voice-search') voiceSearch(c, 'working'); },
+      fail: () => { if (c.ui.view === 'voice-search') voiceSearch(c, 'error'); }
+    }))) return;
+    if (state === 'working' && window.GBRealVoice?.listening) return;
     if (state === 'listening') timer = setTimeout(() => voiceSearch(c, 'working'), 3500);
     if (state === 'working') timer = setTimeout(() => voiceSearch(c, 'error'), 1500);
-    function done() { clearTimeout(timer); clearInterval(level); if (c.ui.view === 'voice-search') c.back(); }
+    function done() { clearTimeout(timer); clearInterval(level); window.GBRealVoice?.stop(); if (c.ui.view === 'voice-search') c.back(); }
   }
   function voiceDialer(c, state = 'listening') {
     clearTimeout(timer);
