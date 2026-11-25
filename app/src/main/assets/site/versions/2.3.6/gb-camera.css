@@ -59,3 +59,10 @@
 .gbcam-review-icon{display:flex;align-items:center;justify-content:center;width:calc(66 * var(--dp));height:calc(46.6667 * var(--dp));background:url('assets/gb-cam-btn_camera_review_normal.png') 0 0/100% 100%}
 .screen .gbcam-review:active .gbcam-review-icon{background-image:url('assets/gb-cam-btn_camera_review_pressed.png')}
 .gbcam-review-icon img{width:calc(36 * var(--dp));height:calc(36 * var(--dp))}
+
+/* Launcher: the picture fills the space above the control bar (no grey pattern above or below it), the white
+   see-through icon strip sits inside the picture's edges, and the focus rectangle always shows in the middle. */
+.screen .gbcam-frame{top:0}
+.screen .gbcam-preview{height:100%;max-height:none;aspect-ratio:auto}
+.screen .gbcam-iconbar{left:calc(3.3392 * var(--dp));right:calc(3.3392 * var(--dp))}
+.gbcam-focus.idle{background-image:url('assets/gb-cam-focus_focusing.png')}

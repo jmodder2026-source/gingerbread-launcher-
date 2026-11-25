@@ -83,7 +83,7 @@
       ['facing', `<img src="${icon('viewfinder', `camera_facing_${s.facing}`)}" alt="">`, T('pref_camera_id_title')]
     ];
     const bar = `<div class="gbcam-iconbar">${indicators.map(([key, inner, title]) => `<button class="gbcam-ind${ctx.popup === key ? ' active' : ''}" data-action="gbcam-popup" data-id="${key}" aria-label="${e(title)}">${inner}</button>`).reverse().join('')}</div>`;
-    const focus = ctx.focus ? `<span class="gbcam-focus ${e(ctx.focus)}"></span>` : '';
+    const focus = `<span class="gbcam-focus ${e(ctx.focus || 'idle')}"></span>`;
     const recording = video && ctx.recording ? `<div class="gbcam-rec"><img src="assets/gb-cam-ic_recording_indicator.png" alt=""><span>${e(ctx.recordTime || '00:00')}</span></div>` : '';
     const thumb = last ? `<img src="${window.ICSMedia.image(last)}" alt="">` : '';
     return `<div class="app-view gbcam${video ? ' video' : ''}" data-no-translate>
