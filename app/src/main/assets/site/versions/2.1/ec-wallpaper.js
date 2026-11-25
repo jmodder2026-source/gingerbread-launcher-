@@ -154,7 +154,8 @@
     init(c) {
       c.wallpaper = {
         offset(x) { offset = Math.max(0, Math.min(1, x)); c.el.screen.style.setProperty('--ec-wallpaper-x', `${offset * 100}%`); },
-        tap(x, y) { if (live?.tap) { const k = 480 / c.el.screen.clientWidth; live.tap(x * k, y * k, performance.now()); } },
+        // Only touches on the home screen itself reach the wallpaper (not the lock screen's sliders).
+        tap(x, y) { if (c.ui.view !== 'home' || c.ui.overlay) return; if (live?.tap) { const k = 480 / c.el.screen.clientWidth; live.tap(x * k, y * k, performance.now()); } },
         refresh() { ensure(c); wake(c); }
       };
       // Launcher2 starts on its middle screen: xOffset 0.5 until the home screen scrolls.
