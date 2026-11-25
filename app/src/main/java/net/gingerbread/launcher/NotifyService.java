@@ -98,16 +98,45 @@ public class NotifyService extends NotificationListenerService {
     public void onNotificationRemoved(StatusBarNotification sbn) { if (kind(sbn) != null) report(); }
 
     /** "sms", "email" or null for a notification the launcher does not show. */
+    // App stores and the phones' own updaters (application / system update available).
+    private static final Set<String> STORES = new HashSet<>(Arrays.asList("com.android.vending", "com.sec.android.app.samsungapps"));
+    private static final Set<String> UPDATERS = new HashSet<>(Arrays.asList("com.sec.android.soagent", "com.wssyncmldm", "com.android.updater",
+            "com.google.android.gms", "com.samsung.android.fmm", "com.oneplus.opbackup", "com.huawei.android.hwouc", "com.miui.updater"));
+    private static final Set<String> SYSTEM = new HashSet<>(Arrays.asList("android", "com.android.systemui", "com.android.settings", "com.android.phone"));
+
+    /**
+     * What kind of status bar notification this is for the launcher's Gingerbread icons, or null to leave it out:
+     * sms, smsfail, email, missed, voicemail, event, chat, music, download, upload, downloaded, update, sysupdate,
+     * datalimit, syncerr.
+     */
     private String kind(StatusBarNotification sbn) {
-        if (sbn == null || sbn.isOngoing()) return null;
+        if (sbn == null) return null;
         Notification n = sbn.getNotification();
         if ((n.flags & Notification.FLAG_GROUP_SUMMARY) != 0) return null;
-        String pkg = sbn.getPackageName();
+        String pkg = sbn.getPackageName(), cat = n.category == null ? "" : n.category;
+        Bundle x = n.extras;
+        CharSequence t1 = x.getCharSequence(Notification.EXTRA_TITLE), t2 = x.getCharSequence(Notification.EXTRA_TEXT);
+        String words = ((t1 == null ? "" : t1) + " " + (t2 == null ? "" : t2)).toLowerCase(java.util.Locale.ROOT);
+        String channel = android.os.Build.VERSION.SDK_INT >= 26 && n.getChannelId() != null ? n.getChannelId().toLowerCase(java.util.Locale.ROOT) : "";
+        boolean ongoing = sbn.isOngoing();
+        if (Notification.CATEGORY_TRANSPORT.equals(cat)) return "music";
+        if (Notification.CATEGORY_PROGRESS.equals(cat) || pkg.equals("com.android.providers.downloads")) {
+            if (ongoing) return words.contains("upload") ? "upload" : "download";
+            return words.contains("upload") ? null : "downloaded";
+        }
+        if (ongoing) return null;
         String sms = null;
         try { sms = Telephony.Sms.getDefaultSmsPackage(this); } catch (Exception ignored) { }
-        if (pkg.equals(sms) || SMS.contains(pkg)) return "sms";
-        if (EMAIL.contains(pkg) || Notification.CATEGORY_EMAIL.equals(n.category)) return "email";
-        if (Notification.CATEGORY_MESSAGE.equals(n.category) && pkg.equals(sms)) return "sms";
+        if ("missed_call".equals(cat)) return "missed";
+        if (channel.contains("voicemail") || words.contains("voicemail")) return "voicemail";
+        if (pkg.equals(sms) || SMS.contains(pkg)) return words.contains("not sent") || words.contains("failed") ? "smsfail" : "sms";
+        if (EMAIL.contains(pkg) || Notification.CATEGORY_EMAIL.equals(cat)) return "email";
+        if (Notification.CATEGORY_EVENT.equals(cat) || Notification.CATEGORY_REMINDER.equals(cat)) return "event";
+        if (Notification.CATEGORY_MESSAGE.equals(cat)) return "chat";
+        if (STORES.contains(pkg) && words.contains("update")) return "update";
+        if ((UPDATERS.contains(pkg) || Notification.CATEGORY_SYSTEM.equals(cat)) && (words.contains("system update") || words.contains("software update") || words.contains("update available"))) return "sysupdate";
+        if (SYSTEM.contains(pkg) && (words.contains("data limit") || words.contains("data warning") || words.contains("data usage"))) return "datalimit";
+        if (SYSTEM.contains(pkg) && words.contains("sync")) return "syncerr";
         return null;
     }
 

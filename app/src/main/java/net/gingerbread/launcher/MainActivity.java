@@ -126,6 +126,8 @@ public class MainActivity extends Activity {
     private volatile int signalLevel = 4;
     // Out of service / emergency calls only: the status bar shows "No signal" (bars with an x).
     private volatile boolean noService;
+    // Call forwarding is on (the carrier's indicator; needs the phone permission).
+    private volatile boolean callForward;
     private final android.os.Handler keys = new android.os.Handler(android.os.Looper.getMainLooper());
     // Mobile data moving (bytes in or out during the last second), checked while the launcher is on screen.
     private volatile boolean dataActive;
@@ -375,7 +377,63 @@ public class MainActivity extends Activity {
         return "{\"signal\":" + (noService ? -1 : signalLevel) + ",\"data\":\"" + dataType() + "\",\"dataActive\":" + dataActive + ",\"noSim\":" + noSim()
                 + ",\"airplane\":" + airplaneMode() + ",\"wifiLevel\":" + wifiLevel() + ",\"ringer\":\"" + ringer() + "\",\"bluetooth\":" + bt[0]
                 + ",\"bluetoothConnected\":" + bt[1] + ",\"roaming\":" + roaming() + ",\"headset\":" + headset()
-                + ",\"usb\":" + usbPlugged + ",\"adb\":" + (usbPlugged && adbOn()) + "}";
+                + ",\"usb\":" + usbPlugged + ",\"adb\":" + (usbPlugged && adbOn())
+                + ",\"vpn\":" + vpnOn() + ",\"syncing\":" + syncing() + ",\"lowStorage\":" + lowStorage() + ",\"openWifi\":" + openWifiNearby()
+                + ",\"tetherWifi\":" + hotspotOn() + ",\"tetherUsb\":" + usbTethered() + ",\"callForward\":" + callForward + "}";
+    }
+
+    @SuppressWarnings("deprecation")
+    private boolean vpnOn() {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            for (android.net.Network n : cm.getAllNetworks()) {
+                android.net.NetworkCapabilities c = cm.getNetworkCapabilities(n);
+                if (c != null && c.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)) return true;
+            }
+        } catch (Exception ignored) { }
+        return false;
+    }
+
+    private boolean syncing() {
+        try { return !ContentResolver.getCurrentSyncs().isEmpty(); } catch (Exception e) { return false; }
+    }
+
+    // Internal storage almost full (under 10% free), like Android's "storage space running out".
+    private boolean lowStorage() {
+        try {
+            android.os.StatFs fs = new android.os.StatFs(android.os.Environment.getDataDirectory().getPath());
+            return fs.getAvailableBytes() < fs.getTotalBytes() / 10;
+        } catch (Exception e) { return false; }
+    }
+
+    // Wi-Fi on but not connected, and an open (password-free) network in the last scan.
+    private boolean openWifiNearby() {
+        try {
+            WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            if (wm == null || !wm.isWifiEnabled() || wifiConnected()) return false;
+            for (android.net.wifi.ScanResult r : wm.getScanResults()) {
+                String caps = r.capabilities == null ? "" : r.capabilities;
+                if (r.SSID != null && !r.SSID.isEmpty() && !caps.contains("WPA") && !caps.contains("WEP") && !caps.contains("PSK") && !caps.contains("EAP") && !caps.contains("SAE")) return true;
+            }
+        } catch (Exception ignored) { }
+        return false;
+    }
+
+    // Portable Wi-Fi hotspot on (hidden API, read through reflection; false where the phone refuses).
+    private boolean hotspotOn() {
+        try {
+            WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            return (Boolean) WifiManager.class.getMethod("isWifiApEnabled").invoke(wm);
+        } catch (Throwable e) { return false; }
+    }
+
+    private boolean usbTethered() {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            String[] ifaces = (String[]) ConnectivityManager.class.getMethod("getTetheredIfaces").invoke(cm);
+            if (ifaces != null) for (String i : ifaces) if (i.startsWith("rndis") || i.startsWith("usb") || i.startsWith("ncm")) return true;
+        } catch (Throwable ignored) { }
+        return false;
     }
 
     private boolean roaming() {
@@ -419,6 +477,12 @@ public class MainActivity extends Activity {
                 }
 
                 @Override
+                public void onCallForwardingIndicatorChanged(boolean on) {
+                    callForward = on;
+                    tellPagePhone();
+                }
+
+                @Override
                 public void onServiceStateChanged(android.telephony.ServiceState state) {
                     int s = state == null ? android.telephony.ServiceState.STATE_IN_SERVICE : state.getState();
                     noService = s == android.telephony.ServiceState.STATE_OUT_OF_SERVICE || s == android.telephony.ServiceState.STATE_EMERGENCY_ONLY;
@@ -429,6 +493,9 @@ public class MainActivity extends Activity {
                 tm.listen(signalListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS | PhoneStateListener.LISTEN_DATA_CONNECTION_STATE | PhoneStateListener.LISTEN_SERVICE_STATE);
             } catch (SecurityException e) {
                 try { tm.listen(signalListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS); } catch (SecurityException ignored) { signalListener = null; }
+            }
+            if (signalListener != null && checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+                try { tm.listen(signalListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS | PhoneStateListener.LISTEN_DATA_CONNECTION_STATE | PhoneStateListener.LISTEN_SERVICE_STATE | PhoneStateListener.LISTEN_CALL_FORWARDING_INDICATOR); } catch (SecurityException ignored) { }
             }
         }
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -1883,7 +1950,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void askSms() {
-            runOnUiThread(() -> requestPermissions(new String[]{Manifest.permission.READ_SMS, Manifest.permission.READ_CONTACTS}, SMS_PERMISSION_REQUEST));
+            runOnUiThread(() -> requestPermissions(new String[]{Manifest.permission.READ_SMS, Manifest.permission.READ_CONTACTS, Manifest.permission.READ_PHONE_STATE}, SMS_PERMISSION_REQUEST));
         }
 
         @JavascriptInterface

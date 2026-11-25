@@ -213,7 +213,7 @@
       c.expandShade = () => expand(c);
       // The phone's own SMS and email notifications (launcher-apk.js, GBRealNotes) as Eclair rows, newest first.
       const syncReal = () => {
-        const real = window.GBRealNotes?.list() || [];
+        const real = (window.GBRealNotes?.list() || []).filter(n => n.kind === 'sms' || n.kind === 'email');
         const before = new Set((c.data.notifications || []).filter(n => n.realKey).map(n => n.id));
         const rows = real.map(n => ({id: `real:${n.key}`, realKey: n.key, when: n.when || Date.now(), title: n.title, text: n.text,
           icon: n.kind === 'email' ? (n.app === 'com.google.android.gm' ? 'rl-stat_notify_gmail.png' : 'rl-stat_notify_email.png') : 'mm-stat_notify_sms.png'}));

@@ -20,6 +20,11 @@
     // GPS (launcher): receiving location data while Google Maps is open, otherwise GPS is on while location is on.
     if (state.gpsFix) slots.push('gb-stat_sys_gps_fix_pic.png'); else if (state.gps) slots.push('gb-stat_sys_gps_on_pic.png');
     if (state.headset) slots.push('gb-stat_sys_headset.png');
+    if (state.callForward) slots.push('gb-stat_sys_call_forward_pic.png');
+    if (state.vpn) slots.push('gb-stat_sys_vpn_pic.png');
+    if (state.tetherWifi && state.tetherUsb) slots.push('gb-stat_sys_tether_general_pic.png');
+    else if (state.tetherWifi) slots.push('gb-stat_sys_tether_wifi.png');
+    else if (state.tetherUsb) slots.push('gb-stat_sys_tether_usb.png');
     if (state.speaker) slots.push('gb-stat_sys_speakerphone_pic.png');
     if (state.micMute) slots.push('gb-stat_sys_mic_mute_pic.png');
     if (state.ringer) slots.push(`gb-stat_sys_ringer_${state.ringer}.png`);
