@@ -39,7 +39,7 @@
     slots.push(state.airplane ? 'gb-u_airplane.png' : state.noSim ? 'gb-u_nosim.png' : state.signal === null || state.signal === -1 ? 'gb-u_nosignal.png' : state.roaming ? 'gb-u_roaming.png' : sig >= 4 ? 'gb-u_signal.png' : `gb-stat_sys_signal_${sig}_fully.png`);
     slots.push(batteryIcon(state.battery ?? 100, state.charging));
     if (state.alarm) slots.push('gb-u_alarm.png');
-    return slots.map(src => `<span class="gbsb-icon"><img src="assets/${src}" alt=""></span>`).join('');
+    return slots.map(src => `<span class="gbsb-icon"><img src="assets/${src}${src.startsWith('gb-u_') ? '?v=2' : ''}" alt=""></span>`).join('');
   }
   const notificationIcons = icons => icons.map(src => `<span class="gbsb-icon"><img src="assets/${src}" alt=""></span>`).join('');
 
