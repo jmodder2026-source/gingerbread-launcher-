@@ -141,6 +141,8 @@ public class MainActivity extends Activity {
     private BroadcastReceiver statusReceiver;
     private volatile int batteryLevel = 100;
     private volatile boolean batteryCharging;
+    // Plugged into a computer's USB port (the 2.3.6 "USB connected" and "USB debugging connected" notifications).
+    private volatile boolean usbPlugged;
     // The page's camera request, held while Android asks for the camera permission.
     private PermissionRequest pendingCamera;
 
@@ -249,6 +251,7 @@ public class MainActivity extends Activity {
         if (battery == null) return;
         int level = battery.getIntExtra(BatteryManager.EXTRA_LEVEL, -1), scale = battery.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
         if (level >= 0 && scale > 0) batteryLevel = Math.round(level * 100f / scale);
+        usbPlugged = battery.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) == BatteryManager.BATTERY_PLUGGED_USB;
         int status = battery.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
         batteryCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL && battery.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0;
     }
@@ -266,6 +269,7 @@ public class MainActivity extends Activity {
                 if (Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction())) {
                     readBattery(intent);
                     if (web != null) web.evaluateJavascript("window.gbRealBattery && window.gbRealBattery(" + batteryLevel + "," + batteryCharging + ")", null);
+                    tellPagePhone();
                 } else if (WifiManager.SCAN_RESULTS_AVAILABLE_ACTION.equals(intent.getAction())
                         || WifiManager.NETWORK_STATE_CHANGED_ACTION.equals(intent.getAction())
                         || WifiManager.WIFI_STATE_CHANGED_ACTION.equals(intent.getAction())) {
@@ -284,6 +288,7 @@ public class MainActivity extends Activity {
         IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         filter.addAction(AlarmManager.ACTION_NEXT_ALARM_CLOCK_CHANGED);
         filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        filter.addAction(AudioManager.ACTION_HEADSET_PLUG);
         filter.addAction(Intent.ACTION_SCREEN_OFF);
         filter.addAction(WifiManager.RSSI_CHANGED_ACTION);
         filter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
@@ -365,7 +370,27 @@ public class MainActivity extends Activity {
         boolean[] bt = bluetooth();
         return "{\"signal\":" + signalLevel + ",\"data\":\"" + dataType() + "\",\"dataActive\":" + dataActive + ",\"noSim\":" + noSim()
                 + ",\"airplane\":" + airplaneMode() + ",\"wifiLevel\":" + wifiLevel() + ",\"ringer\":\"" + ringer() + "\",\"bluetooth\":" + bt[0]
-                + ",\"bluetoothConnected\":" + bt[1] + "}";
+                + ",\"bluetoothConnected\":" + bt[1] + ",\"roaming\":" + roaming() + ",\"headset\":" + headset()
+                + ",\"usb\":" + usbPlugged + ",\"adb\":" + (usbPlugged && adbOn()) + "}";
+    }
+
+    private boolean roaming() {
+        try {
+            TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+            return tm != null && tm.isNetworkRoaming();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private boolean headset() {
+        AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        return am != null && am.isWiredHeadsetOn();
+    }
+
+    private boolean adbOn() {
+        try { return Settings.Global.getInt(getContentResolver(), Settings.Global.ADB_ENABLED, 0) == 1; } catch (Exception e) { return false; }
     }
 
     private void tellPagePhone() {

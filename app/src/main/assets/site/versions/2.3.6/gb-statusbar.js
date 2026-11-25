@@ -17,6 +17,7 @@
     const slots = [];
     if (state.bluetooth) slots.push(state.bluetoothConnected ? 'gb-stat_sys_data_bluetooth_connected.png' : 'gb-stat_sys_data_bluetooth.png');
     // GPS tray icon removed
+    if (state.headset) slots.push('gb-stat_sys_headset.png');
     if (state.speaker) slots.push('gb-stat_sys_speakerphone.png');
     if (state.micMute) slots.push('gb-stat_sys_mic_mute.png');
     if (state.ringer) slots.push(`gb-stat_sys_ringer_${state.ringer}.png`);
