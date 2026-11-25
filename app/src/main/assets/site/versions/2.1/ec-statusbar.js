@@ -122,7 +122,7 @@
       : `${ongoing.length ? title('status_bar_ongoing_events_title') + ongoing.map(n => item(c, n)).join('') : ''}${latest.length ? title('status_bar_latest_events_title') + latest.map(n => item(c, n)).join('') : ''}`;
     const carrier = c.data.settings.airplane ? '' : (c.data.settings.carrier || 'T-Mobile');
     return `<div class="ecsh" role="dialog" aria-label="${esc(c.t('Notifications'))}"><div class="ecsh-panel">
-      <div class="ecsh-header"><i class="ec-bg np-fw-status_bar_header_background"></i><div class="ecsh-carrier">${esc(carrier)}</div>${latest.length ? `<button type="button" class="ecsh-clear" data-action="ecsh-clear"><i class="ec-bg np-fw-btn_default_small_normal"></i><i class="ec-bg ec-pressed np-fw-btn_default_small_pressed"></i><span>${esc(T().t('status_bar_clear_all_button'))}</span></button>` : ''}</div>
+      <div class="ecsh-header"><i class="ec-bg np-fw-status_bar_header_background"></i><div class="ecsh-carrier">${esc(carrier)}</div>${latest.length ? `<button type="button" class="ecsh-clear" data-action="ecsh-clear"><i class="ec-bg np-fw-btn_default_small_normal"></i><i class="ec-bg ec-pressed np-fw-btn_default_small_pressed"></i><span>${esc(T().t('status_bar_clear_all_button'))}</span></button>` : ''}</div>${window.GBQuick ? window.GBQuick.markup('ecqt', 'ecqt-toggle') : ''}
       <div class="ecsh-scroll"><div class="ecsh-list">${body}</div><img class="ecsh-shadow" src="assets/fw-title_bar_shadow.9.png" alt=""></div>
       <div class="ecsh-close" data-action="ecsh-close" role="button" aria-label="${esc(c.t('Close'))}"><i></i><i></i><i></i><i></i><i></i></div></div></div>`;
   }
@@ -245,6 +245,7 @@
     action(name, el, event, c) {
       if ((c.suppressClick || 0) > Date.now()) return true;
       if (name === 'ecsh-close') { collapse(c); return true; }
+      if (name === 'ecqt-toggle') { window.GBQuick?.toggle(el.dataset.id); const again = () => { if (c.ui.overlay === 'shade') c.render(); }; setTimeout(again, 250); setTimeout(again, 1200); return true; }
       if (name === 'ecsh-clear') { window.GBRealNotes?.clear(); c.data.notifications = c.data.notifications.filter(n => n.ongoing); c.save(); c.render(); collapse(c); return true; }
       if (name === 'ecsh-open') {
         const n = c.data.notifications.find(x => String(x.id) === el.dataset.id);
@@ -260,4 +261,17 @@
     },
     menu() {}
   });
+})();
+
+(() => {
+  'use strict';
+  let lit = null;
+  const off = () => { const el = lit; lit = null; if (el) setTimeout(() => el.classList.remove('ec-down'), 90); };
+  document.addEventListener('pointerdown', event => {
+    const el = event.target.closest?.('button, [data-action], [role="button"]');
+    if (!el || !el.querySelector(':scope > .ec-pressed')) return;
+    off(); lit = el; el.classList.add('ec-down');
+  }, true);
+  for (const type of ['pointerup', 'pointercancel']) window.addEventListener(type, off, true);
+  window.addEventListener('scroll', off, true);
 })();

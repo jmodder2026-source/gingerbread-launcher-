@@ -488,3 +488,37 @@
     allow: () => { try { bridge?.askNotificationAccess?.(); } catch (error) { /* no bridge */ } }
   };
 })();
+
+/* Quick settings for the 2.1 shade (2.3.6 has its own row): the phone's real Wi-Fi, Bluetooth, GPS, Vibrate and Sound
+   (AndroidLauncher.settings / setSetting), drawn as five raised buttons that turn pink-red while on. */
+(() => {
+  'use strict';
+  const bridge = window.AndroidLauncher || null;
+  if (!bridge?.settings || !bridge?.setSetting) return;
+  const GLYPH = {
+    wifi: '<path d="M3 9.5a13 13 0 0 1 18 0M6 12.8a8.5 8.5 0 0 1 12 0M9 16a4 4 0 0 1 6 0"/><circle cx="12" cy="19" r="1.6" fill="currentColor" stroke="none"/>',
+    bluetooth: '<path d="M7 7.5l10 9-5 4.5V3l5 4.5-10 9"/>',
+    gps: '<circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/><path d="M12 2.5v3.5M12 18v3.5M2.5 12H6M18 12h3.5"/>',
+    vibrate: '<rect x="8" y="4" width="8" height="16" rx="1.5"/><path d="M5 8v8M2.5 10v4M19 8v8M21.5 10v4"/>',
+    sound: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15 9a4 4 0 0 1 0 6M17.5 6.5a7.5 7.5 0 0 1 0 11"/>'
+  };
+  const LABEL = {wifi: 'Wi-Fi', bluetooth: 'Bluetooth', gps: 'GPS', vibrate: 'Vibrate', sound: 'Sound'};
+  const read = () => { try { return JSON.parse(bridge.settings() || '{}') || {}; } catch (error) { return {}; } };
+  function state() {
+    const r = read();
+    return {wifi: !!r.wifi, bluetooth: !!r.bluetooth, gps: !!r.gps, vibrate: !!r.silent && !!r.vibrate, sound: !r.silent};
+  }
+  function toggle(id) {
+    const now = state();
+    try {
+      if (id === 'vibrate') bridge.setSetting('ringer', now.vibrate ? 'normal' : 'vibrate');
+      else if (id === 'sound') bridge.setSetting('ringer', now.sound ? 'silent' : 'normal');
+      else bridge.setSetting(id, String(!now[id]));
+    } catch (error) { /* the phone refused */ }
+  }
+  const markup = (cls, action) => {
+    const s = state();
+    return `<div class="${cls}">${Object.keys(GLYPH).map(id => `<button type="button" class="${cls}-btn${s[id] ? ' on' : ''}" data-action="${action}" data-id="${id}" aria-pressed="${s[id]}" aria-label="${LABEL[id]}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${GLYPH[id]}</svg></button>`).join('')}</div>`;
+  };
+  window.GBQuick = {state, toggle, markup};
+})();

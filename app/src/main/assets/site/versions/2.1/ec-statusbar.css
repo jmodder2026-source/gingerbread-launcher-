@@ -70,3 +70,12 @@
 .ecsh-close i:nth-child(3){width:calc(40 * var(--dp));background-size:calc(61.333 * var(--dp)) 100%;background-position:calc(-10.667 * var(--dp)) 0}
 .ecsh-close i:nth-child(4){flex:1;background-size:9200% 100%;background-position:83.5165% 0}
 .ecsh-close i:nth-child(5){width:calc(10 * var(--dp));background-size:calc(61.333 * var(--dp)) 100%;background-position:100% 0}
+
+/* Launcher: a touched button shows its pressed (orange) image (ec-statusbar.js adds ec-down on the touch). */
+.ec-down>.ec-pressed{opacity:1}
+/* Launcher: quick settings row under the shade header: five raised grey buttons, pink-red while on. */
+.ecqt{position:relative;z-index:2;flex:none;display:flex;gap:calc(5 * var(--dp));padding:calc(6 * var(--dp));background:linear-gradient(#dcdcdc,#b9b9b9);border-bottom:1px solid #7d7d7d}
+.ecqt-btn{position:relative;flex:1;height:calc(46 * var(--dp));margin:0;padding:0;display:grid;place-items:center;border:1px solid #8c8c8c;border-radius:calc(4 * var(--dp));background:linear-gradient(#fbfbfb,#d9d9d9);box-shadow:inset 0 1px 0 #fff,0 1px 2px #0005;color:#6b6b6b;cursor:pointer}
+.ecqt-btn svg{width:calc(28 * var(--dp));height:calc(28 * var(--dp))}
+.ecqt-btn.on{color:#e3176e;background:linear-gradient(#fff6fa,#ebd3dd)}
+.ecqt-btn:active,.ecqt-btn.ec-down{background:linear-gradient(#ffcf7a,#ff9a00);color:#fff}
