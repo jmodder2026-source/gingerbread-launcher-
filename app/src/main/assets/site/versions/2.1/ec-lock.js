@@ -168,6 +168,12 @@
     if (root.querySelector('.eclk-pattern')) { mountUnlock(c, root); return; }
     const bar = root.querySelector('.ecst');
     if (!bar) return;
+    // A touch anywhere else on the lock screen reaches the live wallpaper at once (Nexus sends out a pulse there).
+    if (!root.dataset.wpTouch) root.dataset.wpTouch = '1', root.addEventListener('pointerdown', event => {
+      if (event.target.closest('.ecst') || EC.context?.ui.view !== 'lock') return;
+      const r = c.el.screen.getBoundingClientRect();
+      c.wallpaper?.tap(event.clientX - r.left, event.clientY - r.top);
+    });
     const px = c.el.screen.clientWidth / 320 / 1.5;
     bar.addEventListener('pointerdown', event => {
       const tab = event.target.closest('.ecst-tab');
@@ -199,12 +205,18 @@
     });
     for (const type of ['pointerup', 'pointercancel']) bar.addEventListener(type, event => { if (grab && event.pointerId === grab.id && !grab.triggered) release(c, true); });
   }
-  // Sliding a tab sends light pulses into the live wallpaper (Nexus) under the finger, every 24 dp of travel.
+  // Sliding a tab sends light pulses into the live wallpaper (Nexus) under the finger: the faster the slide, the closer
+  // together they come (every 24 dp when slow, down to every 6 dp when quick).
   function pulse(c, event) {
     const p = grab?.pulse; if (!p) return;
-    const now = performance.now(), step = 24 * c.el.screen.clientWidth / 320;
-    if (p.t && Math.abs(event.clientX - p.x) < step && now - p.t < 400) return;
-    p.x = event.clientX; p.t = now;
+    const now = performance.now(), dp = c.el.screen.clientWidth / 320, dx = Math.abs(event.clientX - p.x);
+    if (p.t) {
+      const speed = Math.abs(event.clientX - (p.lx ?? p.x)) / Math.max(1, now - p.lt) / dp;   // dp per millisecond
+      p.lt = now; p.lx = event.clientX;
+      const step = Math.max(6, 24 / (1 + speed * 3)) * dp;
+      if (dx < step) return;
+    }
+    p.x = event.clientX; p.t = now; p.lt = p.lt || now;
     const r = c.el.screen.getBoundingClientRect();
     c.wallpaper?.tap(event.clientX - r.left, event.clientY - r.top);
   }
