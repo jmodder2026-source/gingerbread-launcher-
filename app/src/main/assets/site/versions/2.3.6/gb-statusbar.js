@@ -17,6 +17,8 @@
     const slots = [];
     if (state.bluetooth) slots.push(state.bluetoothConnected ? 'gb-stat_sys_data_bluetooth_connected.png' : 'gb-stat_sys_data_bluetooth.png');
     // GPS tray icon removed
+    // GPS (launcher): receiving location data while Google Maps is open, otherwise GPS is on while location is on.
+    if (state.gpsFix) slots.push('gb-stat_sys_gps_fix_pic.png'); else if (state.gps) slots.push('gb-stat_sys_gps_on_pic.png');
     if (state.headset) slots.push('gb-stat_sys_headset.png');
     if (state.speaker) slots.push('gb-stat_sys_speakerphone_pic.png');
     if (state.micMute) slots.push('gb-stat_sys_mic_mute_pic.png');

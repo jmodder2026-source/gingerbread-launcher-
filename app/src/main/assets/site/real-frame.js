@@ -106,11 +106,13 @@
     go(url);
     clearInterval(timer); timer = setInterval(sync, 120);
     sync();
+    window.dispatchEvent(new Event('gb-real-wifi'));      // the status bar redraws (GPS receiving icon)
   }
   function close() {
     if (!root || root.hidden) return;
     root.hidden = true; clearInterval(timer); timer = 0; placed = '';
     bridge.webClose?.();
+    window.dispatchEvent(new Event('gb-real-wifi'));
   }
   // Keep the native view over the placeholder, or hide it while something of the simulator covers it.
   function sync() {
