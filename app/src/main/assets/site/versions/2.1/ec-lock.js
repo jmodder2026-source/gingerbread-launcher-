@@ -181,6 +181,8 @@
       el.classList.add('grabbed');
       // Slider.hide(): the other tab slides off to its own edge.
       other.classList.add('hidden');
+      grab.pulse = {x: event.clientX, t: 0};
+      pulse(c, event);
       event.preventDefault();
     });
     bar.addEventListener('pointermove', event => {
@@ -191,10 +193,20 @@
       const width = rect.width, threshold = 2 / 3 * width;
       const dx = side === 'left' ? Math.max(0, x - grab.start) : Math.min(0, x - grab.start);
       move(el, dx);
+      pulse(c, event);
       const reached = side === 'left' ? x > threshold : x < width - threshold;
       if (reached) trigger(c);
     });
     for (const type of ['pointerup', 'pointercancel']) bar.addEventListener(type, event => { if (grab && event.pointerId === grab.id && !grab.triggered) release(c, true); });
+  }
+  // Sliding a tab sends light pulses into the live wallpaper (Nexus) under the finger, every 24 dp of travel.
+  function pulse(c, event) {
+    const p = grab?.pulse; if (!p) return;
+    const now = performance.now(), step = 24 * c.el.screen.clientWidth / 320;
+    if (p.t && Math.abs(event.clientX - p.x) < step && now - p.t < 400) return;
+    p.x = event.clientX; p.t = now;
+    const r = c.el.screen.getBoundingClientRect();
+    c.wallpaper?.tap(event.clientX - r.left, event.clientY - r.top);
   }
   function release(c, animate) {
     const {el, other, side} = grab; grab = null;
